@@ -19,7 +19,8 @@ def main(repo: str, tag: str, owner: str = "frappe"):
 	body = release["body"]
 	print("-" * 4, "Original", "-" * 4)
 	print(body)
-
+	print("")
+	print("-" * 4, "Modified", "-" * 4)
 	body_lines = body.split("\n")
 	for i, line in enumerate(body_lines.copy()):
 		if not line.startswith("* "):
@@ -44,9 +45,11 @@ def main(repo: str, tag: str, owner: str = "frappe"):
 			pr_sentence = pr_sentence.lstrip(" -")
 			body_lines[i] = f"* {pr_sentence} {pr_web_url}"
 
-	new_body = "\n".join(body_lines)
-	print("-" * 4, "Modified", "-" * 4)
-	print(new_body)
+		print(body_lines[i])
+
+	# print remaining lines
+	for x in range(i - 1, len(body_lines)):
+		print(body_lines[x])
 
 
 def get_pr_sentence(pr_title: str, pr_body: str, pr_patch: str) -> str:
