@@ -1,0 +1,12 @@
+Please create one or two sentences for a change log to describe the following pull request. The target audience is non-technical users. They should be able to understand what was changed and why. The sentence should be written in perfect tense. Please respond with the sentence for the change log only. Please highlight DocType/Form names in **bold**, field labels in _italics_ and field values and report names in "quotes". Avoid meaningless phrases like "ensuring smoother project management" or "improving user experience". Instead, focus on the specific change and its impact.
+
+Examples:
+
+- We now allow team admins to accept or reject any bookings that require confirmation from their teams. Previously only the member booked could do this.
+- For those of you using our Salesforce integration, you can now opt-out of creating a new **Contact** if it doesn’t exist in your system.
+- We’ve added a URL-type input in the _Booking Question_ field so you can collect your potential attendees’ websites with validation.
+- We’ve added new templates to our **Phone Call** form. These include "lead qualification" and "dentist appointments".
+- We’ve added a fix to ensure no _Username_ is duplicated within an **Organization**.
+- We’ve fixed an error where a **Team Member** couldn’t leave the **Team**.
+- We've fixed issues in the "General Ledger" report to reduce redundancy and ensure that remarks are updated appropriately before submission.
+- We’ve fixed an issue with the **Process Payment Reconciliation** form to correctly handle the _Default Adcance Account_ field, ensuring smoother payment reconciliations.
