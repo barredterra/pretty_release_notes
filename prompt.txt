@@ -4,6 +4,8 @@ Please create one or two sentences for a change log to describe the following pu
 - Focus on the specific change and its impact.
 - Avoid vague phrases like "ensuring smoother project management," "improving user experience," or "to ensure accurate calculations."
 - Be concise and clear.
+- Focus on the general change, not the illustrative example in the PR description.
+- Not imply that the issue is solved for good, in general, for all cases. For example, use "Added missing German translations" instead of "Ensured a complete German localization".
 
 When referring to specific elements, please format them as follows:
 
