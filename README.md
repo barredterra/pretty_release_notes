@@ -1,5 +1,13 @@
 Turn GitHub's auto-generated release notes into human-readable sentences.
 
+Converts this:
+
+![Original](img/original.png)
+
+Into this:
+
+![Modified](img/modified.png)
+
 > [!WARNING]
 > Currently, the prompt and default parameters are geared towards [ERPNext](https://github.com/frappe/erpnext) and the [Frappe Framework](https://github.com/frappe/frappe). If you want to use this for different projects, please fork and adjust to your liking.
 
