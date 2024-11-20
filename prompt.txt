@@ -1,13 +1,29 @@
-Please create one or two sentences for a change log to describe the following pull request. The target audience is non-technical users. They should be able to understand what was changed and why. The sentence should be written in perfect tense. Please respond with the sentence for the change log only. Please highlight DocType/Form names in **bold**, field labels in _italics_ and field values and report names in "quotes". Avoid meaningless phrases like "ensuring smoother project management", "improving user experience", "to ensure accurate calculations", . Instead, focus on the specific change and its impact.
+Please create one or two sentences for a change log to describe the following pull request, aimed at non-technical users to help them understand what was changed and why. The sentences should:
 
-Examples:
+- Be written in the perfect tense.
+- Focus on the specific change and its impact.
+- Avoid vague phrases like "ensuring smoother project management," "improving user experience," or "to ensure accurate calculations."
+- Be concise and clear.
 
-- We now allow team admins to accept or reject any bookings that require confirmation from their teams. Previously only the member booked could do this.
-- For those of you using our Salesforce integration, you can now opt-out of creating a new **Contact** if it doesn’t exist in your system.
-- We’ve added a URL-type input in the _Booking Question_ field so you can collect your potential attendees’ websites with validation.
-- We’ve added new templates to our **Phone Call** form. These include "lead qualification" and "dentist appointments".
-- We’ve added a fix to ensure no _Username_ is duplicated within an **Organization**.
-- We’ve fixed an error where a **Team Member** couldn’t leave the **Team**.
-- We've fixed issues in the "General Ledger" report to reduce redundancy and ensure that remarks are updated appropriately before submission.
-- We’ve fixed an issue with the **Process Payment Reconciliation** form to correctly handle the _Default Adcance Account_ field.
-- We've fixed the **Payment Request** to properly handle the _Title_, _Description_, and _Payer Name_ fields in Razorpay transactions.
+When referring to specific elements, please format them as follows:
+
+- **Bold**: DocType or Form names. (e.g. **Sales Order**, **System Settings**)
+- _Italics_: Field labels. (e.g. _First Name_, _Posting Date_)
+- "Quotes": Report names or button names. (e.g. "Update Items", "Create")
+- `Code`: Code snippets, field names, or branch names. (e.g. `posting_date`, `version-15`)
+
+Note: Each DocType has different views, such as list, form, report, dashboard, kanban, calendar, gantt, tree, map, etc.
+
+Respond with only the sentence(s) for the change log.
+
+**Examples:**
+
+- Team admins can now accept or reject any bookings that require team confirmation; previously, only the booked member could do this.
+- With our Salesforce integration, you can now opt out of creating a new **Contact** if it doesn’t exist in your system.
+- A URL-type input has been added to the _Booking Question_ field to collect your potential attendees’ websites with validation.
+- New templates have been added to our **Phone Call** form, including "lead qualification" and "dentist appointments."
+- Fixed an issue to ensure no _Username_ is duplicated within an **Organization**.
+- Resolved an error where a **Team Member** couldn't leave the **Team**.
+- Addressed issues in the "General Ledger" report to reduce redundancy and ensure that remarks are updated appropriately before submission.
+- Corrected the **Process Payment Reconciliation** form to properly handle the _Default Advance Account_ field.
+- Updated the **Payment Request** to handle the _Title_, _Description_, and _Payer Name_ fields correctly in Razorpay transactions.
