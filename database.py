@@ -7,15 +7,15 @@ class Database:
 	def __init__(self, path: Path):
 		self.path = path
 
-	def get_line(self, owner, repo, pr_no) -> str | None:
+	def get_sentence(self, owner, repo, pr_no) -> str | None:
 		pass
 
-	def store_line(self, owner, repo, pr_no, line) -> None:
+	def store_sentence(self, owner, repo, pr_no, line) -> None:
 		pass
 
 
 class CSVDatabase(Database):
-	def get_line(self, owner, repo, pr_no):
+	def get_sentence(self, owner, repo, pr_no):
 		if not self.path.exists():
 			return None
 
@@ -31,7 +31,7 @@ class CSVDatabase(Database):
 
 		return None
 
-	def store_line(self, owner, repo, pr_no, line):
+	def store_sentence(self, owner, repo, pr_no, line):
 		write_header = not self.path.exists()
 		with open(self.path, "a") as f:
 			writer = DictWriter(f, ["owner", "repo", "pr_no", "line"])
@@ -50,7 +50,7 @@ class SQLiteDatabase(Database):
 		self.conn = sqlite3.connect(path)
 		self.cursor = self.conn.cursor()
 
-	def get_line(self, owner, repo, pr_no):
+	def get_sentence(self, owner, repo, pr_no):
 		self._create_table()
 		self.cursor.execute(
 			"SELECT line FROM lines WHERE owner = ? AND repo = ? AND pr_no = ?",
@@ -59,7 +59,7 @@ class SQLiteDatabase(Database):
 		result = self.cursor.fetchone()
 		return result[0] if result else None
 
-	def store_line(self, owner, repo, pr_no, line):
+	def store_sentence(self, owner, repo, pr_no, line):
 		self._create_table()
 
 		self.cursor.execute(

@@ -42,9 +42,9 @@ def main(repo: str, tag: str, owner: str = "frappe"):
 		if original_pr_match:
 			original_pr_no = original_pr_match[1]
 
-		stored_line = db.get_line(owner, repo, original_pr_no or pr_no)
-		if stored_line:
-			body_lines[i] = stored_line
+		stored_sentence = db.get_sentence(owner, repo, original_pr_no or pr_no)
+		if stored_sentence:
+			body_lines[i] = format_line(stored_sentence, pr_web_url)
 			print(body_lines[i])
 			continue
 
@@ -58,9 +58,8 @@ def main(repo: str, tag: str, owner: str = "frappe"):
 		pr_sentence = get_pr_sentence(pr_title, pr_body, pr_patch)
 		if pr_sentence:
 			pr_sentence = pr_sentence.lstrip(" -")
-			new_line = f"* {pr_sentence} {pr_web_url}"
-			body_lines[i] = new_line
-			db.store_line(owner, repo, original_pr_no or pr_no, new_line)
+			db.store_sentence(owner, repo, original_pr_no or pr_no, pr_sentence)
+			body_lines[i] = format_line(pr_sentence, pr_web_url)
 
 		print(body_lines[i])
 
@@ -92,6 +91,10 @@ def get_pr_sentence(pr_title: str, pr_body: str, pr_patch: str) -> str:
 		return ""
 
 	return chat_completion.choices[0].message.content
+
+
+def format_line(sentence: str, url: str) -> str:
+	return f"* {sentence} {url}"
 
 
 def get_db() -> Database:
