@@ -10,7 +10,7 @@ class Database:
 	def get_sentence(self, owner, repo, pr_no) -> str | None:
 		pass
 
-	def store_sentence(self, owner, repo, pr_no, line) -> None:
+	def store_sentence(self, owner, repo, pr_no, sentence) -> None:
 		pass
 
 
@@ -20,27 +20,27 @@ class CSVDatabase(Database):
 			return None
 
 		with open(self.path, "r") as f:
-			reader = DictReader(f, fieldnames=["owner", "repo", "pr_no", "line"])
+			reader = DictReader(f, fieldnames=["owner", "repo", "pr_no", "sentence"])
 			for row in reader:
 				if (
 					row["owner"] == owner
 					and row["repo"] == repo
 					and row["pr_no"] == pr_no
 				):
-					return row["line"]
+					return row["sentence"]
 
 		return None
 
-	def store_sentence(self, owner, repo, pr_no, line):
+	def store_sentence(self, owner, repo, pr_no, sentence):
 		write_header = not self.path.exists()
 		with open(self.path, "a") as f:
-			writer = DictWriter(f, ["owner", "repo", "pr_no", "line"])
+			writer = DictWriter(f, ["owner", "repo", "pr_no", "sentence"])
 
 			if write_header:
 				writer.writeheader()
 
 			writer.writerow(
-				{"owner": owner, "repo": repo, "pr_no": pr_no, "line": line}
+				{"owner": owner, "repo": repo, "pr_no": pr_no, "sentence": sentence}
 			)
 
 
@@ -53,26 +53,26 @@ class SQLiteDatabase(Database):
 	def get_sentence(self, owner, repo, pr_no):
 		self._create_table()
 		self.cursor.execute(
-			"SELECT line FROM lines WHERE owner = ? AND repo = ? AND pr_no = ?",
+			"SELECT sentence FROM sentences WHERE owner = ? AND repo = ? AND pr_no = ?",
 			(owner, repo, pr_no),
 		)
 		result = self.cursor.fetchone()
 		return result[0] if result else None
 
-	def store_sentence(self, owner, repo, pr_no, line):
+	def store_sentence(self, owner, repo, pr_no, sentence):
 		self._create_table()
 
 		self.cursor.execute(
-			"INSERT INTO lines (owner, repo, pr_no, line) VALUES (?, ?, ?, ?)",
-			(owner, repo, pr_no, line),
+			"INSERT INTO sentences (owner, repo, pr_no, sentence) VALUES (?, ?, ?, ?)",
+			(owner, repo, pr_no, sentence),
 		)
 		self.conn.commit()
 
 	def _create_table(self):
 		self.cursor.execute(
-			"CREATE TABLE IF NOT EXISTS lines (owner TEXT, repo TEXT, pr_no TEXT, line TEXT)"
+			"CREATE TABLE IF NOT EXISTS sentences (owner TEXT, repo TEXT, pr_no TEXT, sentence TEXT)"
 		)
 		self.cursor.execute(
-			"CREATE INDEX IF NOT EXISTS idx_owner_repo_pr_no ON lines (owner, repo, pr_no)"
+			"CREATE INDEX IF NOT EXISTS idx_owner_repo_pr_no ON sentences (owner, repo, pr_no)"
 		)
 		self.conn.commit()
