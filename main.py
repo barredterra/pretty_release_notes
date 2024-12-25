@@ -6,14 +6,17 @@ from dotenv import dotenv_values
 from openai import OpenAI
 
 from github import GitHubClient
+from database import Database, CSVDatabase, SQLiteDatabase
 
 app = typer.Typer()
 config = dotenv_values(".env")
 pr_re = re.compile(r"pull/(\d+)")  # reqex to find PR number
+DB_NAME = "stored_lines"
 
 
 @app.command()
 def main(repo: str, tag: str, owner: str = "frappe"):
+	db = get_db()
 	github = GitHubClient(config["GH_TOKEN"])
 	release = github.get_release(owner, repo, tag)
 	body = release["body"]
@@ -33,6 +36,18 @@ def main(repo: str, tag: str, owner: str = "frappe"):
 		pr = github.get_pr(owner, repo, pr_no)
 		pr_web_url = pr["html_url"]
 		pr_title = pr["title"]
+
+		original_pr_no = None
+		original_pr_match = re.search(r"\(backport #(\d+)\)", pr_title)
+		if original_pr_match:
+			original_pr_no = original_pr_match[1]
+
+		stored_line = db.get_line(owner, repo, original_pr_no or pr_no)
+		if stored_line:
+			body_lines[i] = stored_line
+			print(body_lines[i])
+			continue
+
 		pr_body = pr["body"]
 		pr_patch = github.get_text(pr["patch_url"])
 		if len(pr_patch) > int(config["MAX_PATCH_SIZE"]):
@@ -43,7 +58,9 @@ def main(repo: str, tag: str, owner: str = "frappe"):
 		pr_sentence = get_pr_sentence(pr_title, pr_body, pr_patch)
 		if pr_sentence:
 			pr_sentence = pr_sentence.lstrip(" -")
-			body_lines[i] = f"* {pr_sentence} {pr_web_url}"
+			new_line = f"* {pr_sentence} {pr_web_url}"
+			body_lines[i] = new_line
+			db.store_line(owner, repo, original_pr_no or pr_no, new_line)
 
 		print(body_lines[i])
 
@@ -75,6 +92,18 @@ def get_pr_sentence(pr_title: str, pr_body: str, pr_patch: str) -> str:
 		return ""
 
 	return chat_completion.choices[0].message.content
+
+
+def get_db() -> Database:
+	db_type = config["DB_TYPE"]
+	db_path = Path(DB_NAME)
+
+	if db_type == "csv":
+		return CSVDatabase(db_path.with_suffix(".csv"))
+	elif db_type == "sqlite":
+		return SQLiteDatabase(db_path.with_suffix(".sqlite"))
+	else:
+		raise ValueError(f"Invalid database type: {db_type}")
 
 
 if __name__ == "__main__":

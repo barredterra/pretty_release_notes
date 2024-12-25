@@ -15,6 +15,8 @@ Into this:
 
 Copy `.env.example` to `.env` and fill in your GitHub token and OpenAI API key.
 
+You can choose a database type by setting the `DB_TYPE` environment variable. Currently supported are `csv` and `sqlite`.
+
 ## Usage
 
 ```bash
