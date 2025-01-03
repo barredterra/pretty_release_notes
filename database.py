@@ -15,12 +15,14 @@ class Database:
 
 
 class CSVDatabase(Database):
+	columns = ["owner", "repo", "pr_no", "sentence"]
+
 	def get_sentence(self, owner, repo, pr_no):
 		if not self.path.exists():
 			return None
 
 		with open(self.path, "r") as f:
-			reader = DictReader(f, fieldnames=["owner", "repo", "pr_no", "sentence"])
+			reader = DictReader(f, fieldnames=self.columns)
 			for row in reader:
 				if (
 					row["owner"] == owner
@@ -34,7 +36,7 @@ class CSVDatabase(Database):
 	def store_sentence(self, owner, repo, pr_no, sentence):
 		write_header = not self.path.exists()
 		with open(self.path, "a") as f:
-			writer = DictWriter(f, ["owner", "repo", "pr_no", "sentence"])
+			writer = DictWriter(f, self.columns)
 
 			if write_header:
 				writer.writeheader()
