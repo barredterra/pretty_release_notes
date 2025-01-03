@@ -55,7 +55,16 @@ def main(repo: str, tag: str, owner: str = "frappe"):
 				commit["commit"]["message"]
 				for commit in github.get_commit_messages(pr["commits_url"])
 			)
-		pr_sentence = get_pr_sentence(pr_title, pr_body, pr_patch)
+
+		closed_issues = github.get_closed_issues(owner, repo, pr_no) or github.get_closed_issues(owner, repo, original_pr_no)
+
+		issue_body = None
+		issue_title = None
+		if closed_issues:
+			issue_body = closed_issues[0]["node"]["body"]
+			issue_title = closed_issues[0]["node"]["title"]
+
+		pr_sentence = get_pr_sentence(pr_title, pr_body, pr_patch, issue_body, issue_title)
 		if pr_sentence:
 			pr_sentence = pr_sentence.lstrip(" -")
 			db.store_sentence(owner, repo, original_pr_no or pr_no, pr_sentence)
@@ -68,25 +77,33 @@ def main(repo: str, tag: str, owner: str = "frappe"):
 		print(body_lines[x])
 
 
-def get_pr_sentence(pr_title: str, pr_body: str, pr_patch: str) -> str:
+def get_pr_sentence(pr_title: str, pr_body: str, pr_patch: str, issue_body: str, issue_title: str) -> str:
 	"""Get a single sentence to describe a PR."""
 	client = OpenAI(
 		# This is the default and can be omitted
 		api_key=config["OPENAI_API_KEY"],
 	)
 	prompt = Path("prompt.txt").read_text()
+	pr_text = f"""PR Title: {pr_title}\n\nPR Body: {pr_body}\n\nPR Patch or commit messages: {pr_patch}"""
+	issue_text = f"""Issue Title: {issue_title}\n\nIssue Body: {issue_body}""" if issue_title and issue_body else ""
+	content = prompt
+
+	if issue_text:
+		content += f"\n\n\n{issue_text}"
+
+	content += f"\n\n\n{pr_text}"
 
 	try:
 		chat_completion = client.chat.completions.create(
 			messages=[
 				{
 					"role": "user",
-					"content": f"""{prompt}\n\nPR Title: {pr_title}\n\nPR Body: {pr_body}\n\nPR Patch or commit messages: {pr_patch}""",
+					"content": content,
 				}
 			],
 			model=config["OPENAI_MODEL"],
 		)
-	except:
+	except Exception:
 		print("Error in OpenAI API")
 		return ""
 

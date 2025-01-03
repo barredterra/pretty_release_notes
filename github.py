@@ -16,6 +16,36 @@ class GitHubClient:
 		"""Get patch from GitHub API."""
 		return self.session.get(url).text
 
+	def get_closed_issues(
+		self, owner: str, repo: str, pr_no: str, first: int = 1
+	) -> list[dict]:
+		"""Get a list of issues (title and body) that are closed by a PR."""
+		response = self.session.post(
+			"https://api.github.com/graphql",
+			json={
+				"query": f"""
+					query {{
+						repository(owner: "{owner}", name: "{repo}") {{
+							pullRequest(number: {pr_no}) {{
+								closingIssuesReferences (first: {first}) {{
+									edges {{
+										node {{
+											body
+											title
+										}}
+									}}
+								}}
+							}}
+						}}
+					}}
+				"""
+			},
+		).json()
+
+		return response["data"]["repository"]["pullRequest"]["closingIssuesReferences"][
+			"edges"
+		]
+
 	def get_pr(self, owner: str, repo: str, pr_no: str) -> dict:
 		"""Get PR information from GitHub API."""
 		return self.session.get(
