@@ -13,6 +13,9 @@ class Database:
 	def store_sentence(self, owner, repo, pr_no, sentence) -> None:
 		pass
 
+	def delete_sentence(self, owner, repo, pr_no) -> None:
+		pass
+
 
 class CSVDatabase(Database):
 	columns = ["owner", "repo", "pr_no", "sentence"]
@@ -45,6 +48,20 @@ class CSVDatabase(Database):
 				{"owner": owner, "repo": repo, "pr_no": pr_no, "sentence": sentence}
 			)
 
+	def delete_sentence(self, owner, repo, pr_no):
+		with open(self.path, "r") as f:
+			reader = DictReader(f, fieldnames=self.columns)
+			rows = [
+				row
+				for row in reader
+				if row["owner"] != owner or row["repo"] != repo or row["pr_no"] != pr_no
+			]
+
+		with open(self.path, "w") as f:
+			writer = DictWriter(f, self.columns)
+			writer.writeheader()
+			writer.writerows(rows)
+
 
 class SQLiteDatabase(Database):
 	def __init__(self, path: Path):
@@ -67,6 +84,14 @@ class SQLiteDatabase(Database):
 		self.cursor.execute(
 			"INSERT INTO sentences (owner, repo, pr_no, sentence) VALUES (?, ?, ?, ?)",
 			(owner, repo, pr_no, sentence),
+		)
+		self.conn.commit()
+
+	def delete_sentence(self, owner, repo, pr_no):
+		self._create_table()
+		self.cursor.execute(
+			"DELETE FROM sentences WHERE owner = ? AND repo = ? AND pr_no = ?",
+			(owner, repo, pr_no),
 		)
 		self.conn.commit()
 
