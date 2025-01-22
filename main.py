@@ -26,6 +26,9 @@ def main(repo: str, tag: str, owner: str = "frappe"):
 	print("-" * 4, "Modified", "-" * 4)
 	body_lines = body.split("\n")
 	for i, line in enumerate(body_lines.copy()):
+		if line.strip() == "## New Contributors":
+			break
+
 		if not line.startswith("* "):
 			continue
 		line = line[2:]
