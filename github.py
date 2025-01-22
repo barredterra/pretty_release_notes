@@ -42,6 +42,9 @@ class GitHubClient:
 			},
 		).json()
 
+		if "data" not in response:
+			return []
+
 		return response["data"]["repository"]["pullRequest"]["closingIssuesReferences"][
 			"edges"
 		]
