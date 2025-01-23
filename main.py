@@ -30,7 +30,9 @@ def main(repo: str, tag: str, owner: str = "frappe"):
 			break
 
 		if not line.startswith("* "):
+			print(line)
 			continue
+
 		line = line[2:]
 		match = pr_re.search(line)
 		if not match:
@@ -106,8 +108,8 @@ def get_pr_sentence(pr_title: str, pr_body: str, pr_patch: str, issue_body: str,
 			],
 			model=config["OPENAI_MODEL"],
 		)
-	except Exception:
-		print("Error in OpenAI API")
+	except Exception as e:
+		print("Error in OpenAI API", e)
 		return ""
 
 	return chat_completion.choices[0].message.content
