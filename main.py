@@ -27,12 +27,12 @@ def main(repo: str, tag: str, owner: str = "frappe"):
 	print("-" * 4, "Processing PRs", "-" * 4)
 	release_notes = ReleaseNotes()
 	release_notes.parse(body)
-	for i, (sentence, pr_url, pr_no) in enumerate(release_notes.whats_changed):
-		if not pr_no:
-			print(release_notes.format_line(i))
+	for i, line in enumerate(release_notes.whats_changed):
+		if not line.pr_no:
+			print(line)
 			continue
 
-		pr = github.get_pr(owner, repo, pr_no)
+		pr = github.get_pr(owner, repo, line.pr_no)
 		pr_title = pr["title"]
 
 		original_pr_no = None
@@ -40,10 +40,10 @@ def main(repo: str, tag: str, owner: str = "frappe"):
 		if original_pr_match:
 			original_pr_no = original_pr_match[1]
 
-		stored_sentence = db.get_sentence(owner, repo, original_pr_no or pr_no)
+		stored_sentence = db.get_sentence(owner, repo, original_pr_no or line.pr_no)
 		if stored_sentence:
-			release_notes.whats_changed[i][0] = stored_sentence
-			print(release_notes.format_line(i))
+			release_notes.whats_changed[i].sentence = stored_sentence
+			print(release_notes.whats_changed[i])
 			continue
 
 		pr_body = pr["body"]
@@ -54,7 +54,7 @@ def main(repo: str, tag: str, owner: str = "frappe"):
 				for commit in github.get_commit_messages(pr["commits_url"])
 			)
 
-		closed_issues = github.get_closed_issues(owner, repo, pr_no) or github.get_closed_issues(owner, repo, original_pr_no)
+		closed_issues = github.get_closed_issues(owner, repo, line.pr_no) or github.get_closed_issues(owner, repo, original_pr_no)
 
 		issue_body = None
 		issue_title = None
@@ -65,9 +65,9 @@ def main(repo: str, tag: str, owner: str = "frappe"):
 		pr_sentence = get_pr_sentence(pr_title, pr_body, pr_patch, issue_body, issue_title)
 		if pr_sentence:
 			pr_sentence = pr_sentence.lstrip(" -")
-			db.store_sentence(owner, repo, original_pr_no or pr_no, pr_sentence)
-			release_notes.whats_changed[i][0] = pr_sentence
-			print(release_notes.format_line(i))
+			db.store_sentence(owner, repo, original_pr_no or line.pr_no, pr_sentence)
+			release_notes.whats_changed[i].sentence = pr_sentence
+			print(release_notes.whats_changed[i])
 
 	print("")
 	print("-" * 4, "Modified", "-" * 4)

@@ -1,13 +1,32 @@
+from dataclasses import dataclass
 import re
-REGEX_PR_URL = re.compile(r"https://github.com/[^/]+/[^/]+/pull/(\d+)")  # reqex to find PR URL
+
+REGEX_PR_URL = re.compile(
+	r"https://github.com/[^/]+/[^/]+/pull/(\d+)"
+)  # reqex to find PR URL
+
+
+@dataclass
+class ReleaseNotesLine:
+	sentence: str
+	pr_url: str
+	pr_no: str
+
+	def __str__(self):
+		return (
+			f"""* {self.sentence} ({self.pr_url})"""
+			if self.pr_url
+			else f"""* {self.sentence}"""
+		)
 
 
 class ReleaseNotes:
 	"""Parse release notes into structured data."""
+
 	def __init__(self):
-		self.whats_changed = []
-		self.new_contributors = []
-		self.full_changelog = ""
+		self.whats_changed: list[ReleaseNotesLine] = []
+		self.new_contributors: list[str] = []
+		self.full_changelog: str = ""
 
 	def parse(self, release_notes: str) -> None:
 		in_whats_changed = False
@@ -46,19 +65,13 @@ class ReleaseNotes:
 
 				line = line.strip()
 				line = line.replace(pr_url, "").strip()
-				self.whats_changed.append(
-					[line, pr_url, pr_no]
-				)
+				self.whats_changed.append(ReleaseNotesLine(line, pr_url, pr_no))
 				continue
-
-	def format_line(self, i: int) -> str:
-		sentence, pr_url, pr_no = self.whats_changed[i]
-		return f"""* {sentence} ({pr_url})""" if pr_url else f"""* {sentence}"""
 
 	def serialize(self) -> str:
 		notes = "## What's Changed:"
-		for i in range(len(self.whats_changed)):
-			notes += f"\n{self.format_line(i)}"
+		for line in self.whats_changed:
+			notes += f"\n{line}"
 
 		if self.new_contributors:
 			notes += "\n\n## New Contributors:"
