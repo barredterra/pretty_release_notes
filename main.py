@@ -6,11 +6,11 @@ from dotenv import dotenv_values
 from openai import OpenAI
 
 from github import GitHubClient
+from release_notes import ReleaseNotes
 from database import Database, CSVDatabase, SQLiteDatabase
 
 app = typer.Typer()
 config = dotenv_values(".env")
-pr_re = re.compile(r"pull/(\d+)")  # reqex to find PR number
 DB_NAME = "stored_lines"
 
 
@@ -22,24 +22,17 @@ def main(repo: str, tag: str, owner: str = "frappe"):
 	body = release["body"]
 	print("-" * 4, "Original", "-" * 4)
 	print(body)
+
 	print("")
-	print("-" * 4, "Modified", "-" * 4)
-	body_lines = body.split("\n")
-	for i, line in enumerate(body_lines.copy()):
-		if line.strip() == "## New Contributors":
-			break
-
-		if not line.startswith("* "):
-			print(line)
+	print("-" * 4, "Processing PRs", "-" * 4)
+	release_notes = ReleaseNotes()
+	release_notes.parse(body)
+	for i, (sentence, pr_url, pr_no) in enumerate(release_notes.whats_changed):
+		if not pr_no:
+			print(release_notes.format_line(i))
 			continue
 
-		line = line[2:]
-		match = pr_re.search(line)
-		if not match:
-			continue
-		pr_no = match.group(1)
 		pr = github.get_pr(owner, repo, pr_no)
-		pr_web_url = pr["html_url"]
 		pr_title = pr["title"]
 
 		original_pr_no = None
@@ -49,8 +42,8 @@ def main(repo: str, tag: str, owner: str = "frappe"):
 
 		stored_sentence = db.get_sentence(owner, repo, original_pr_no or pr_no)
 		if stored_sentence:
-			body_lines[i] = format_line(stored_sentence, pr_web_url)
-			print(body_lines[i])
+			release_notes.whats_changed[i][0] = stored_sentence
+			print(release_notes.format_line(i))
 			continue
 
 		pr_body = pr["body"]
@@ -73,13 +66,12 @@ def main(repo: str, tag: str, owner: str = "frappe"):
 		if pr_sentence:
 			pr_sentence = pr_sentence.lstrip(" -")
 			db.store_sentence(owner, repo, original_pr_no or pr_no, pr_sentence)
-			body_lines[i] = format_line(pr_sentence, pr_web_url)
+			release_notes.whats_changed[i][0] = pr_sentence
+			print(release_notes.format_line(i))
 
-		print(body_lines[i])
-
-	# print remaining lines
-	for x in range(i - 1, len(body_lines)):
-		print(body_lines[x])
+	print("")
+	print("-" * 4, "Modified", "-" * 4)
+	print(release_notes.serialize())
 
 
 def get_pr_sentence(pr_title: str, pr_body: str, pr_patch: str, issue_body: str, issue_title: str) -> str:
@@ -113,10 +105,6 @@ def get_pr_sentence(pr_title: str, pr_body: str, pr_patch: str, issue_body: str,
 		return ""
 
 	return chat_completion.choices[0].message.content
-
-
-def format_line(sentence: str, url: str) -> str:
-	return f"* {sentence} {url}"
 
 
 def get_db() -> Database:
