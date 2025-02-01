@@ -15,8 +15,8 @@ DB_NAME = "stored_lines"
 
 
 @app.command()
-def main(repo: str, tag: str, owner: str = "frappe"):
-	db = get_db()
+def main(repo: str, tag: str, owner: str = "frappe", database: bool = True):
+	db = get_db() if database else None
 	github = GitHubClient(config["GH_TOKEN"])
 	release = github.get_release(owner, repo, tag)
 	body = release["body"]
@@ -40,11 +40,12 @@ def main(repo: str, tag: str, owner: str = "frappe"):
 		if original_pr_match:
 			original_pr_no = original_pr_match[1]
 
-		stored_sentence = db.get_sentence(owner, repo, original_pr_no or line.pr_no)
-		if stored_sentence:
-			release_notes.whats_changed[i].sentence = stored_sentence
-			print(release_notes.whats_changed[i])
-			continue
+		if db:
+			stored_sentence = db.get_sentence(owner, repo, original_pr_no or line.pr_no)
+			if stored_sentence:
+				release_notes.whats_changed[i].sentence = stored_sentence
+				print(release_notes.whats_changed[i])
+				continue
 
 		pr_body = pr["body"]
 		pr_patch = github.get_text(pr["patch_url"])
@@ -65,7 +66,8 @@ def main(repo: str, tag: str, owner: str = "frappe"):
 		pr_sentence = get_pr_sentence(pr_title, pr_body, pr_patch, issue_body, issue_title)
 		if pr_sentence:
 			pr_sentence = pr_sentence.lstrip(" -")
-			db.store_sentence(owner, repo, original_pr_no or line.pr_no, pr_sentence)
+			if db:
+				db.store_sentence(owner, repo, original_pr_no or line.pr_no, pr_sentence)
 			release_notes.whats_changed[i].sentence = pr_sentence
 			print(release_notes.whats_changed[i])
 
