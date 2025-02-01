@@ -25,22 +25,28 @@ class GitHubClient:
 		response = self.session.post(
 			"https://api.github.com/graphql",
 			json={
-				"query": f"""
-					query {{
-						repository(owner: "{repository.owner}", name: "{repository.name}") {{
-							pullRequest(number: {pr_no}) {{
-								closingIssuesReferences (first: {first}) {{
-									edges {{
-										node {{
+				"query": """
+					query($owner: String!, $name: String!, $pr_no: Int!, $first: Int!) {
+						repository(owner: $owner, name: $name) {
+							pullRequest(number: $pr_no) {
+								closingIssuesReferences (first: $first) {
+									edges {
+										node {
 											body
 											title
-										}}
-									}}
-								}}
-							}}
-						}}
-					}}
-				"""
+										}
+									}
+								}
+							}
+						}
+					}
+				""",
+				"variables": {
+					"owner": repository.owner,
+					"name": repository.name,
+					"pr_no": int(pr_no),
+					"first": first,
+				},
 			},
 		).json()
 
