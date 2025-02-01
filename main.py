@@ -3,11 +3,11 @@ from typing import TYPE_CHECKING
 
 import typer
 from dotenv import dotenv_values
-from openai_client import get_chat_response
 
 from database import CSVDatabase, Database, SQLiteDatabase
-from github import GitHubClient, Repository
-from models import ReleaseNotes
+from github_client import GitHubClient
+from models import ReleaseNotes, Repository
+from openai_client import get_chat_response
 
 if TYPE_CHECKING:
 	from models import Issue, PullRequest
