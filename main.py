@@ -25,8 +25,7 @@ def main(repo: str, tag: str, owner: str = "frappe", database: bool = True):
 
 	print("")
 	print("-" * 4, "Processing PRs", "-" * 4)
-	release_notes = ReleaseNotes()
-	release_notes.parse(body)
+	release_notes = ReleaseNotes.from_string(body)
 	for i, line in enumerate(release_notes.whats_changed):
 		if not line.pr_no:
 			print(line)

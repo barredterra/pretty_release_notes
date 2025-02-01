@@ -26,15 +26,20 @@ class ReleaseNotesLine:
 		self.pr_no = match.group(1) if match else None
 
 
+@dataclass
 class ReleaseNotes:
 	"""Parse release notes into structured data."""
+	whats_changed: list[ReleaseNotesLine]
+	new_contributors: list[str]
+	full_changelog: str
 
-	def __init__(self):
-		self.whats_changed: list[ReleaseNotesLine] = []
-		self.new_contributors: list[str] = []
-		self.full_changelog: str = ""
 
-	def parse(self, release_notes: str) -> None:
+	@classmethod
+	def from_string(cls, release_notes: str) -> "ReleaseNotes":
+		whats_changed = []
+		new_contributors = []
+		full_changelog = ""
+
 		in_whats_changed = False
 		in_new_contributors = False
 		for line in release_notes.split("\n"):
@@ -52,20 +57,22 @@ class ReleaseNotes:
 				continue
 
 			if line.startswith("**Full Changelog**"):
-				self.full_changelog = line.strip()
-				self.in_new_contributors = False
-				self.in_whats_changed = False
+				full_changelog = line.strip()
+				in_new_contributors = False
+				in_whats_changed = False
 				continue
 
 			if in_new_contributors:
-				self.new_contributors.append(line.strip())
+				new_contributors.append(line.strip())
 				continue
 
 			if in_whats_changed:
 				release_notes_line = ReleaseNotesLine(line)
 				release_notes_line.parse_line()
-				self.whats_changed.append(release_notes_line)
+				whats_changed.append(release_notes_line)
 				continue
+
+		return cls(whats_changed, new_contributors, full_changelog)
 
 	def serialize(self) -> str:
 		notes = "## What's Changed:"
