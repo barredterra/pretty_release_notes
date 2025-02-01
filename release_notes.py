@@ -8,16 +8,22 @@ REGEX_PR_URL = re.compile(
 
 @dataclass
 class ReleaseNotesLine:
-	sentence: str
-	pr_url: str
-	pr_no: str
+	original_line: str
+	sentence: str | None = None
+	pr_url: str | None = None
+	pr_no: str | None = None
 
 	def __str__(self):
-		return (
-			f"""* {self.sentence} ({self.pr_url})"""
-			if self.pr_url
-			else f"""* {self.sentence}"""
-		)
+		if self.sentence and self.pr_url:
+			return f"""* {self.sentence} ({self.pr_url})"""
+
+		return self.original_line
+
+	def parse_line(self):
+		"""Parse the PR URL into a string."""
+		match = REGEX_PR_URL.search(self.original_line)
+		self.pr_url = match.group(0) if match else None
+		self.pr_no = match.group(1) if match else None
 
 
 class ReleaseNotes:
@@ -56,16 +62,9 @@ class ReleaseNotes:
 				continue
 
 			if in_whats_changed:
-				match = REGEX_PR_URL.search(line)
-				pr_url = match.group(0) if match else None
-				pr_no = match.group(1) if match else None
-
-				if line.startswith("* "):
-					line = line[2:]
-
-				line = line.strip()
-				line = line.replace(pr_url, "").strip()
-				self.whats_changed.append(ReleaseNotesLine(line, pr_url, pr_no))
+				release_notes_line = ReleaseNotesLine(line)
+				release_notes_line.parse_line()
+				self.whats_changed.append(release_notes_line)
 				continue
 
 	def serialize(self) -> str:
