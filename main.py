@@ -30,8 +30,8 @@ def main(repo: str, tag: str, owner: str = "frappe", database: bool = True):
 	print("")
 	print("-" * 4, "Processing PRs", "-" * 4)
 	release_notes = ReleaseNotes.from_string(body)
-	for i, line in enumerate(release_notes.whats_changed):
-		if not line.pr_no:
+	for i, line in enumerate(release_notes.lines):
+		if not line.pr_no or line.is_new_contributor:
 			print(line)
 			continue
 
@@ -39,8 +39,8 @@ def main(repo: str, tag: str, owner: str = "frappe", database: bool = True):
 		if db:
 			stored_sentence = db.get_sentence(repository, pr.backport_no or line.pr_no)
 			if stored_sentence:
-				release_notes.whats_changed[i].sentence = stored_sentence
-				print(release_notes.whats_changed[i])
+				release_notes.lines[i].sentence = stored_sentence
+				print(release_notes.lines[i])
 				continue
 
 		pr_patch = github.get_text(pr.patch_url)
@@ -65,8 +65,8 @@ def main(repo: str, tag: str, owner: str = "frappe", database: bool = True):
 		pr_sentence = pr_sentence.lstrip(" -")
 		if db:
 			db.store_sentence(repository, pr.backport_no or line.pr_no, pr_sentence)
-		release_notes.whats_changed[i].sentence = pr_sentence
-		print(release_notes.whats_changed[i])
+		release_notes.lines[i].sentence = pr_sentence
+		print(release_notes.lines[i])
 
 	print("")
 	print("-" * 4, "Modified", "-" * 4)
