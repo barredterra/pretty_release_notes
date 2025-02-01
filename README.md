@@ -9,7 +9,7 @@ Into this:
 ![Modified](img/modified.png)
 
 > [!WARNING]
-> Currently, the prompt and default parameters are geared towards [ERPNext](https://github.com/frappe/erpnext) and the [Frappe Framework](https://github.com/frappe/frappe). If you want to use this for different projects, please fork and adjust to your liking.
+> The prompt is geared towards [ERPNext](https://github.com/frappe/erpnext) and the [Frappe Framework](https://github.com/frappe/frappe). If you want to use this for different projects, please fork and adjust to your liking.
 
 ## Configuration
 
@@ -23,7 +23,7 @@ You can choose a database type by setting the `DB_TYPE` environment variable. Cu
 source env/bin/activate
 
 python main.py --help
-python main.py erpnext v15.38.4
+python main.py erpnext v15.38.4 # using DEFAULT_OWNER from .env
 python main.py --owner alyf-de banking v0.0.1
 ```
 
