@@ -7,10 +7,10 @@ from openai import OpenAI
 
 from database import CSVDatabase, Database, SQLiteDatabase
 from github import GitHubClient, Repository
-from release_notes import ReleaseNotes
+from models import ReleaseNotes
 
 if TYPE_CHECKING:
-	from github import Issue, PullRequest
+	from models import Issue, PullRequest
 
 app = typer.Typer()
 config = dotenv_values(".env")

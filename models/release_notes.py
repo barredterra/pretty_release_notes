@@ -1,29 +1,5 @@
 from dataclasses import dataclass
-import re
-
-REGEX_PR_URL = re.compile(
-	r"https://github.com/[^/]+/[^/]+/pull/(\d+)"
-)  # reqex to find PR URL
-
-
-@dataclass
-class ReleaseNotesLine:
-	original_line: str
-	sentence: str | None = None
-	pr_url: str | None = None
-	pr_no: str | None = None
-
-	def __str__(self):
-		if self.sentence and self.pr_url:
-			return f"""* {self.sentence} ({self.pr_url})"""
-
-		return self.original_line
-
-	def parse_line(self):
-		"""Parse the PR URL into a string."""
-		match = REGEX_PR_URL.search(self.original_line)
-		self.pr_url = match.group(0) if match else None
-		self.pr_no = match.group(1) if match else None
+from .release_notes_line import ReleaseNotesLine
 
 
 @dataclass
@@ -32,7 +8,6 @@ class ReleaseNotes:
 	whats_changed: list[ReleaseNotesLine]
 	new_contributors: list[str]
 	full_changelog: str
-
 
 	@classmethod
 	def from_string(cls, release_notes: str) -> "ReleaseNotes":
