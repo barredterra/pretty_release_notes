@@ -1,13 +1,16 @@
-import re
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import typer
 from dotenv import dotenv_values
 from openai import OpenAI
 
-from github import GitHubClient
+from database import CSVDatabase, Database, SQLiteDatabase
+from github import GitHubClient, Repository
 from release_notes import ReleaseNotes
-from database import Database, CSVDatabase, SQLiteDatabase
+
+if TYPE_CHECKING:
+	from github import Issue, PullRequest
 
 app = typer.Typer()
 config = dotenv_values(".env")
@@ -18,7 +21,8 @@ DB_NAME = "stored_lines"
 def main(repo: str, tag: str, owner: str = "frappe", database: bool = True):
 	db = get_db() if database else None
 	github = GitHubClient(config["GH_TOKEN"])
-	release = github.get_release(owner, repo, tag)
+	repository = Repository(owner, repo)
+	release = github.get_release(repository, tag)
 	body = release["body"]
 	print("-" * 4, "Original", "-" * 4)
 	print(body)
@@ -31,65 +35,58 @@ def main(repo: str, tag: str, owner: str = "frappe", database: bool = True):
 			print(line)
 			continue
 
-		pr = github.get_pr(owner, repo, line.pr_no)
-		pr_title = pr["title"]
-
-		original_pr_no = None
-		original_pr_match = re.search(r"\(backport #(\d+)\)", pr_title)
-		if original_pr_match:
-			original_pr_no = original_pr_match[1]
-
+		pr = github.get_pr(repository, line.pr_no)
 		if db:
-			stored_sentence = db.get_sentence(owner, repo, original_pr_no or line.pr_no)
+			stored_sentence = db.get_sentence(repository, pr.backport_no or line.pr_no)
 			if stored_sentence:
 				release_notes.whats_changed[i].sentence = stored_sentence
 				print(release_notes.whats_changed[i])
 				continue
 
-		pr_body = pr["body"]
-		pr_patch = github.get_text(pr["patch_url"])
+		pr_patch = github.get_text(pr.patch_url)
 		if len(pr_patch) > int(config["MAX_PATCH_SIZE"]):
 			pr_patch = "\n".join(
 				commit["commit"]["message"]
-				for commit in github.get_commit_messages(pr["commits_url"])
+				for commit in github.get_commit_messages(pr.commits_url)
 			)
 
-		closed_issues = github.get_closed_issues(owner, repo, line.pr_no) or github.get_closed_issues(owner, repo, original_pr_no)
+		closed_issues = github.get_closed_issues(
+			repository, line.pr_no
+		) or github.get_closed_issues(repository, pr.backport_no)
 
-		issue_body = None
-		issue_title = None
-		if closed_issues:
-			issue_body = closed_issues[0]["node"]["body"]
-			issue_title = closed_issues[0]["node"]["title"]
+		pr_sentence = get_pr_sentence(
+			pr,
+			pr_patch,
+			closed_issues[0] if closed_issues else None,
+		)
+		if not pr_sentence:
+			continue
 
-		pr_sentence = get_pr_sentence(pr_title, pr_body, pr_patch, issue_body, issue_title)
-		if pr_sentence:
-			pr_sentence = pr_sentence.lstrip(" -")
-			if db:
-				db.store_sentence(owner, repo, original_pr_no or line.pr_no, pr_sentence)
-			release_notes.whats_changed[i].sentence = pr_sentence
-			print(release_notes.whats_changed[i])
+		pr_sentence = pr_sentence.lstrip(" -")
+		if db:
+			db.store_sentence(repository, pr.backport_no or line.pr_no, pr_sentence)
+		release_notes.whats_changed[i].sentence = pr_sentence
+		print(release_notes.whats_changed[i])
 
 	print("")
 	print("-" * 4, "Modified", "-" * 4)
 	print(release_notes.serialize())
 
 
-def get_pr_sentence(pr_title: str, pr_body: str, pr_patch: str, issue_body: str, issue_title: str) -> str:
+def get_pr_sentence(
+	pr: "PullRequest", pr_patch: str, issue: "Issue | None" = None
+) -> str:
 	"""Get a single sentence to describe a PR."""
 	client = OpenAI(
 		# This is the default and can be omitted
 		api_key=config["OPENAI_API_KEY"],
 	)
-	prompt = Path("prompt.txt").read_text()
-	pr_text = f"""PR Title: {pr_title}\n\nPR Body: {pr_body}\n\nPR Patch or commit messages: {pr_patch}"""
-	issue_text = f"""Issue Title: {issue_title}\n\nIssue Body: {issue_body}""" if issue_title and issue_body else ""
-	content = prompt
+	content = Path("prompt.txt").read_text()
 
-	if issue_text:
-		content += f"\n\n\n{issue_text}"
+	if issue:
+		content += f"\n\n\n{issue}"
 
-	content += f"\n\n\n{pr_text}"
+	content += f"\n\n\n{pr}\n\nPR Patch or commit messages: {pr_patch}"
 
 	try:
 		chat_completion = client.chat.completions.create(

@@ -1,26 +1,32 @@
+import sqlite3
 from csv import DictReader, DictWriter
 from pathlib import Path
-import sqlite3
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+	from github import Repository
 
 
 class Database:
 	def __init__(self, path: Path):
 		self.path = path
 
-	def get_sentence(self, owner, repo, pr_no) -> str | None:
+	def get_sentence(self, repository: "Repository", pr_no: str) -> str | None:
 		pass
 
-	def store_sentence(self, owner, repo, pr_no, sentence) -> None:
+	def store_sentence(
+		self, repository: "Repository", pr_no: str, sentence: str
+	) -> None:
 		pass
 
-	def delete_sentence(self, owner, repo, pr_no) -> None:
+	def delete_sentence(self, repository: "Repository", pr_no: str) -> None:
 		pass
 
 
 class CSVDatabase(Database):
 	columns = ["owner", "repo", "pr_no", "sentence"]
 
-	def get_sentence(self, owner, repo, pr_no):
+	def get_sentence(self, repository: "Repository", pr_no: str) -> str | None:
 		if not self.path.exists():
 			return None
 
@@ -28,15 +34,17 @@ class CSVDatabase(Database):
 			reader = DictReader(f, fieldnames=self.columns)
 			for row in reader:
 				if (
-					row["owner"] == owner
-					and row["repo"] == repo
+					row["owner"] == repository.owner
+					and row["repo"] == repository.name
 					and row["pr_no"] == pr_no
 				):
 					return row["sentence"]
 
 		return None
 
-	def store_sentence(self, owner, repo, pr_no, sentence):
+	def store_sentence(
+		self, repository: "Repository", pr_no: str, sentence: str
+	) -> None:
 		write_header = not self.path.exists()
 		with open(self.path, "a") as f:
 			writer = DictWriter(f, self.columns)
@@ -45,16 +53,23 @@ class CSVDatabase(Database):
 				writer.writeheader()
 
 			writer.writerow(
-				{"owner": owner, "repo": repo, "pr_no": pr_no, "sentence": sentence}
+				{
+					"owner": repository.owner,
+					"repo": repository.name,
+					"pr_no": pr_no,
+					"sentence": sentence,
+				}
 			)
 
-	def delete_sentence(self, owner, repo, pr_no):
+	def delete_sentence(self, repository: "Repository", pr_no: str) -> None:
 		with open(self.path, "r") as f:
 			reader = DictReader(f, fieldnames=self.columns)
 			rows = [
 				row
 				for row in reader
-				if row["owner"] != owner or row["repo"] != repo or row["pr_no"] != pr_no
+				if row["owner"] != repository.owner
+				or row["repo"] != repository.name
+				or row["pr_no"] != pr_no
 			]
 
 		with open(self.path, "w") as f:
@@ -69,29 +84,31 @@ class SQLiteDatabase(Database):
 		self.conn = sqlite3.connect(path)
 		self.cursor = self.conn.cursor()
 
-	def get_sentence(self, owner, repo, pr_no):
+	def get_sentence(self, repository: "Repository", pr_no: str) -> str | None:
 		self._create_table()
 		self.cursor.execute(
 			"SELECT sentence FROM sentences WHERE owner = ? AND repo = ? AND pr_no = ?",
-			(owner, repo, pr_no),
+			(repository.owner, repository.name, pr_no),
 		)
 		result = self.cursor.fetchone()
 		return result[0] if result else None
 
-	def store_sentence(self, owner, repo, pr_no, sentence):
+	def store_sentence(
+		self, repository: "Repository", pr_no: str, sentence: str
+	) -> None:
 		self._create_table()
 
 		self.cursor.execute(
 			"INSERT INTO sentences (owner, repo, pr_no, sentence) VALUES (?, ?, ?, ?)",
-			(owner, repo, pr_no, sentence),
+			(repository.owner, repository.name, pr_no, sentence),
 		)
 		self.conn.commit()
 
-	def delete_sentence(self, owner, repo, pr_no):
+	def delete_sentence(self, repository: "Repository", pr_no: str) -> None:
 		self._create_table()
 		self.cursor.execute(
 			"DELETE FROM sentences WHERE owner = ? AND repo = ? AND pr_no = ?",
-			(owner, repo, pr_no),
+			(repository.owner, repository.name, pr_no),
 		)
 		self.conn.commit()
 
