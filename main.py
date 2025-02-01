@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 import typer
 from dotenv import dotenv_values
-from openai import OpenAI
+from openai_client import get_chat_response
 
 from database import CSVDatabase, Database, SQLiteDatabase
 from github import GitHubClient, Repository
@@ -54,10 +54,15 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 			repository, line.pr_no
 		) or github.get_closed_issues(repository, pr.backport_no)
 
-		pr_sentence = get_pr_sentence(
-			pr,
-			pr_patch,
-			closed_issues[0] if closed_issues else None,
+		prompt = build_prompt(
+			pr=pr,
+			pr_patch=pr_patch,
+			issue=closed_issues[0] if closed_issues else None,
+		)
+		pr_sentence = get_chat_response(
+			content=prompt,
+			model=config["OPENAI_MODEL"],
+			api_key=config["OPENAI_API_KEY"],
 		)
 		if not pr_sentence:
 			continue
@@ -73,36 +78,15 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 	print(release_notes.serialize())
 
 
-def get_pr_sentence(
-	pr: "PullRequest", pr_patch: str, issue: "Issue | None" = None
-) -> str:
-	"""Get a single sentence to describe a PR."""
-	client = OpenAI(
-		# This is the default and can be omitted
-		api_key=config["OPENAI_API_KEY"],
-	)
-	content = Path("prompt.txt").read_text()
+def build_prompt(pr: "PullRequest", pr_patch: str, issue: "Issue | None" = None) -> str:
+	prompt = Path("prompt.txt").read_text()
 
 	if issue:
-		content += f"\n\n\n{issue}"
+		prompt += f"\n\n\n{issue}"
 
-	content += f"\n\n\n{pr}\n\nPR Patch or commit messages: {pr_patch}"
+	prompt += f"\n\n\n{pr}\n\nPR Patch or commit messages: {pr_patch}"
 
-	try:
-		chat_completion = client.chat.completions.create(
-			messages=[
-				{
-					"role": "user",
-					"content": content,
-				}
-			],
-			model=config["OPENAI_MODEL"],
-		)
-	except Exception as e:
-		print("Error in OpenAI API", e)
-		return ""
-
-	return chat_completion.choices[0].message.content
+	return prompt
 
 
 def get_db() -> Database:
