@@ -18,10 +18,10 @@ DB_NAME = "stored_lines"
 
 
 @app.command()
-def main(repo: str, tag: str, owner: str = "frappe", database: bool = True):
+def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 	db = get_db() if database else None
 	github = GitHubClient(config["GH_TOKEN"])
-	repository = Repository(owner, repo)
+	repository = Repository(owner or config["DEFAULT_OWNER"] or "frappe", repo)
 	release = github.get_release(repository, tag)
 	body = release["body"]
 	print("-" * 4, "Original", "-" * 4)
