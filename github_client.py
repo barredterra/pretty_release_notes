@@ -54,7 +54,7 @@ class GitHubClient:
 			return []
 
 		return [
-			Issue.from_dict(issue)
+			Issue.from_dict(issue["node"])
 			for issue in response["data"]["repository"]["pullRequest"][
 				"closingIssuesReferences"
 			]["edges"]
