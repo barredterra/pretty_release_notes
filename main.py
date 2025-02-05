@@ -50,9 +50,9 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 				for commit in github.get_commit_messages(pr.commits_url)
 			)
 
-		closed_issues = github.get_closed_issues(
-			repository, line.pr_no
-		) or github.get_closed_issues(repository, pr.backport_no)
+		closed_issues = github.get_closed_issues(repository, line.pr_no)
+		if not closed_issues and pr.backport_no:
+			closed_issues = github.get_closed_issues(repository, pr.backport_no)
 
 		prompt = build_prompt(
 			pr=pr,
