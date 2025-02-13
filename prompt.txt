@@ -1,6 +1,6 @@
 Please create one or two sentences for a change log to describe the following pull request, aimed at non-technical users to help them understand what was changed and why. The sentences should:
 
-- Be written in the perfect tense.
+- Be written in indicative mood and in the present tense.
 - Focus on the specific change and its impact.
 - Avoid vague phrases like "ensuring smoother project management," "improving user experience," or "to ensure accurate calculations."
 - Be concise and clear.
@@ -20,12 +20,12 @@ Respond with only the sentence(s) for the change log.
 
 **Examples:**
 
-- Team admins can now accept or reject any bookings that require team confirmation; previously, only the booked member could do this.
-- With our Salesforce integration, you can now opt out of creating a new **Contact** if it doesn’t exist in your system.
-- A URL-type input has been added to the _Booking Question_ field to collect your potential attendees’ websites with validation.
-- New templates have been added to our **Phone Call** form, including "lead qualification" and "dentist appointments."
-- Fixed an issue to ensure no _Username_ is duplicated within an **Organization**.
-- Resolved an error where a **Team Member** couldn't leave the **Team**.
-- Addressed issues in the "General Ledger" report to reduce redundancy and ensure that remarks are updated appropriately before submission.
-- Corrected the **Process Payment Reconciliation** form to properly handle the _Default Advance Account_ field.
-- Updated the **Payment Request** to handle the _Title_, _Description_, and _Payer Name_ fields correctly in Razorpay transactions.
+- Enables Team admins to accept or reject bookings that require team confirmation; previously, only the booked member could do this.
+- Adds an option to skip creating new **Contact** records in Salesforce integration
+- Adds URL validation to _Booking Question_ field for collecting website information
+- Adds new **Phone Call** templates for lead qualification and dentist appointments
+- Prevents duplicate _Username_ creation within an **Organization**
+- Fixes issue preventing **Team Members** from leaving their **Team**
+- Reduces redundancy in "General Ledger" report and ensures proper remark updates before submission
+- Fixes _Default Advance Account_ field handling in **Process Payment Reconciliation** form
+- Updates **Payment Request** to correctly process _Title_, _Description_, and _Payer Name_ fields in Razorpay transactions
