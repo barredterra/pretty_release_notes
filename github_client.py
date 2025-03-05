@@ -80,6 +80,31 @@ class GitHubClient:
 			},
 		).json()
 
+	def generate_release_notes(self, repository: Repository, tag: str):
+		"""Generate release notes for a given tag."""
+		response = self.session.post(
+			f"https://api.github.com/repos/{repository.owner}/{repository.name}/releases/generate-notes",
+			headers={
+				"Accept": "application/vnd.github+json",
+			},
+			json={"tag_name": tag},
+		)
+
+		response.raise_for_status()
+		return response.json()
+
+	def update_release(self, repository: Repository, release_id: str, body: str):
+		"""Update release notes for a given tag."""
+		response = self.session.patch(
+			f"https://api.github.com/repos/{repository.owner}/{repository.name}/releases/{release_id}",
+			headers={
+				"Accept": "application/vnd.github+json",
+			},
+			json={"body": body},
+		)
+		response.raise_for_status()
+		return response.json()
+
 	def get_commit_messages(self, url):
 		"""Get commit messages from GitHub API."""
 		return self.session.get(

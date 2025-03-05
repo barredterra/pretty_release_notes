@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from requests import HTTPError
 import typer
 from dotenv import dotenv_values
 
@@ -23,13 +24,25 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 	github = GitHubClient(config["GH_TOKEN"])
 	repository = Repository(owner or config["DEFAULT_OWNER"] or "frappe", repo)
 	release = github.get_release(repository, tag)
-	body = release["body"]
+	old_body = release["body"]
 	print("-" * 4, "Original", "-" * 4)
-	print(body)
+	print(old_body)
+
+	try:
+		gh_notes = github.generate_release_notes(repository, tag)
+		new_body = gh_notes["body"]
+		print("-" * 4, "Generated", "-" * 4)
+		print(new_body)
+	except HTTPError as e:
+		if e.response.status_code != 403:
+			raise e
+
+		print("No permission to regenerate release notes, trying to proceed with old ones.")
+		new_body = old_body
 
 	print("")
 	print("-" * 4, "Processing PRs", "-" * 4)
-	release_notes = ReleaseNotes.from_string(body)
+	release_notes = ReleaseNotes.from_string(new_body)
 	for line in release_notes.lines:
 		if not line.pr_no or line.is_new_contributor:
 			print(line)
@@ -73,9 +86,20 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 		line.sentence = pr_sentence
 		print(line)
 
+	new_body = release_notes.serialize()
+
 	print("")
 	print("-" * 4, "Modified", "-" * 4)
-	print(release_notes.serialize())
+	print(new_body)
+
+	if typer.confirm("Update release notes?"):
+		try:
+			github.update_release(repository, release["id"], new_body)
+		except HTTPError as e:
+			if e.response.status_code != 403:
+				raise e
+
+			print("No permission to update release notes, skipping.")
 
 
 def build_prompt(pr: "PullRequest", pr_patch: str, issue: "Issue | None" = None) -> str:
