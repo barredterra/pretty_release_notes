@@ -23,6 +23,9 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 	db = get_db() if database else None
 	github = GitHubClient(config["GH_TOKEN"])
 	repository = Repository(owner or config["DEFAULT_OWNER"] or "frappe", repo)
+	exclude_pr_types = (
+		config["EXCLUDE_PR_TYPES"].split(",") if config["EXCLUDE_PR_TYPES"] else []
+	)
 	release = github.get_release(repository, tag)
 	old_body = release["body"]
 	print("-" * 4, "Original", "-" * 4)
@@ -37,13 +40,18 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 		if e.response.status_code != 403:
 			raise e
 
-		print("No permission to regenerate release notes, trying to proceed with old ones.")
+		print(
+			"No permission to regenerate release notes, trying to proceed with old ones."
+		)
 		new_body = old_body
 
 	print("")
 	print("-" * 4, "Processing PRs", "-" * 4)
 	release_notes = ReleaseNotes.from_string(new_body)
 	for line in release_notes.lines:
+		if line.pr_type in exclude_pr_types:
+			continue
+
 		if not line.pr_no or line.is_new_contributor:
 			print(line)
 			continue
@@ -86,7 +94,7 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 		line.sentence = pr_sentence
 		print(line)
 
-	new_body = release_notes.serialize()
+	new_body = release_notes.serialize(exclude_pr_types)
 
 	print("")
 	print("-" * 4, "Modified", "-" * 4)

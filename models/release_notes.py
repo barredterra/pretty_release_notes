@@ -16,5 +16,12 @@ class ReleaseNotes:
 			]
 		)
 
-	def serialize(self) -> str:
-		return "\n".join(str(line) for line in self.lines)
+	def serialize(self, exclude_pr_types: list[str] | None = None) -> str:
+		if exclude_pr_types is None:
+			exclude_pr_types = []
+
+		return "\n".join(
+			str(line)
+			for line in self.lines
+			if not line.pr_type or line.pr_type not in exclude_pr_types
+		)
