@@ -20,8 +20,15 @@ class ReleaseNotes:
 		if exclude_pr_types is None:
 			exclude_pr_types = []
 
-		return "\n".join(
+		lines = "\n".join(
 			str(line)
 			for line in self.lines
 			if not line.pr_type or line.pr_type not in exclude_pr_types
 		)
+
+		authors_string = ", ".join(
+			f"@{author}"
+			for author in {line.author for line in self.lines if line.author}
+		)
+
+		return f"{lines}\n\n**Authors**: {authors_string}"

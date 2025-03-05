@@ -14,6 +14,7 @@ class PullRequest:
 	body: str
 	patch_url: str
 	commits_url: str | None = None
+	author: str | None = None
 
 	@property
 	def url(self):
@@ -33,6 +34,7 @@ class PullRequest:
 			body=data["body"],
 			patch_url=data["patch_url"],
 			commits_url=data["commits_url"],
+			author=data["user"]["login"],
 		)
 
 	def __str__(self):

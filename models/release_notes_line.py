@@ -17,6 +17,7 @@ class ReleaseNotesLine:
 	is_new_contributor: bool = False
 	sentence: str | None = None
 	pr_type: str | None = None
+	author: str | None = None
 
 	def __str__(self):
 		if self.sentence and self.pr_url:

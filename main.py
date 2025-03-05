@@ -57,6 +57,12 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 			continue
 
 		pr = github.get_pr(repository, line.pr_no)
+		original_pr = None
+		if pr.backport_no:
+			original_pr = github.get_pr(repository, pr.backport_no)
+
+		line.author = original_pr.author if original_pr else pr.author
+
 		if db:
 			stored_sentence = db.get_sentence(repository, pr.backport_no or line.pr_no)
 			if stored_sentence:
