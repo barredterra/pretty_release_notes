@@ -71,6 +71,17 @@ class GitHubClient:
 		r.raise_for_status()
 		return PullRequest.from_dict(repository, r.json())
 
+	def get_pr_reviewers(self, repository: Repository, pr_no: str) -> list[str]:
+		"""Get reviewers from GitHub API."""
+		r = self.session.get(
+			f"https://api.github.com/repos/{repository.owner}/{repository.name}/pulls/{pr_no}/reviews",
+			headers={
+				"Accept": "application/vnd.github+json",
+			},
+		)
+		r.raise_for_status()
+		return {review["user"]["login"] for review in r.json()}
+
 	def get_release(self, repository: Repository, tag: str):
 		"""Get release information from GitHub API."""
 		return self.session.get(

@@ -57,12 +57,11 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 			continue
 
 		line.pr = github.get_pr(repository, line.pr_no)
-		original_pr = None
-		if pr.backport_no:
-			original_pr = github.get_pr(repository, pr.backport_no)
+		line.pr.reviewers = github.get_pr_reviewers(repository, line.pr_no)
 
 		if line.pr.backport_no:
 			line.original_pr = github.get_pr(repository, line.pr.backport_no)
+			line.original_pr.reviewers = github.get_pr_reviewers(repository, line.pr.backport_no)
 
 		if db:
 			stored_sentence = db.get_sentence(repository, line.pr.backport_no or line.pr_no)

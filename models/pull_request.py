@@ -20,6 +20,8 @@ class PullRequest:
 	patch_url: str
 	commits_url: str | None = None
 	author: str | None = None
+	reviewers: set[str] | None = None
+	merged_by: str | None = None
 
 	@property
 	def url(self):
@@ -45,6 +47,7 @@ class PullRequest:
 			patch_url=data["patch_url"],
 			commits_url=data["commits_url"],
 			author=data["user"]["login"],
+			merged_by=data["merged_by"]["login"],
 		)
 
 	def __str__(self):
