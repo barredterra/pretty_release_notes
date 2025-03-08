@@ -23,7 +23,7 @@ class ReleaseNotes:
 		lines = "\n".join(
 			str(line)
 			for line in self.lines
-			if not line.pr_type or line.pr_type not in exclude_pr_types
+			if not line.pr or not line.pr.pr_type or line.pr.pr_type not in exclude_pr_types
 		)
 
 		authors_string = ", ".join(

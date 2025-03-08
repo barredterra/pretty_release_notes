@@ -56,33 +56,34 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 			print(line)
 			continue
 
-		pr = github.get_pr(repository, line.pr_no)
+		line.pr = github.get_pr(repository, line.pr_no)
 		original_pr = None
 		if pr.backport_no:
 			original_pr = github.get_pr(repository, pr.backport_no)
 
-		line.author = original_pr.author if original_pr else pr.author
+		if line.pr.backport_no:
+			line.original_pr = github.get_pr(repository, line.pr.backport_no)
 
 		if db:
-			stored_sentence = db.get_sentence(repository, pr.backport_no or line.pr_no)
+			stored_sentence = db.get_sentence(repository, line.pr.backport_no or line.pr_no)
 			if stored_sentence:
 				line.sentence = stored_sentence
 				print(line)
 				continue
 
-		pr_patch = github.get_text(pr.patch_url)
+		pr_patch = github.get_text(line.pr.patch_url)
 		if len(pr_patch) > int(config["MAX_PATCH_SIZE"]):
 			pr_patch = "\n".join(
 				commit["commit"]["message"]
-				for commit in github.get_commit_messages(pr.commits_url)
+				for commit in github.get_commit_messages(line.pr.commits_url)
 			)
 
 		closed_issues = github.get_closed_issues(repository, line.pr_no)
-		if not closed_issues and pr.backport_no:
-			closed_issues = github.get_closed_issues(repository, pr.backport_no)
+		if not closed_issues and line.pr.backport_no:
+			closed_issues = github.get_closed_issues(repository, line.pr.backport_no)
 
 		prompt = build_prompt(
-			pr=pr,
+			pr=line.pr,
 			pr_patch=pr_patch,
 			issue=closed_issues[0] if closed_issues else None,
 		)
@@ -96,7 +97,7 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 
 		pr_sentence = pr_sentence.lstrip(" -")
 		if db:
-			db.store_sentence(repository, pr.backport_no or line.pr_no, pr_sentence)
+			db.store_sentence(repository, line.pr.backport_no or line.pr_no, pr_sentence)
 		line.sentence = pr_sentence
 		print(line)
 
