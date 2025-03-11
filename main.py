@@ -40,8 +40,9 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 		if e.response.status_code != 403:
 			raise e
 
-		print(
-			"No permission to regenerate release notes, trying to proceed with old ones."
+		typer.echo(
+			"No permission to regenerate release notes, trying to proceed with old ones.",
+			err=True,
 		)
 		new_body = old_body
 
@@ -113,7 +114,7 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 			if e.response.status_code != 403:
 				raise e
 
-			print("No permission to update release notes, skipping.")
+			typer.echo("No permission to update release notes, skipping.", err=True)
 
 
 def build_prompt(pr: "PullRequest", pr_patch: str, issue: "Issue | None" = None) -> str:
