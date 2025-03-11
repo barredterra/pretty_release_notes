@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 
 
 CONVENTIONAL_TYPE_AND_SCOPE = re.compile(
-	r"^\* ([a-zA-Z]+)(?:\(([^)]+)\))?:\s+(.+)$"
+	r"^([a-zA-Z]+)(?:\(([^)]+)\))?:\s+(.+)$"
 )
 
 
