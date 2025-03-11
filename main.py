@@ -26,6 +26,9 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 	exclude_pr_types = (
 		config["EXCLUDE_PR_TYPES"].split(",") if config["EXCLUDE_PR_TYPES"] else []
 	)
+	exclude_pr_labels = (
+		set(config["EXCLUDE_PR_LABELS"].split(",")) if config["EXCLUDE_PR_LABELS"] else set()
+	)
 	release = github.get_release(repository, tag)
 	old_body = release["body"]
 	print("-" * 4, "Original", "-" * 4)
@@ -58,6 +61,10 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 			continue
 
 		line.pr = github.get_pr(repository, line.pr_no)
+
+		if line.pr.labels and line.pr.labels & exclude_pr_labels:
+			continue
+
 		line.pr.reviewers = github.get_pr_reviewers(repository, line.pr_no)
 
 		if line.pr.backport_no:
@@ -101,7 +108,7 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 		line.sentence = pr_sentence
 		print(line)
 
-	new_body = release_notes.serialize(exclude_pr_types)
+	new_body = release_notes.serialize(exclude_pr_types, exclude_pr_labels)
 
 	print("")
 	print("-" * 4, "Modified", "-" * 4)

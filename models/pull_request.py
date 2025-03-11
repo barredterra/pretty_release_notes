@@ -22,6 +22,7 @@ class PullRequest:
 	author: str | None = None
 	reviewers: set[str] | None = None
 	merged_by: str | None = None
+	labels: set[str] | None = None
 
 	@property
 	def url(self):
@@ -48,6 +49,7 @@ class PullRequest:
 			commits_url=data["commits_url"],
 			author=data["user"]["login"],
 			merged_by=data["merged_by"]["login"],
+			labels={label["name"] for label in data["labels"]},
 		)
 
 	def __str__(self):

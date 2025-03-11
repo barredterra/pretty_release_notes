@@ -28,25 +28,31 @@ class ReleaseNotes:
 	def reviewers(self) -> set[str]:
 		reviewers = set()
 		for line in self.lines:
-			if line.original_pr:
+			if line.original_pr and line.original_pr.reviewers:
 				reviewers.update(line.original_pr.reviewers)
 				if line.original_pr.merged_by not in (line.original_pr.author, line.pr.author):
 					reviewers.add(line.original_pr.merged_by)
-			if line.pr:
+			if line.pr and line.pr.reviewers:
 				reviewers.update(line.pr.reviewers)
 				if line.pr.merged_by not in (line.pr.author, line.original_pr.author if line.original_pr else None):
 					reviewers.add(line.pr.merged_by)
 
 		return reviewers
 
-	def serialize(self, exclude_pr_types: list[str] | None = None) -> str:
+	def serialize(self, exclude_pr_types: list[str] | None = None, exclude_pr_labels: set[str] | None = None) -> str:
+		def is_exluded_type(pr):
+			return pr.pr_type and pr.pr_type in exclude_pr_types
+
+		def has_excluded_label(pr):
+			return pr.labels and exclude_pr_labels and pr.labels & exclude_pr_labels
+
 		if exclude_pr_types is None:
 			exclude_pr_types = []
 
 		lines = "\n".join(
 			str(line)
 			for line in self.lines
-			if not line.pr or not line.pr.pr_type or line.pr.pr_type not in exclude_pr_types
+			if not line.pr or (not is_exluded_type(line.pr) and not has_excluded_label(line.pr))
 		)
 
 		authors_string = ", ".join(
