@@ -53,14 +53,14 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 	print("-" * 4, "Processing PRs", "-" * 4)
 	release_notes = ReleaseNotes.from_string(new_body)
 	for line in release_notes.lines:
-		if line.pr_type in exclude_pr_types:
-			continue
-
 		if not line.pr_no or line.is_new_contributor:
 			print(line)
 			continue
 
 		line.pr = github.get_pr(repository, line.pr_no)
+
+		if line.pr.pr_type in exclude_pr_types:
+			continue
 
 		if line.pr.labels and line.pr.labels & exclude_pr_labels:
 			continue

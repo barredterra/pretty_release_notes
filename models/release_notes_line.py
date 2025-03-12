@@ -17,7 +17,6 @@ class ReleaseNotesLine:
 	original_pr: PullRequest | None = None
 	is_new_contributor: bool = False
 	sentence: str | None = None
-	pr_type: str | None = None
 	author: str | None = None
 
 	def __str__(self):
