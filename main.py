@@ -29,6 +29,9 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 	exclude_pr_labels = (
 		set(config["EXCLUDE_PR_LABELS"].split(",")) if config["EXCLUDE_PR_LABELS"] else set()
 	)
+	exclude_authors = (
+		set(config["EXCLUDE_AUTHORS"].split(",")) if config["EXCLUDE_AUTHORS"] else set()
+	)
 	release = github.get_release(repository, tag)
 	old_body = release["body"]
 	print("-" * 4, "Original", "-" * 4)
@@ -108,7 +111,7 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 		line.sentence = pr_sentence
 		print(line)
 
-	new_body = release_notes.serialize(exclude_pr_types, exclude_pr_labels)
+	new_body = release_notes.serialize(exclude_pr_types, exclude_pr_labels, exclude_authors)
 
 	print("")
 	print("-" * 4, "Modified", "-" * 4)

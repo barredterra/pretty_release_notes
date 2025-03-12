@@ -39,7 +39,7 @@ class ReleaseNotes:
 
 		return reviewers
 
-	def serialize(self, exclude_pr_types: list[str] | None = None, exclude_pr_labels: set[str] | None = None) -> str:
+	def serialize(self, exclude_pr_types: list[str] | None = None, exclude_pr_labels: set[str] | None = None, exclude_authors: set[str] | None = None) -> str:
 		def is_exluded_type(pr):
 			return pr.pr_type and pr.pr_type in exclude_pr_types
 
@@ -48,6 +48,9 @@ class ReleaseNotes:
 
 		if exclude_pr_types is None:
 			exclude_pr_types = []
+
+		if exclude_authors is None:
+			exclude_authors = set()
 
 		lines = "\n".join(
 			str(line)
@@ -58,6 +61,7 @@ class ReleaseNotes:
 		authors_string = ", ".join(
 			f"@{author}"
 			for author in self.authors
+			if author not in exclude_authors
 		)
 
 		reviewers_string = ", ".join(
