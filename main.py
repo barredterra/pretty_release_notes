@@ -1,9 +1,11 @@
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from requests import HTTPError
 import typer
 from dotenv import dotenv_values
+from requests import HTTPError
+from rich.console import Console
+from rich.markdown import Markdown
 
 from database import CSVDatabase, Database, SQLiteDatabase
 from github_client import GitHubClient
@@ -20,6 +22,7 @@ DB_NAME = "stored_lines"
 
 @app.command()
 def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
+	console = Console()
 	db = get_db() if database else None
 	github = GitHubClient(config["GH_TOKEN"])
 	repository = Repository(owner or config["DEFAULT_OWNER"] or "frappe", repo)
@@ -27,21 +30,25 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 		config["EXCLUDE_PR_TYPES"].split(",") if config["EXCLUDE_PR_TYPES"] else []
 	)
 	exclude_pr_labels = (
-		set(config["EXCLUDE_PR_LABELS"].split(",")) if config["EXCLUDE_PR_LABELS"] else set()
+		set(config["EXCLUDE_PR_LABELS"].split(","))
+		if config["EXCLUDE_PR_LABELS"]
+		else set()
 	)
 	exclude_authors = (
-		set(config["EXCLUDE_AUTHORS"].split(",")) if config["EXCLUDE_AUTHORS"] else set()
+		set(config["EXCLUDE_AUTHORS"].split(","))
+		if config["EXCLUDE_AUTHORS"]
+		else set()
 	)
 	release = github.get_release(repository, tag)
 	old_body = release["body"]
-	print("-" * 4, "Original", "-" * 4)
-	print(old_body)
+	console.print(Markdown("# Original"))
+	console.print(Markdown(old_body))
 
 	try:
 		gh_notes = github.generate_release_notes(repository, tag)
 		new_body = gh_notes["body"]
-		print("-" * 4, "Generated", "-" * 4)
-		print(new_body)
+		console.print(Markdown("# Generated"))
+		console.print(Markdown(new_body))
 	except HTTPError as e:
 		if e.response.status_code != 403:
 			raise e
@@ -52,12 +59,11 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 		)
 		new_body = old_body
 
-	print("")
-	print("-" * 4, "Processing PRs", "-" * 4)
+	console.print(Markdown("# Processing PRs"))
 	release_notes = ReleaseNotes.from_string(new_body)
 	for line in release_notes.lines:
 		if not line.pr_no or line.is_new_contributor:
-			print(line)
+			console.print(Markdown(str(line)))
 			continue
 
 		line.pr = github.get_pr(repository, line.pr_no)
@@ -72,13 +78,17 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 
 		if line.pr.backport_no:
 			line.original_pr = github.get_pr(repository, line.pr.backport_no)
-			line.original_pr.reviewers = github.get_pr_reviewers(repository, line.pr.backport_no)
+			line.original_pr.reviewers = github.get_pr_reviewers(
+				repository, line.pr.backport_no
+			)
 
 		if db:
-			stored_sentence = db.get_sentence(repository, line.pr.backport_no or line.pr_no)
+			stored_sentence = db.get_sentence(
+				repository, line.pr.backport_no or line.pr_no
+			)
 			if stored_sentence:
 				line.sentence = stored_sentence
-				print(line)
+				console.print(Markdown(str(line)))
 				continue
 
 		pr_patch = github.get_text(line.pr.patch_url)
@@ -107,15 +117,18 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 
 		pr_sentence = pr_sentence.lstrip(" -")
 		if db:
-			db.store_sentence(repository, line.pr.backport_no or line.pr_no, pr_sentence)
+			db.store_sentence(
+				repository, line.pr.backport_no or line.pr_no, pr_sentence
+			)
 		line.sentence = pr_sentence
-		print(line)
+		console.print(Markdown(str(line)))
 
-	new_body = release_notes.serialize(exclude_pr_types, exclude_pr_labels, exclude_authors)
+	new_body = release_notes.serialize(
+		exclude_pr_types, exclude_pr_labels, exclude_authors
+	)
 
-	print("")
-	print("-" * 4, "Modified", "-" * 4)
-	print(new_body)
+	console.print(Markdown("# Modified"))
+	console.print(Markdown(new_body))
 
 	if typer.confirm("Update release notes?"):
 		try:
