@@ -8,6 +8,12 @@ Into this:
 
 ![Modified](img/modified.png)
 
+UX:
+
+https://github.com/user-attachments/assets/5d1dd513-b643-4f02-aac9-ba9c3f16d043
+
+
+
 > [!WARNING]
 > The prompt is geared towards [ERPNext](https://github.com/frappe/erpnext) and the [Frappe Framework](https://github.com/frappe/frappe). If you want to use this for different projects, please fork and adjust to your liking.
 
