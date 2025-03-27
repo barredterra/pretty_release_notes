@@ -8,10 +8,16 @@ Into this:
 
 ![Modified](img/modified.png)
 
+Notice that:
+
+- Commits that are inconsequential to the user are excluded (chore, ci, refactor).
+- Each PR is converted into a precise sentence, based on it's title, description, diff and any linked issue.
+- Each sentence has a consistent style and tense.
+- Human authors and reviewers are credited, not bots.
+
 UX:
 
 https://github.com/user-attachments/assets/5d1dd513-b643-4f02-aac9-ba9c3f16d043
-
 
 
 > [!WARNING]
