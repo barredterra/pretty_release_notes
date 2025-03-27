@@ -45,3 +45,11 @@ Example output:
 **Full Changelog**: https://github.com/frappe/erpnext/compare/v15.38.3...v15.38.4
 **Authors**: @rohitwaghchaure
 ```
+
+## Authors and Reviewers
+
+The authors and reviewers of the PRs are added to the release notes.
+
+- An author who reviewed or merged their own PR or backport is not a reviewer.
+- A non-author who reviewed or merged someone else's PR is a reviewer.
+- The author of the original PR is also the author of the backport.
