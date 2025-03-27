@@ -30,12 +30,8 @@ class ReleaseNotes:
 		for line in self.lines:
 			if line.original_pr and line.original_pr.reviewers:
 				reviewers.update(line.original_pr.reviewers)
-				if line.original_pr.merged_by not in (line.original_pr.author, line.pr.author):
-					reviewers.add(line.original_pr.merged_by)
 			if line.pr and line.pr.reviewers:
 				reviewers.update(line.pr.reviewers)
-				if line.pr.merged_by not in (line.pr.author, line.original_pr.author if line.original_pr else None):
-					reviewers.add(line.pr.merged_by)
 
 		return reviewers
 

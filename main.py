@@ -74,7 +74,12 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 		if line.pr.labels and line.pr.labels & exclude_pr_labels:
 			continue
 
+		# Determine the actual reviewers.
+		# An author who reviewed or merged their own PR or backport is not a reviewer.
+		# A non-author who reviewed or merged someone else's PR is a reviewer.
+		# The author of the original PR is also the author of the backport.
 		line.pr.reviewers = github.get_pr_reviewers(repository, line.pr_no)
+		line.pr.reviewers.add(line.pr.merged_by)
 		line.pr.reviewers.discard(line.pr.author)
 
 		if line.pr.backport_no:
@@ -82,7 +87,9 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 			line.original_pr.reviewers = github.get_pr_reviewers(
 				repository, line.pr.backport_no
 			)
+			line.original_pr.reviewers.add(line.original_pr.merged_by)
 			line.original_pr.reviewers.discard(line.original_pr.author)
+			line.pr.reviewers.discard(line.original_pr.author)
 		if db:
 			stored_sentence = db.get_sentence(
 				repository, line.pr.backport_no or line.pr_no
