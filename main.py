@@ -81,6 +81,7 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 		line.pr.reviewers = github.get_pr_reviewers(repository, line.pr_no)
 		line.pr.reviewers.add(line.pr.merged_by)
 		line.pr.reviewers.discard(line.pr.author)
+		line.pr.reviewers -= exclude_authors
 
 		if line.pr.backport_no:
 			line.original_pr = github.get_pr(repository, line.pr.backport_no)
@@ -89,6 +90,7 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 			)
 			line.original_pr.reviewers.add(line.original_pr.merged_by)
 			line.original_pr.reviewers.discard(line.original_pr.author)
+			line.original_pr.reviewers -= exclude_authors
 			line.pr.reviewers.discard(line.original_pr.author)
 		if db:
 			stored_sentence = db.get_sentence(
