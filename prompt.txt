@@ -6,11 +6,12 @@ Please create one or two sentences for a change log to describe the following pu
 - Be concise and clear.
 - Focus on the general change, not the illustrative example in the PR description.
 - Do not imply that the issue is solved for good, in general, for all cases. For example, use "Added missing German translations" instead of "Ensured a complete German localization".
+- Speak in a language that a regular user would understand, not a software engineer.
 
 When referring to specific elements, please format them as follows:
 
 - **Bold**: DocType or Form names. (e.g. **Sales Order**, **System Settings**)
-- _Italics_: Field labels. (e.g. _First Name_, _Posting Date_)
+- _Italics_: Field labels. (e.g. _First Name_, _Posting Date_). Convert field names in snake case to field labels in title case.
 - "Quotes": Report names or button names. (e.g. "Update Items", "Create")
 - `Code`: Code snippets, field names, or branch names. (e.g. `posting_date`, `version-15`)
 
