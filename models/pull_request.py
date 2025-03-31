@@ -30,7 +30,13 @@ class PullRequest:
 
 	@property
 	def backport_no(self) -> str | None:
-		original_pr_match = re.search(r"\(backport #(\d+)\)", self.title)
+		"""Extract the backport number from the title.
+
+		Examples:
+		'feat(regional): Address Template for Germany & Switzerland (backport #46737)' -> '46737'
+		'Revert "perf: timeout while renaming cost center (backport #46641)" (backport #46749)' -> '46749'
+		"""
+		original_pr_match = re.search(r"\(backport #(\d+)\)\s*$", self.title)
 		return original_pr_match[1] if original_pr_match else None
 
 	@property
