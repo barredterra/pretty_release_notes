@@ -26,19 +26,10 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True):
 	db = get_db() if database else None
 	github = GitHubClient(config["GH_TOKEN"])
 	repository = Repository(owner or config["DEFAULT_OWNER"] or "frappe", repo)
-	exclude_pr_types = (
-		config["EXCLUDE_PR_TYPES"].split(",") if config["EXCLUDE_PR_TYPES"] else []
-	)
-	exclude_pr_labels = (
-		set(config["EXCLUDE_PR_LABELS"].split(","))
-		if config["EXCLUDE_PR_LABELS"]
-		else set()
-	)
-	exclude_authors = (
-		set(config["EXCLUDE_AUTHORS"].split(","))
-		if config["EXCLUDE_AUTHORS"]
-		else set()
-	)
+	exclude_pr_types = get_config_set("EXCLUDE_PR_TYPES")
+	exclude_pr_labels = get_config_set("EXCLUDE_PR_LABELS")
+	exclude_authors = get_config_set("EXCLUDE_AUTHORS")
+
 	release = github.get_release(repository, tag)
 	old_body = release["body"]
 	console.print(Markdown("# Current Release Notes"))
@@ -159,6 +150,10 @@ def build_prompt(pr: "PullRequest", pr_patch: str, issue: "Issue | None" = None)
 	prompt += f"\n\n\n{pr}\n\nPR Patch or commit messages: {pr_patch}"
 
 	return prompt
+
+
+def get_config_set(key: str) -> set[str]:
+	return set(config[key].split(",")) if config[key] else set()
 
 
 def get_db() -> Database:
