@@ -65,8 +65,9 @@ class ReleaseNotes:
 			for reviewer in self.reviewers
 		)
 
-		notes = f"{lines}\n**Authors**: {authors_string}"
+		if authors_string:
+			lines += f"\n**Authors**: {authors_string}"
 		if reviewers_string:
-			notes += f"\n**Reviewers**: {reviewers_string}"
+			lines += f"\n**Reviewers**: {reviewers_string}"
 
-		return notes
+		return lines
