@@ -3,3 +3,4 @@ openai
 python-dotenv
 typer
 pytest
+tenacity
