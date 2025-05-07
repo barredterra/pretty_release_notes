@@ -120,3 +120,14 @@ class SQLiteDatabase(Database):
 			"CREATE INDEX IF NOT EXISTS idx_owner_repo_pr_no ON sentences (owner, repo, pr_no)"
 		)
 		self.conn.commit()
+
+
+def get_db(db_type: str, db_name: str) -> Database:
+	db_path = Path(db_name)
+
+	if db_type == "csv":
+		return CSVDatabase(db_path.with_suffix(".csv"))
+	elif db_type == "sqlite":
+		return SQLiteDatabase(db_path.with_suffix(".sqlite"))
+	else:
+		raise ValueError(f"Invalid database type: {db_type}")
