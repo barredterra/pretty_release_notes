@@ -9,7 +9,7 @@ from models import ReleaseNotes, Repository
 from openai_client import get_chat_response
 
 if TYPE_CHECKING:
-	from models import Issue, PullRequest
+	from models import Issue, PullRequest, ReleaseNotesLine
 	from ui import CLI
 
 
@@ -71,83 +71,7 @@ class ReleaseNotesGenerator:
 
 		release_notes = ReleaseNotes.from_string(new_body)
 		for line in release_notes.lines:
-			if not line.pr_no or line.is_new_contributor:
-				if self.ui:
-					self.ui.show_markdown_text(str(line))
-				continue
-
-			line.pr = self.github.get_pr(self.repository, line.pr_no)
-
-			if line.pr.pr_type in self.exclude_pr_types:
-				continue
-
-			if line.pr.labels and line.pr.labels & self.exclude_pr_labels:
-				continue
-
-			# Determine the actual reviewers.
-			# An author who reviewed or merged their own PR or backport is not a reviewer.
-			# A non-author who reviewed or merged someone else's PR is a reviewer.
-			# The author of the original PR is also the author of the backport.
-			line.pr.reviewers = self.github.get_pr_reviewers(
-				self.repository, line.pr_no
-			)
-			line.pr.reviewers.add(line.pr.merged_by)
-			line.pr.reviewers.discard(line.pr.author)
-			line.pr.reviewers -= self.exclude_authors
-
-			if line.pr.backport_no:
-				line.original_pr = self.github.get_pr(
-					self.repository, line.pr.backport_no
-				)
-				line.original_pr.reviewers = self.github.get_pr_reviewers(
-					self.repository, line.pr.backport_no
-				)
-				line.original_pr.reviewers.add(line.original_pr.merged_by)
-				line.original_pr.reviewers.discard(line.original_pr.author)
-				line.original_pr.reviewers -= self.exclude_authors
-				line.pr.reviewers.discard(line.original_pr.author)
-
-			if self.db:
-				stored_sentence = self.db.get_sentence(
-					self.repository, line.pr.backport_no or line.pr_no
-				)
-				if stored_sentence:
-					line.sentence = stored_sentence
-					if self.ui:
-						self.ui.show_markdown_text(str(line))
-					continue
-
-			pr_patch = self.github.get_text(line.pr.patch_url)
-			if len(pr_patch) > self.max_patch_size:
-				pr_patch = "\n".join(self._get_commit_messages(line.pr.commits_url))
-
-			closed_issues = self.github.get_closed_issues(self.repository, line.pr_no)
-			if not closed_issues and line.pr.backport_no:
-				closed_issues = self.github.get_closed_issues(
-					self.repository, line.pr.backport_no
-				)
-
-			prompt = self._build_prompt(
-				pr=line.pr,
-				pr_patch=pr_patch,
-				issue=closed_issues[0] if closed_issues else None,
-			)
-			pr_sentence = get_chat_response(
-				content=prompt,
-				model=self.openai_model,
-				api_key=self.openai_api_key,
-			)
-			if not pr_sentence:
-				continue
-
-			pr_sentence = pr_sentence.lstrip(" -")
-			if self.db:
-				self.db.store_sentence(
-					self.repository, line.pr.backport_no or line.pr_no, pr_sentence
-				)
-			line.sentence = pr_sentence
-			if self.ui:
-				self.ui.show_markdown_text(str(line))
+			self._process_line(line)
 
 		return release_notes.serialize(
 			self.exclude_pr_types, self.exclude_pr_labels, self.exclude_authors
@@ -166,6 +90,90 @@ class ReleaseNotesGenerator:
 
 			if self.ui:
 				self.ui.show_error("No permission to update release notes, skipping.")
+
+	def _process_line(self, line: "ReleaseNotesLine"):
+		if not line.pr_no or line.is_new_contributor:
+			if self.ui:
+				self.ui.show_markdown_text(str(line))
+			return
+
+		line.pr = self.github.get_pr(self.repository, line.pr_no)
+
+		if line.pr.pr_type in self.exclude_pr_types:
+			return
+
+		if line.pr.labels and line.pr.labels & self.exclude_pr_labels:
+			return
+
+		self._set_reviewers(line)
+
+		if self.db:
+			stored_sentence = self.db.get_sentence(
+				self.repository, line.pr.backport_no or line.pr_no
+			)
+			if stored_sentence:
+				line.sentence = stored_sentence
+				if self.ui:
+					self.ui.show_markdown_text(str(line))
+				return
+
+		pr_patch = self.github.get_text(line.pr.patch_url)
+		if len(pr_patch) > self.max_patch_size:
+			pr_patch = "\n".join(self._get_commit_messages(line.pr.commits_url))
+
+		closed_issues = self.github.get_closed_issues(self.repository, line.pr_no)
+		if not closed_issues and line.pr.backport_no:
+			closed_issues = self.github.get_closed_issues(
+				self.repository, line.pr.backport_no
+			)
+
+		prompt = self._build_prompt(
+			pr=line.pr,
+			pr_patch=pr_patch,
+			issue=closed_issues[0] if closed_issues else None,
+		)
+		pr_sentence = get_chat_response(
+			content=prompt,
+			model=self.openai_model,
+			api_key=self.openai_api_key,
+		)
+		if not pr_sentence:
+			return
+
+		pr_sentence = pr_sentence.lstrip(" -")
+		if self.db:
+			self.db.store_sentence(
+				self.repository, line.pr.backport_no or line.pr_no, pr_sentence
+			)
+		line.sentence = pr_sentence
+		if self.ui:
+			self.ui.show_markdown_text(str(line))
+
+	def _set_reviewers(self, line: "ReleaseNotesLine"):
+		"""Determine the actual reviewers for a PR.
+
+		An author who reviewed or merged their own PR or backport is not a reviewer.
+		A non-author who reviewed or merged someone else's PR is a reviewer.
+		The author of the original PR is also the author of the backport.
+		"""
+		line.pr.reviewers = self.github.get_pr_reviewers(
+			self.repository, line.pr_no
+		)
+		line.pr.reviewers.add(line.pr.merged_by)
+		line.pr.reviewers.discard(line.pr.author)
+		line.pr.reviewers -= self.exclude_authors
+
+		if line.pr.backport_no:
+			line.original_pr = self.github.get_pr(
+				self.repository, line.pr.backport_no
+			)
+			line.original_pr.reviewers = self.github.get_pr_reviewers(
+				self.repository, line.pr.backport_no
+			)
+			line.original_pr.reviewers.add(line.original_pr.merged_by)
+			line.original_pr.reviewers.discard(line.original_pr.author)
+			line.original_pr.reviewers -= self.exclude_authors
+			line.pr.reviewers.discard(line.original_pr.author)
 
 	def _get_release(self, tag: str):
 		return self.github.get_release(self.repository, tag)
