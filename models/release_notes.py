@@ -61,7 +61,7 @@ class ReleaseNotes:
 		)
 
 		if model_name:
-			lines += f"\n> [!NOTE]\n> These release notes were written by an LLM ({model_name}) and may contain errors.\n"
+			lines += f"\n\nThese release notes were written by an LLM ({model_name}) and may contain errors.\n"
 
 		authors_string = ", ".join(
 			f"@{author}"
