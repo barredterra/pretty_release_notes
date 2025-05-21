@@ -74,7 +74,10 @@ class ReleaseNotesGenerator:
 			self._process_line(line)
 
 		return release_notes.serialize(
-			self.exclude_pr_types, self.exclude_pr_labels, self.exclude_authors
+			self.exclude_pr_types,
+			self.exclude_pr_labels,
+			self.exclude_authors,
+			model_name=f"OpenAI {self.openai_model}",
 		)
 
 	def update_on_github(self, new_body: str, tag: str):

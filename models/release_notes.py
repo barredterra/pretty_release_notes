@@ -35,7 +35,13 @@ class ReleaseNotes:
 
 		return reviewers
 
-	def serialize(self, exclude_pr_types: list[str] | None = None, exclude_pr_labels: set[str] | None = None, exclude_authors: set[str] | None = None) -> str:
+	def serialize(
+		self,
+		exclude_pr_types: list[str] | None = None,
+		exclude_pr_labels: set[str] | None = None,
+		exclude_authors: set[str] | None = None,
+		model_name: str | None = None,
+	) -> str:
 		def is_exluded_type(pr):
 			return pr.pr_type and pr.pr_type in exclude_pr_types
 
@@ -53,6 +59,9 @@ class ReleaseNotes:
 			for line in self.lines
 			if not line.pr or (not is_exluded_type(line.pr) and not has_excluded_label(line.pr))
 		)
+
+		if model_name:
+			lines += f"\n> [!NOTE]\n> These release notes were written by an LLM ({model_name}) and may contain errors.\n"
 
 		authors_string = ", ".join(
 			f"@{author}"
