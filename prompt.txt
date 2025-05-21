@@ -17,6 +17,8 @@ When referring to specific elements, please format them as follows:
 
 Note: Each DocType has different views, such as list, form, report, dashboard, kanban, calendar, gantt, tree, map, etc.
 
+Please be careful to capture the actual changes of the code. Don't get distracted by wrong or incomplete information in the PR description, commit messages, or issue description.
+
 Respond with only the sentence(s) for the change log.
 
 **Examples:**
