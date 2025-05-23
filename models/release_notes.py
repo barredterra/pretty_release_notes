@@ -60,9 +60,6 @@ class ReleaseNotes:
 			if not line.pr or (not is_exluded_type(line.pr) and not has_excluded_label(line.pr))
 		)
 
-		if model_name:
-			lines += f"\n\nThese release notes were written by an LLM ({model_name}) and may contain errors.\n"
-
 		authors_string = ", ".join(
 			f"@{author}"
 			for author in self.authors
@@ -78,5 +75,13 @@ class ReleaseNotes:
 			lines += f"\n**Authors**: {authors_string}"
 		if reviewers_string:
 			lines += f"\n**Reviewers**: {reviewers_string}"
+
+		if model_name:
+			lines += f"""\n\n<details>
+<summary>AI content</summary>
+
+For these release notes, we used an LLM ({model_name}) to review and summarise the code changes, along with the associated issue and PR descriptions. It may contain typical errors and inaccuracies. You can read the prompt [here](https://github.com/barredterra/pretty_release_notes).
+
+</details>"""
 
 		return lines
