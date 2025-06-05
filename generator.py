@@ -112,6 +112,11 @@ class ReleaseNotesGenerator:
 	def _get_commit_lines(self, tag: str, prev_tag: str):
 		commits = self.github.get_diff_commits(self.repository, tag, prev_tag)
 		return [
+			# Add the same heading line for the commits, that is automatically added by GitHub for PRs
+			ReleaseNotesLine(
+				original_line="## What's Changed",
+			)
+		] + [
 			ReleaseNotesLine(
 				original_line="",
 				pr_url=commit.url,
@@ -120,6 +125,11 @@ class ReleaseNotesGenerator:
 				author=commit.author,
 			)
 			for commit in commits
+		] + [
+			# Add an empty line to separate commits from full changelog
+			ReleaseNotesLine(
+				original_line="",
+			)
 		]
 
 	def _process_line(self, line: "ReleaseNotesLine"):
