@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from .change import Change
+from ._utils import get_conventional_type
 
 if TYPE_CHECKING:
 	from github_client import GitHubClient
@@ -44,8 +45,13 @@ class PullRequest(Change):
 
 	@property
 	def conventional_type(self) -> str | None:
-		pr_type_match = CONVENTIONAL_TYPE_AND_SCOPE.search(self.title)
-		return pr_type_match.group(1) if pr_type_match else None
+		"""Extract the conventional type from the title.
+
+		Examples:
+		'feat(regional): Address Template for Germany & Switzerland' -> 'feat'
+		'Revert "perf: timeout while renaming cost center"' -> None
+		"""
+		return get_conventional_type(self.title)
 
 	def get_prompt(self, prompt_template: str, max_patch_size: int) -> str:
 		prompt = prompt_template

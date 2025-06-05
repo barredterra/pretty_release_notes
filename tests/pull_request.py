@@ -30,6 +30,14 @@ def test_backport_no(pull_request):
 	assert pull_request.backport_no == "46749"
 
 
+def test_conventional_type(pull_request):
+	pull_request.title = "feat(regional): Address Template for Germany & Switzerland"
+	assert pull_request.conventional_type == "feat"
+
+	pull_request.title = 'Revert "perf: timeout while renaming cost center"'
+	assert pull_request.conventional_type is None
+
+
 def test_from_dict():
 	pull_request = PullRequest.from_dict(
 		github=GitHubClient("test_token"),

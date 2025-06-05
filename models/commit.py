@@ -1,15 +1,12 @@
-import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from ._utils import get_conventional_type
 from .change import Change
 
 if TYPE_CHECKING:
 	from github_client import GitHubClient
 	from models.repository import Repository
-
-
-CONVENTIONAL_TYPE_AND_SCOPE = re.compile(r"^([a-zA-Z]+)(?:\(([^)]+)\))?:\s+(.+)")
 
 
 @dataclass
@@ -31,8 +28,7 @@ class Commit(Change):
 
 	@property
 	def conventional_type(self) -> str | None:
-		commit_type_match = CONVENTIONAL_TYPE_AND_SCOPE.search(self.message)
-		return commit_type_match.group(1) if commit_type_match else None
+		return get_conventional_type(self.message)
 
 	def get_prompt(self, prompt_template: str, max_patch_size: int) -> str:
 		prompt = prompt_template
