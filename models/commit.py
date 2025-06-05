@@ -58,7 +58,7 @@ class Commit(Change):
 
 	def _get_diff(self) -> str:
 		"""Get the diff for this commit."""
-		return self.github.get_text(self.diff_url)
+		return self.github.get_commit_diff(self.repository, self.id)
 
 	@classmethod
 	def from_dict(

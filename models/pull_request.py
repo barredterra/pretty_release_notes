@@ -100,8 +100,8 @@ class PullRequest(Change):
 		return changes
 
 	def _get_patch(self) -> str:
-		"""Get the patch for a PR."""
-		return self.github.get_text(self.patch_url)
+		"""Return the patch for a PR."""
+		return self.github.get_pr_patch(self.repository, self.id)
 
 	def _get_commit_messages(self) -> list[str]:
 		"""Get the commit messages for a PR."""

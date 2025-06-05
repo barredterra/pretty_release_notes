@@ -15,10 +15,6 @@ class GitHubClient:
 			}
 		)
 
-	def get_text(self, url: str) -> str:
-		"""Get patch from GitHub API."""
-		return self.session.get(url).text
-
 	def get_closed_issues(
 		self, repository: Repository, pr_no: str, first: int = 1
 	) -> list[Issue]:
@@ -79,6 +75,17 @@ class GitHubClient:
 			for commit in data.get("commits", [])
 		]
 
+	def get_commit_diff(self, repository: Repository, commit_sha: str) -> str:
+		"""Return the diff of a particular commit."""
+		r = self.session.get(
+			f"https://api.github.com/repos/{repository.owner}/{repository.name}/commits/{commit_sha}",
+			headers={
+				"Accept": "application/vnd.github.diff",
+			},
+		)
+		r.raise_for_status()
+		return r.text
+
 	def get_pr(self, repository: Repository, pr_no: str) -> PullRequest:
 		"""Get PR information from GitHub API."""
 		r = self.session.get(
@@ -89,6 +96,17 @@ class GitHubClient:
 		)
 		r.raise_for_status()
 		return PullRequest.from_dict(self, repository, r.json())
+
+	def get_pr_patch(self, repository: Repository, pr_no: str) -> str:
+		"""Return the patch of a PR."""
+		r = self.session.get(
+			f"https://api.github.com/repos/{repository.owner}/{repository.name}/pulls/{pr_no}",
+			headers={
+				"Accept": "application/vnd.github.patch",
+			},
+		)
+		r.raise_for_status()
+		return r.text
 
 	def get_pr_reviewers(self, repository: Repository, pr_no: str) -> set[str]:
 		"""Get reviewers from GitHub API."""
