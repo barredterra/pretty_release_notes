@@ -1,55 +1,56 @@
 from dataclasses import dataclass
+
 from .release_notes_line import ReleaseNotesLine
 
 
 @dataclass
 class ReleaseNotes:
 	"""Parse release notes into structured data."""
+
 	lines: list[ReleaseNotesLine]
 
 	@classmethod
 	def from_string(cls, release_notes: str) -> "ReleaseNotes":
 		return cls(
-			lines = [
-				ReleaseNotesLine.from_string(line)
-				for line in release_notes.split("\n")
+			lines=[
+				ReleaseNotesLine.from_string(line) for line in release_notes.split("\n")
 			]
 		)
 
 	@property
 	def authors(self) -> set[str]:
-		return {
-			line.original_pr.author if line.original_pr else line.pr.author
-			for line in self.lines
-			if line.original_pr or line.pr
-		}
+		return {line.change.get_author() for line in self.lines if line.change}
 
-	@property
-	def reviewers(self) -> set[str]:
+	def get_reviewers(self) -> set[str]:
 		reviewers = set()
 		for line in self.lines:
-			if line.original_pr and line.original_pr.reviewers:
-				reviewers.update(line.original_pr.reviewers)
-			if line.pr and line.pr.reviewers:
-				reviewers.update(line.pr.reviewers)
+			if not line.change:
+				continue
+
+			reviewers.update(line.change.get_reviewers())
 
 		return reviewers
 
 	def serialize(
 		self,
-		exclude_pr_types: list[str] | None = None,
-		exclude_pr_labels: set[str] | None = None,
+		exclude_change_types: set[str] | None = None,
+		exclude_change_labels: set[str] | None = None,
 		exclude_authors: set[str] | None = None,
 		model_name: str | None = None,
 	) -> str:
-		def is_exluded_type(pr):
-			return pr.pr_type and pr.pr_type in exclude_pr_types
+		def is_exluded_type(change):
+			return (
+				change.conventional_type
+				and exclude_change_types
+				and change.conventional_type in exclude_change_types
+			)
 
-		def has_excluded_label(pr):
-			return pr.labels and exclude_pr_labels and pr.labels & exclude_pr_labels
-
-		if exclude_pr_types is None:
-			exclude_pr_types = []
+		def has_excluded_label(change):
+			return (
+				change.labels
+				and exclude_change_labels
+				and change.labels & exclude_change_labels
+			)
 
 		if exclude_authors is None:
 			exclude_authors = set()
@@ -57,18 +58,20 @@ class ReleaseNotes:
 		lines = "\n".join(
 			str(line)
 			for line in self.lines
-			if not line.pr or (not is_exluded_type(line.pr) and not has_excluded_label(line.pr))
+			if not line.change
+			or (
+				not is_exluded_type(line.change) and not has_excluded_label(line.change)
+			)
 		)
 
 		authors_string = ", ".join(
-			f"@{author}"
-			for author in self.authors
-			if author not in exclude_authors
+			f"@{author}" for author in self.authors if author not in exclude_authors
 		)
 
 		reviewers_string = ", ".join(
 			f"@{reviewer}"
-			for reviewer in self.reviewers
+			for reviewer in self.get_reviewers()
+			if reviewer not in exclude_authors
 		)
 
 		if authors_string:

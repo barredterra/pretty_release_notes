@@ -1,11 +1,9 @@
-from dataclasses import dataclass
 import re
+from dataclasses import dataclass
 
 from models.pull_request import PullRequest
 
-REGEX_PR_URL = re.compile(
-	r"https://github.com/[^/]+/[^/]+/pull/(\d+)"
-)
+REGEX_PR_URL = re.compile(r"https://github.com/[^/]+/[^/]+/pull/(\d+)")
 
 
 @dataclass
@@ -13,8 +11,7 @@ class ReleaseNotesLine:
 	original_line: str
 	pr_url: str | None = None
 	pr_no: str | None = None
-	pr: PullRequest | None = None
-	original_pr: PullRequest | None = None
+	change: "PullRequest | Commit | None" = None
 	is_new_contributor: bool = False
 	sentence: str | None = None
 	author: str | None = None

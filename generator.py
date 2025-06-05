@@ -5,11 +5,10 @@ from requests import HTTPError
 
 from database import get_db
 from github_client import GitHubClient
-from models import ReleaseNotes, Repository
+from models import ReleaseNotes, ReleaseNotesLine, Repository
 from openai_client import get_chat_response
 
 if TYPE_CHECKING:
-	from models import Issue, PullRequest, ReleaseNotesLine
 	from ui import CLI
 
 
@@ -22,8 +21,8 @@ class ReleaseNotesGenerator:
 		github_token: str,
 		openai_api_key: str,
 		openai_model: str = "gpt-4.1",
-		exclude_pr_types: set[str] | None = None,
-		exclude_pr_labels: set[str] | None = None,
+		exclude_change_types: set[str] | None = None,
+		exclude_change_labels: set[str] | None = None,
 		exclude_authors: set[str] | None = None,
 		db_type: str = "sqlite",
 		db_name: str = "stored_lines",
@@ -33,8 +32,8 @@ class ReleaseNotesGenerator:
 	):
 		self.github = GitHubClient(github_token)
 		self.repository = Repository(owner, repo)
-		self.exclude_pr_types = exclude_pr_types or set()
-		self.exclude_pr_labels = exclude_pr_labels or set()
+		self.exclude_change_types = exclude_change_types or set()
+		self.exclude_change_labels = exclude_change_labels or set()
 		self.exclude_authors = exclude_authors or set()
 		self.openai_api_key = openai_api_key
 		self.openai_model = openai_model
@@ -71,11 +70,27 @@ class ReleaseNotesGenerator:
 
 		release_notes = ReleaseNotes.from_string(new_body)
 		for line in release_notes.lines:
+			if line.pr_no and not line.is_new_contributor:
+				line.change = self.github.get_pr(self.repository, line.pr_no)
+
+		if (
+			not any(line.pr_no for line in release_notes.lines)
+			and "Full Changelog" in gh_notes["body"]
+		):
+			prev_tag = (
+				get_prev_tag(gh_notes["body"], self.repository)
+				or release["target_commitish"]
+			)
+			release_notes.lines = (
+				self._get_commit_lines(tag, prev_tag) + release_notes.lines
+			)
+
+		for line in release_notes.lines:
 			self._process_line(line)
 
 		return release_notes.serialize(
-			self.exclude_pr_types,
-			self.exclude_pr_labels,
+			self.exclude_change_types,
+			self.exclude_change_labels,
 			self.exclude_authors,
 			model_name=f"OpenAI {self.openai_model}",
 		)
@@ -94,102 +109,68 @@ class ReleaseNotesGenerator:
 			if self.ui:
 				self.ui.show_error("No permission to update release notes, skipping.")
 
+	def _get_commit_lines(self, tag: str, prev_tag: str):
+		commits = self.github.get_diff_commits(self.repository, tag, prev_tag)
+		return [
+			ReleaseNotesLine(
+				original_line="",
+				pr_url=commit.url,
+				pr_no=commit.id,
+				change=commit,
+				author=commit.author,
+			)
+			for commit in commits
+		]
+
 	def _process_line(self, line: "ReleaseNotesLine"):
 		if not line.pr_no or line.is_new_contributor:
 			if self.ui:
 				self.ui.show_markdown_text(str(line))
 			return
 
-		line.pr = self.github.get_pr(self.repository, line.pr_no)
-
-		if line.pr.pr_type in self.exclude_pr_types:
+		if line.change.conventional_type in self.exclude_change_types:
 			return
 
-		if line.pr.labels and line.pr.labels & self.exclude_pr_labels:
+		if line.change.labels and line.change.labels & self.exclude_change_labels:
 			return
-
-		self._set_reviewers(line)
 
 		if self.db:
-			stored_sentence = self.db.get_sentence(
-				self.repository, line.pr.backport_no or line.pr_no
-			)
+			change_id = line.change.get_summary_key()
+			stored_sentence = self.db.get_sentence(self.repository, change_id)
 			if stored_sentence:
 				line.sentence = stored_sentence
 				if self.ui:
 					self.ui.show_markdown_text(str(line))
 				return
 
-		pr_patch = self.github.get_text(line.pr.patch_url)
-		if len(pr_patch) > self.max_patch_size:
-			pr_patch = "\n".join(self._get_commit_messages(line.pr.commits_url))
-
-		closed_issues = self.github.get_closed_issues(self.repository, line.pr_no)
-		if not closed_issues and line.pr.backport_no:
-			closed_issues = self.github.get_closed_issues(
-				self.repository, line.pr.backport_no
-			)
-
-		prompt = self._build_prompt(
-			pr=line.pr,
-			pr_patch=pr_patch,
-			issue=closed_issues[0] if closed_issues else None,
+		prompt = line.change.get_prompt(
+			prompt_template=self.prompt_path.read_text(),
+			max_patch_size=self.max_patch_size,
 		)
-		pr_sentence = get_chat_response(
+
+		change_summary = get_chat_response(
 			content=prompt,
 			model=self.openai_model,
 			api_key=self.openai_api_key,
 		)
-		if not pr_sentence:
+		if not change_summary:
 			return
 
-		pr_sentence = pr_sentence.lstrip(" -")
+		change_summary = change_summary.lstrip(" -")
 		if self.db:
-			self.db.store_sentence(
-				self.repository, line.pr.backport_no or line.pr_no, pr_sentence
-			)
-		line.sentence = pr_sentence
+			self.db.store_sentence(self.repository, change_id, change_summary)
+		line.sentence = change_summary
 		if self.ui:
 			self.ui.show_markdown_text(str(line))
-
-	def _set_reviewers(self, line: "ReleaseNotesLine"):
-		"""Determine the actual reviewers for a PR.
-
-		An author who reviewed or merged their own PR or backport is not a reviewer.
-		A non-author who reviewed or merged someone else's PR is a reviewer.
-		The author of the original PR is also the author of the backport.
-		"""
-		line.pr.reviewers = self.github.get_pr_reviewers(
-			self.repository, line.pr_no
-		)
-		line.pr.reviewers.add(line.pr.merged_by)
-		line.pr.reviewers.discard(line.pr.author)
-		line.pr.reviewers -= self.exclude_authors
-
-		if line.pr.backport_no:
-			line.original_pr = self.github.get_pr(
-				self.repository, line.pr.backport_no
-			)
-			line.original_pr.reviewers = self.github.get_pr_reviewers(
-				self.repository, line.pr.backport_no
-			)
-			line.original_pr.reviewers.add(line.original_pr.merged_by)
-			line.original_pr.reviewers.discard(line.original_pr.author)
-			line.original_pr.reviewers -= self.exclude_authors
-			line.pr.reviewers.discard(line.original_pr.author)
 
 	def _get_release(self, tag: str):
 		return self.github.get_release(self.repository, tag)
 
-	def _get_commit_messages(self, url: str):
-		return [commit["commit"]["message"] for commit in self.github.get_commit_messages(url)]
 
-	def _build_prompt(self, pr: "PullRequest", pr_patch: str, issue: "Issue | None" = None) -> str:
-		prompt = self.prompt_path.read_text()
+def get_prev_tag(release_notes_body: str, repository: Repository) -> str | None:
+	compare_url = f"https://github.com/{repository.owner}/{repository.name}/compare/"
+	pos = release_notes_body.find(compare_url)
+	if pos != -1:
+		return release_notes_body[pos + len(compare_url) :].split("...")[0]
 
-		if issue:
-			prompt += f"\n\n\n{issue}"
-
-		prompt += f"\n\n\n{pr}\n\nPR Patch or commit messages: {pr_patch}"
-
-		return prompt
+	return None

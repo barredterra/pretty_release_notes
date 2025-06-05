@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import typer
 from dotenv import dotenv_values
 
@@ -10,7 +11,13 @@ config = dotenv_values(".env")
 
 
 @app.command()
-def main(repo: str, tag: str, owner: str | None = None, database: bool = True, prompt_path: Path | None = None):
+def main(
+	repo: str,
+	tag: str,
+	owner: str | None = None,
+	database: bool = True,
+	prompt_path: Path | None = None,
+):
 	cli = CLI()
 	generator = ReleaseNotesGenerator(
 		owner=owner or config["DEFAULT_OWNER"],
@@ -19,8 +26,8 @@ def main(repo: str, tag: str, owner: str | None = None, database: bool = True, p
 		github_token=config["GH_TOKEN"],
 		openai_model=config["OPENAI_MODEL"],
 		openai_api_key=config["OPENAI_API_KEY"],
-		exclude_pr_types=get_config_set("EXCLUDE_PR_TYPES"),
-		exclude_pr_labels=get_config_set("EXCLUDE_PR_LABELS"),
+		exclude_change_types=get_config_set("EXCLUDE_PR_TYPES"),
+		exclude_change_labels=get_config_set("EXCLUDE_PR_LABELS"),
 		exclude_authors=get_config_set("EXCLUDE_AUTHORS"),
 		db_type=config["DB_TYPE"],
 		ui=cli,

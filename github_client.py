@@ -69,7 +69,7 @@ class GitHubClient:
 			},
 		)
 		r.raise_for_status()
-		return PullRequest.from_dict(repository, r.json())
+		return PullRequest.from_dict(self, repository, r.json())
 
 	def get_pr_reviewers(self, repository: Repository, pr_no: str) -> set[str]:
 		"""Get reviewers from GitHub API."""

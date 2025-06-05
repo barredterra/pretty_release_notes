@@ -1,16 +1,19 @@
+import pytest
+
+from github_client import GitHubClient
 from models.pull_request import PullRequest
 from models.repository import Repository
-import pytest
 
 
 @pytest.fixture
 def pull_request():
 	return PullRequest(
+		github=GitHubClient("test_token"),
 		repository=Repository(
 			owner="test_owner",
 			name="test_name",
 		),
-		number=1,
+		id=1,
 		title="test_title",
 		body="test_body",
 		patch_url="test_patch_url",
@@ -29,6 +32,7 @@ def test_backport_no(pull_request):
 
 def test_from_dict():
 	pull_request = PullRequest.from_dict(
+		github=GitHubClient("test_token"),
 		repository=Repository(
 			owner="test_owner",
 			name="test_name",
@@ -44,7 +48,7 @@ def test_from_dict():
 			"labels": [{"name": "test_label"}],
 		},
 	)
-	assert pull_request.number == 1
+	assert pull_request.id == 1
 	assert pull_request.title == "test_title"
 	assert pull_request.body == "test_body"
 	assert pull_request.patch_url == "test_patch_url"
