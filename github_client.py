@@ -1,6 +1,7 @@
 import requests
 
 from models import Issue, PullRequest, Repository
+from models.commit import Commit
 
 
 class GitHubClient:
@@ -58,6 +59,24 @@ class GitHubClient:
 			for issue in response["data"]["repository"]["pullRequest"][
 				"closingIssuesReferences"
 			]["edges"]
+		]
+
+	def get_diff_commits(
+		self, repository: Repository, tag: str, prev_tag: str
+	) -> list[Commit]:
+		"""Return a list of commits between two tags."""
+		r = self.session.get(
+			f"https://api.github.com/repos/{repository.owner}/{repository.name}/compare/{prev_tag}...{tag}",
+			headers={
+				"Accept": "application/vnd.github+json",
+			},
+		)
+		r.raise_for_status()
+		data = r.json()
+
+		return [
+			Commit.from_dict(self, repository, commit)
+			for commit in data.get("commits", [])
 		]
 
 	def get_pr(self, repository: Repository, pr_no: str) -> PullRequest:
