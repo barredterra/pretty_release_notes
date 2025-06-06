@@ -20,8 +20,6 @@ def main(
 ):
 	cli = CLI()
 	generator = ReleaseNotesGenerator(
-		owner=owner or config["DEFAULT_OWNER"],
-		repo=repo,
 		prompt_path=prompt_path or Path("prompt.txt"),
 		github_token=config["GH_TOKEN"],
 		openai_model=config["OPENAI_MODEL"],
@@ -34,6 +32,7 @@ def main(
 		max_patch_size=int(config["MAX_PATCH_SIZE"]),
 		use_db=database,
 	)
+	generator.initialize_repository(owner or config["DEFAULT_OWNER"], repo)
 	notes = generator.generate(tag)
 	cli.show_release_notes("New Release Notes", notes)
 

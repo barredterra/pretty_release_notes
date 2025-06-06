@@ -15,8 +15,6 @@ if TYPE_CHECKING:
 class ReleaseNotesGenerator:
 	def __init__(
 		self,
-		owner: str,
-		repo: str,
 		prompt_path: Path,
 		github_token: str,
 		openai_api_key: str,
@@ -31,7 +29,7 @@ class ReleaseNotesGenerator:
 		max_patch_size: int = 10000,
 	):
 		self.github = GitHubClient(github_token)
-		self.repository = Repository(owner, repo)
+		self.repository = None
 		self.exclude_change_types = exclude_change_types or set()
 		self.exclude_change_labels = exclude_change_labels or set()
 		self.exclude_authors = exclude_authors or set()
@@ -41,6 +39,9 @@ class ReleaseNotesGenerator:
 		self.prompt_path = prompt_path
 		self.ui = ui
 		self.db = get_db(db_type, db_name) if use_db else None
+
+	def initialize_repository(self, owner: str, name: str):
+		self.repository = self.github.get_repository(owner, name)
 
 	def generate(self, tag: str):
 		"""Generate release notes for a given tag."""
@@ -74,7 +75,7 @@ class ReleaseNotesGenerator:
 				line.change = self.github.get_pr(self.repository, line.pr_no)
 
 		if (
-			not any(line.pr_no for line in release_notes.lines)
+			not any(line.change for line in release_notes.lines)
 			and "Full Changelog" in gh_notes["body"]
 		):
 			prev_tag = (
@@ -119,10 +120,7 @@ class ReleaseNotesGenerator:
 		] + [
 			ReleaseNotesLine(
 				original_line="",
-				pr_url=commit.url,
-				pr_no=commit.id,
 				change=commit,
-				author=commit.author,
 			)
 			for commit in commits
 		] + [
@@ -133,7 +131,7 @@ class ReleaseNotesGenerator:
 		]
 
 	def _process_line(self, line: "ReleaseNotesLine"):
-		if not line.pr_no or line.is_new_contributor:
+		if not line.change or line.is_new_contributor:
 			if self.ui:
 				self.ui.show_markdown_text(str(line))
 			return

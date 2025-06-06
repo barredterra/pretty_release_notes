@@ -22,16 +22,12 @@ class PullRequest(Change):
 	id: int  # number
 	title: str
 	body: str
-	patch_url: str
+	html_url: str
 	commits_url: str | None = None
 	author: str | None = None
 	merged_by: str | None = None
 	labels: set[str] | None = None
 	backport_of: "PullRequest | None" = None
-
-	@property
-	def url(self):
-		return f"{self.repository.url}/pull/{self.id}"
 
 	@property
 	def backport_no(self) -> str | None:
@@ -141,7 +137,7 @@ class PullRequest(Change):
 			id=data["number"],
 			title=data["title"],
 			body=data["body"],
-			patch_url=data["patch_url"],
+			html_url=data["html_url"],
 			commits_url=data["commits_url"],
 			author=data["user"]["login"],
 			merged_by=data["merged_by"]["login"],

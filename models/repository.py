@@ -5,7 +5,16 @@ from dataclasses import dataclass
 class Repository:
 	owner: str
 	name: str
+	url: str
+	html_url: str
+	description: str | None = None
 
-	@property
-	def url(self):
-		return f"https://github.com/{self.owner}/{self.name}"
+	@classmethod
+	def from_dict(cls, data: dict) -> "Repository":
+		return cls(
+			owner=data["owner"]["login"],
+			name=data["name"],
+			url=data["url"],
+			html_url=data["html_url"],
+			description=data.get("description"),
+		)

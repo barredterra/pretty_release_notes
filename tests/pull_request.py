@@ -12,11 +12,13 @@ def pull_request():
 		repository=Repository(
 			owner="test_owner",
 			name="test_name",
+			url="test_url",
+			html_url="test_html_url",
 		),
 		id=1,
 		title="test_title",
 		body="test_body",
-		patch_url="test_patch_url",
+		html_url="test_html_url",
 	)
 
 
@@ -44,12 +46,14 @@ def test_from_dict():
 		repository=Repository(
 			owner="test_owner",
 			name="test_name",
+			url="test_url",
+			html_url="test_html_url",
 		),
 		data={
 			"number": 1,
 			"title": "test_title",
 			"body": "test_body",
-			"patch_url": "test_patch_url",
+			"html_url": "test_html_url",
 			"commits_url": "test_commits_url",
 			"user": {"login": "test_user"},
 			"merged_by": {"login": "test_merged_by"},
@@ -59,12 +63,8 @@ def test_from_dict():
 	assert pull_request.id == 1
 	assert pull_request.title == "test_title"
 	assert pull_request.body == "test_body"
-	assert pull_request.patch_url == "test_patch_url"
+	assert pull_request.html_url == "test_html_url"
 	assert pull_request.commits_url == "test_commits_url"
 	assert pull_request.author == "test_user"
 	assert pull_request.merged_by == "test_merged_by"
 	assert pull_request.labels == {"test_label"}
-
-
-def test_url(pull_request):
-	assert pull_request.url == "https://github.com/test_owner/test_name/pull/1"

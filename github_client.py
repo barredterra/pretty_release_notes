@@ -15,6 +15,17 @@ class GitHubClient:
 			}
 		)
 
+	def get_repository(self, owner: str, name: str) -> Repository:
+		"""Return a repository object."""
+		r = self.session.get(
+			f"https://api.github.com/repos/{owner}/{name}",
+			headers={
+				"Accept": "application/vnd.github+json",
+			},
+		)
+		r.raise_for_status()
+		return Repository.from_dict(r.json())
+
 	def get_closed_issues(
 		self, repository: Repository, pr_no: str, first: int = 1
 	) -> list[Issue]:
@@ -62,7 +73,7 @@ class GitHubClient:
 	) -> list[Commit]:
 		"""Return a list of commits between two tags."""
 		r = self.session.get(
-			f"https://api.github.com/repos/{repository.owner}/{repository.name}/compare/{prev_tag}...{tag}",
+			f"{repository.url}/compare/{prev_tag}...{tag}",
 			headers={
 				"Accept": "application/vnd.github+json",
 			},
@@ -78,7 +89,7 @@ class GitHubClient:
 	def get_commit_diff(self, repository: Repository, commit_sha: str) -> str:
 		"""Return the diff of a particular commit."""
 		r = self.session.get(
-			f"https://api.github.com/repos/{repository.owner}/{repository.name}/commits/{commit_sha}",
+			f"{repository.url}/commits/{commit_sha}",
 			headers={
 				"Accept": "application/vnd.github.diff",
 			},
@@ -89,7 +100,7 @@ class GitHubClient:
 	def get_pr(self, repository: Repository, pr_no: str) -> PullRequest:
 		"""Get PR information from GitHub API."""
 		r = self.session.get(
-			f"https://api.github.com/repos/{repository.owner}/{repository.name}/pulls/{pr_no}",
+			f"{repository.url}/pulls/{pr_no}",
 			headers={
 				"Accept": "application/vnd.github+json",
 			},
@@ -100,7 +111,7 @@ class GitHubClient:
 	def get_pr_patch(self, repository: Repository, pr_no: str) -> str:
 		"""Return the patch of a PR."""
 		r = self.session.get(
-			f"https://api.github.com/repos/{repository.owner}/{repository.name}/pulls/{pr_no}",
+			f"{repository.url}/pulls/{pr_no}",
 			headers={
 				"Accept": "application/vnd.github.patch",
 			},
@@ -111,7 +122,7 @@ class GitHubClient:
 	def get_pr_reviewers(self, repository: Repository, pr_no: str) -> set[str]:
 		"""Get reviewers from GitHub API."""
 		r = self.session.get(
-			f"https://api.github.com/repos/{repository.owner}/{repository.name}/pulls/{pr_no}/reviews",
+			f"{repository.url}/pulls/{pr_no}/reviews",
 			headers={
 				"Accept": "application/vnd.github+json",
 			},
@@ -122,7 +133,7 @@ class GitHubClient:
 	def get_release(self, repository: Repository, tag: str):
 		"""Get release information from GitHub API."""
 		return self.session.get(
-			f"https://api.github.com/repos/{repository.owner}/{repository.name}/releases/tags/{tag}",
+			f"{repository.url}/releases/tags/{tag}",
 			headers={
 				"Accept": "application/vnd.github+json",
 			},
@@ -131,7 +142,7 @@ class GitHubClient:
 	def generate_release_notes(self, repository: Repository, tag: str):
 		"""Generate release notes for a given tag."""
 		response = self.session.post(
-			f"https://api.github.com/repos/{repository.owner}/{repository.name}/releases/generate-notes",
+			f"{repository.url}/releases/generate-notes",
 			headers={
 				"Accept": "application/vnd.github+json",
 			},
@@ -144,7 +155,7 @@ class GitHubClient:
 	def update_release(self, repository: Repository, release_id: str, body: str):
 		"""Update release notes for a given tag."""
 		response = self.session.patch(
-			f"https://api.github.com/repos/{repository.owner}/{repository.name}/releases/{release_id}",
+			f"{repository.url}/releases/{release_id}",
 			headers={
 				"Accept": "application/vnd.github+json",
 			},

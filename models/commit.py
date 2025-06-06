@@ -16,15 +16,8 @@ class Commit(Change):
 	id: str  # sha
 	message: str
 	author: str
+	html_url: str
 	labels: set[str] | None = None
-
-	@property
-	def url(self) -> str:
-		return f"{self.repository.url}/commit/{self.id}"
-
-	@property
-	def diff_url(self) -> str:
-		return f"{self.url}.patch"
 
 	@property
 	def conventional_type(self) -> str | None:
@@ -66,6 +59,7 @@ class Commit(Change):
 			id=data["sha"],
 			message=data["commit"]["message"],
 			author=data["author"]["login"],
+			html_url=data["html_url"],
 		)
 
 	def __str__(self):
