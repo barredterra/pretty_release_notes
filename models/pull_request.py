@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 
 CONVENTIONAL_TYPE_AND_SCOPE = re.compile(r"^([a-zA-Z]+)(?:\(([^)]+)\))?:\s+(.+)$")
+BACKPORT_NO = re.compile(r"\(backport #(\d+)\)\s*$")
 
 
 @dataclass
@@ -40,8 +41,8 @@ class PullRequest(Change):
 		'feat(regional): Address Template for Germany & Switzerland (backport #46737)' -> '46737'
 		'Revert "perf: timeout while renaming cost center (backport #46641)" (backport #46749)' -> '46749'
 		"""
-		original_pr_match = re.search(r"\(backport #(\d+)\)\s*$", self.title)
-		return original_pr_match[1] if original_pr_match else None
+		match = BACKPORT_NO.search(self.title)
+		return match.group(1) if match else None
 
 	@property
 	def conventional_type(self) -> str | None:
