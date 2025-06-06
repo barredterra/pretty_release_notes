@@ -164,11 +164,13 @@ class GitHubClient:
 		response.raise_for_status()
 		return response.json()
 
-	def get_commit_messages(self, url):
+	def get_commit_messages(self, url: str) -> list[str]:
 		"""Get commit messages from GitHub API."""
-		return self.session.get(
+		r = self.session.get(
 			url,
 			headers={
 				"Accept": "application/json",
 			},
-		).json()
+		)
+		r.raise_for_status()
+		return [data["commit"]["message"] for data in r.json()]
