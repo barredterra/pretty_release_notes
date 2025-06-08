@@ -71,7 +71,10 @@ class GitHubClient:
 	def get_diff_commits(
 		self, repository: Repository, tag: str, prev_tag: str
 	) -> list[Commit]:
-		"""Return a list of commits between two tags."""
+		"""Return a list of commits between two tags.
+
+		Use this to get the commits for a tag that has a previous tag. Else, use get_tag_commits.
+		"""
 		r = self.session.get(
 			f"{repository.url}/compare/{prev_tag}...{tag}",
 			headers={
@@ -85,6 +88,27 @@ class GitHubClient:
 			Commit.from_dict(self, repository, commit)
 			for commit in data.get("commits", [])
 		]
+
+	def get_tag_commits(self, repository: Repository, tag: str) -> list[Commit]:
+		"""Return a list of commits for a given tag.
+
+		Use this to get the commits for a tag that doesn't have a previous tag. Else, use get_diff_commits.
+		"""
+		r = self.session.get(
+			f"{repository.url}/commits",
+			params={
+				"sha": tag,
+				"per_page": 100,
+			},
+			headers={
+				"Accept": "application/vnd.github+json",
+			},
+		)
+		r.raise_for_status()
+
+		commits = r.json()
+		commits.sort(key=lambda x: x["commit"]["committer"]["date"])
+		return [Commit.from_dict(self, repository, commit) for commit in commits]
 
 	def get_commit_diff(self, repository: Repository, commit_sha: str) -> str:
 		"""Return the diff of a particular commit."""

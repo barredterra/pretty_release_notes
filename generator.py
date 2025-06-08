@@ -78,10 +78,7 @@ class ReleaseNotesGenerator:
 			not any(line.change for line in release_notes.lines)
 			and "Full Changelog" in gh_notes["body"]
 		):
-			prev_tag = (
-				get_prev_tag(gh_notes["body"], self.repository)
-				or release["target_commitish"]
-			)
+			prev_tag = get_prev_tag(gh_notes["body"], self.repository)
 			release_notes.lines = (
 				self._get_commit_lines(tag, prev_tag) + release_notes.lines
 			)
@@ -110,8 +107,12 @@ class ReleaseNotesGenerator:
 			if self.ui:
 				self.ui.show_error("No permission to update release notes, skipping.")
 
-	def _get_commit_lines(self, tag: str, prev_tag: str):
-		commits = self.github.get_diff_commits(self.repository, tag, prev_tag)
+	def _get_commit_lines(self, tag: str, prev_tag: str | None = None):
+		if prev_tag:
+			commits = self.github.get_diff_commits(self.repository, tag, prev_tag)
+		else:
+			commits = self.github.get_tag_commits(self.repository, tag)
+
 		return [
 			# Add the same heading line for the commits, that is automatically added by GitHub for PRs
 			ReleaseNotesLine(
