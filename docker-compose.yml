@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  webhook-server:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - GH_TOKEN=${GH_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+      - PORT=5000
+      - DEBUG=${DEBUG:-false}
+      - PROMPT_PATH=${PROMPT_PATH:-prompt.txt}
+      - MAX_PATCH_SIZE=${MAX_PATCH_SIZE:-10000}
+      - DB_TYPE=${DB_TYPE:-sqlite}
+      - EXCLUDE_PR_TYPES=${EXCLUDE_PR_TYPES:-}
+      - EXCLUDE_PR_LABELS=${EXCLUDE_PR_LABELS:-}
+      - EXCLUDE_AUTHORS=${EXCLUDE_AUTHORS:-}
+    volumes:
+      - ./stored_lines.db:/app/stored_lines.db
+      - ./prompt.txt:/app/prompt.txt
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
