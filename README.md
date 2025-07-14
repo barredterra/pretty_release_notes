@@ -29,7 +29,21 @@ Copy `.env.example` to `.env` and fill in your GitHub token and OpenAI API key.
 
 You can choose a database type by setting the `DB_TYPE` environment variable. Currently supported are `csv` and `sqlite`.
 
+### Webhook Setup
+
+For automatic release notes generation when releases are published, you can set up a GitHub webhook:
+
+1. Add a `GITHUB_WEBHOOK_SECRET` to your `.env` file with a secure random string
+2. Run the FastAPI server: `python server.py`
+3. In your GitHub repository settings, add a webhook pointing to `http://your-server:8000/webhook/release`
+4. Set the webhook secret to the same value as `GITHUB_WEBHOOK_SECRET`
+5. Select "Releases" as the event to trigger the webhook
+
+When a release is published, the webhook will automatically generate and update the release notes.
+
 ## Usage
+
+### CLI Usage
 
 ```bash
 source env/bin/activate
@@ -38,6 +52,16 @@ python main.py --help
 python main.py erpnext v15.38.4 # using DEFAULT_OWNER from .env
 python main.py --owner alyf-de banking v0.0.1
 ```
+
+### Webhook Server
+
+```bash
+source env/bin/activate
+
+python server.py
+```
+
+The webhook server will run on `http://0.0.0.0:8000` by default.
 
 Example output:
 

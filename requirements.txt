@@ -4,3 +4,5 @@ python-dotenv
 typer
 pytest
 tenacity
+fastapi
+uvicorn
