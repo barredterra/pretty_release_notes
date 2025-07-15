@@ -11,7 +11,6 @@ if TYPE_CHECKING:
 	from models.repository import Repository
 
 
-CONVENTIONAL_TYPE_AND_SCOPE = re.compile(r"^([a-zA-Z]+)(?:\(([^)]+)\))?:\s+(.+)$")
 BACKPORT_NO = re.compile(r"\(backport #(\d+)\)\s*$")
 
 
