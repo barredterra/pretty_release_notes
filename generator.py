@@ -1,3 +1,5 @@
+import threading
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -70,9 +72,11 @@ class ReleaseNotesGenerator:
 			self.ui.show_markdown_text("# Rewriting ...")
 
 		release_notes = ReleaseNotes.from_string(new_body)
-		for line in release_notes.lines:
-			if line.pr_no and not line.is_new_contributor:
-				line.change = self.github.get_pr(self.repository, line.pr_no)
+		pr_start_time = time.time()
+		self._get_prs_for_lines(release_notes.lines)
+		pr_end_time = time.time()
+		if self.ui:
+			self.ui.show_success(f"Downloaded PRs in {pr_end_time - pr_start_time:.2f} seconds.")
 
 		if (
 			not any(line.change for line in release_notes.lines)
@@ -83,8 +87,11 @@ class ReleaseNotesGenerator:
 				self._get_commit_lines(tag, prev_tag) + release_notes.lines
 			)
 
-		for line in release_notes.lines:
-			self._process_line(line)
+		process_start_time = time.time()
+		self._process_lines(release_notes.lines)
+		process_end_time = time.time()
+		if self.ui:
+			self.ui.show_success(f"Processed lines in {process_end_time - process_start_time:.2f} seconds.")
 
 		return release_notes.serialize(
 			self.exclude_change_types,
@@ -92,6 +99,31 @@ class ReleaseNotesGenerator:
 			self.exclude_authors,
 			model_name=f"OpenAI {self.openai_model}",
 		)
+
+	def _get_prs_for_lines(self, lines: list["ReleaseNotesLine"]):
+		"""Download info for all PRs in parallel."""
+		threads = []
+		for line in lines:
+			thread = threading.Thread(target=self._get_pr_for_line, args=(line,))
+			threads.append(thread)
+			thread.start()
+		for thread in threads:
+			thread.join()
+
+	def _get_pr_for_line(self, line: "ReleaseNotesLine"):
+		"""Download info for a single PR."""
+		if line.pr_no and not line.is_new_contributor:
+			line.change = self.github.get_pr(self.repository, line.pr_no)
+
+	def _process_lines(self, lines: list["ReleaseNotesLine"]):
+		"""Process all lines in parallel."""
+		threads = []
+		for line in lines:
+			thread = threading.Thread(target=self._process_line, args=(line,))
+			threads.append(thread)
+			thread.start()
+		for thread in threads:
+			thread.join()
 
 	def update_on_github(self, new_body: str, tag: str):
 		"""Update release notes on GitHub."""
