@@ -40,7 +40,9 @@ class ReleaseNotesGenerator:
 		self.max_patch_size = max_patch_size
 		self.prompt_path = prompt_path
 		self.ui = ui
-		self.db = get_db(db_type, db_name) if use_db else None
+		self.db_type = db_type
+		self.db_name = db_name
+		self.use_db = use_db
 
 	def initialize_repository(self, owner: str, name: str):
 		self.repository = self.github.get_repository(owner, name)
@@ -164,6 +166,8 @@ class ReleaseNotesGenerator:
 		]
 
 	def _process_line(self, line: "ReleaseNotesLine"):
+		db = get_db(self.db_type, self.db_name) if self.use_db else None
+
 		if not line.change or line.is_new_contributor:
 			if self.ui:
 				self.ui.show_markdown_text(str(line))
@@ -175,9 +179,9 @@ class ReleaseNotesGenerator:
 		if line.change.labels and line.change.labels & self.exclude_change_labels:
 			return
 
-		if self.db:
+		if db:
 			change_id = line.change.get_summary_key()
-			stored_sentence = self.db.get_sentence(self.repository, change_id)
+			stored_sentence = db.get_sentence(self.repository, change_id)
 			if stored_sentence:
 				line.sentence = stored_sentence
 				if self.ui:
@@ -198,8 +202,8 @@ class ReleaseNotesGenerator:
 			return
 
 		change_summary = change_summary.lstrip(" -")
-		if self.db:
-			self.db.store_sentence(self.repository, change_id, change_summary)
+		if db:
+			db.store_sentence(self.repository, change_id, change_summary)
 		line.sentence = change_summary
 		if self.ui:
 			self.ui.show_markdown_text(str(line))
