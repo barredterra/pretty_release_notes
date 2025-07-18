@@ -66,6 +66,11 @@ The authors and reviewers of the PRs are added to the release notes.
 - A non-author who reviewed or merged someone else's PR is a reviewer.
 - The author of the original PR is also the author of the backport.
 
+## Backports
+
+We try to use the same message for backports as for the original PR. For this, we look for `(backport #<number>)` _at the end_ of the PR title and check if we have existing messages for that PR in our database. If we do, we use the message for the original PR. If we don't, we create a new message for the backport.
+
+This means that backports of backports are currently not supported / will get a new message. To get the same message, PRs must be a direct backport of the original PR.
 
 ## Testing
 
