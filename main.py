@@ -1,5 +1,5 @@
 from pathlib import Path
-
+import time
 import typer
 from dotenv import dotenv_values
 
@@ -18,6 +18,7 @@ def main(
 	database: bool = True,
 	prompt_path: Path | None = None,
 ):
+	start_time = time.time()
 	cli = CLI()
 	generator = ReleaseNotesGenerator(
 		prompt_path=prompt_path or Path("prompt.txt"),
@@ -35,6 +36,8 @@ def main(
 	generator.initialize_repository(owner or config["DEFAULT_OWNER"], repo)
 	notes = generator.generate(tag)
 	cli.show_release_notes("New Release Notes", notes)
+	end_time = time.time()
+	cli.show_success(f"Generated release notes in {end_time - start_time:.2f} seconds total.")
 
 	if cli.confirm_update():
 		generator.update_on_github(notes, tag)
