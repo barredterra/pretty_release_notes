@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import threading
 
 from .release_notes_line import ReleaseNotesLine
 
@@ -21,14 +22,24 @@ class ReleaseNotes:
 	def authors(self) -> set[str]:
 		return {line.change.get_author() for line in self.lines if line.change}
 
-	def get_reviewers(self) -> set[str]:
-		reviewers = set()
+	def load_reviewers(self) -> set[str]:
+		threads = []
 		for line in self.lines:
 			if not line.change:
 				continue
 
-			reviewers.update(line.change.get_reviewers())
+			thread = threading.Thread(target=line.change.set_reviewers)
+			threads.append(thread)
+			thread.start()
 
+		for thread in threads:
+			thread.join()
+
+	def get_reviewers(self) -> set[str]:
+		reviewers = set()
+		for line in self.lines:
+			if line.change and line.change.reviewers:
+				reviewers.update(line.change.reviewers)
 		return reviewers
 
 	def serialize(

@@ -18,6 +18,7 @@ class Commit(Change):
 	author: str
 	html_url: str
 	labels: set[str] | None = None
+	reviewers: set[str] | None = None
 
 	@property
 	def conventional_type(self) -> str | None:
@@ -31,8 +32,8 @@ class Commit(Change):
 
 		return prompt
 
-	def get_reviewers(self) -> set[str]:
-		return set()
+	def set_reviewers(self) -> set[str]:
+		self.reviewers = set()
 
 	def get_author(self) -> str:
 		return self.author

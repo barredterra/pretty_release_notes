@@ -11,13 +11,14 @@ class Change(Protocol):
 	conventional_type: str | None
 	author: str
 	labels: set[str] | None
+	reviewers: set[str] | None
 
 	def get_prompt(self, prompt_template: str, max_patch_size: int) -> str:
 		"""Return the prompt used for summarising this change."""
 		...
 
-	def get_reviewers(self) -> set[str]:
-		"""Return the reviewers of this change and the original change that this is a backport of."""
+	def set_reviewers(self) -> set[str]:
+		"""Set the reviewers of this change and the original change that this is a backport of."""
 		...
 
 	def get_author(self) -> str:

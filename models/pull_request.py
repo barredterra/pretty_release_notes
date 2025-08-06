@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
-
+import threading
 from .change import Change
 from ._utils import get_conventional_type
 
@@ -27,6 +27,7 @@ class PullRequest(Change):
 	merged_by: str | None = None
 	labels: set[str] | None = None
 	backport_of: "PullRequest | None" = None
+	reviewers: set[str] | None = None
 
 	@property
 	def backport_no(self) -> str | None:
@@ -61,34 +62,48 @@ class PullRequest(Change):
 
 		return prompt
 
-	def get_reviewers(self) -> set[str]:
+	def set_reviewers(self) -> set[str]:
 		"""Determine the actual reviewers for a PR.
 
 		An author who reviewed or merged their own PR or backport is not a reviewer.
 		A non-author who reviewed or merged someone else's PR is a reviewer.
 		The author of the original PR is also the author of the backport.
 		"""
-		reviewers = self.github.get_pr_reviewers(self.repository, self.id)
+		threads = [
+			threading.Thread(target=self._get_reviewers),
+			threading.Thread(target=self._get_original_reviewers),
+		]
+		for thread in threads:
+			thread.start()
+		for thread in threads:
+			thread.join()
+
+		reviewers = self.reviewers.copy()
 		reviewers.add(self.merged_by)
 		reviewers.discard(self.author)
 
-		self._set_backport_of()
 		if self.backport_of:
-			reviewers.update(self.backport_of.get_reviewers())
-			reviewers.discard(self._get_original_author())
+			reviewers.update(self.backport_of.reviewers)
+			reviewers.discard(self.backport_of.author)
 
-		return reviewers
+		self.reviewers = reviewers
 
 	def get_author(self) -> str:
-		return self._get_original_author() or self.author
+		return self.backport_of.author if self.backport_of else self.author
 
 	def get_summary_key(self) -> str:
 		# Keep in mind that this needs to work before `self.backport_of` is initialised
 		return self.backport_no or self.id
 
-	def _get_original_author(self) -> str:
+	def _get_reviewers(self) -> set[str]:
+		"""Get the reviewers for a PR."""
+		self.reviewers = self.github.get_pr_reviewers(self.repository, self.id)
+	
+	def _get_original_reviewers(self) -> set[str]:
+		"""Get the reviewers for the original PR."""
 		self._set_backport_of()
-		return self.backport_of.get_author() if self.backport_of else None
+		if self.backport_of:
+			self.backport_of.set_reviewers()
 
 	def _get_changes(self, max_patch_size: int) -> str:
 		"""Get the changes for a PR.

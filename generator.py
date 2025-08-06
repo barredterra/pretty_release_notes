@@ -95,6 +95,12 @@ class ReleaseNotesGenerator:
 		if self.ui:
 			self.ui.show_success(f"Processed lines in {process_end_time - process_start_time:.2f} seconds.")
 
+		reviewers_start_time = time.time()
+		release_notes.load_reviewers()
+		reviewers_end_time = time.time()
+		if self.ui:
+			self.ui.show_success(f"Loaded reviewers in {reviewers_end_time - reviewers_start_time:.2f} seconds.")
+
 		return release_notes.serialize(
 			self.exclude_change_types,
 			self.exclude_change_labels,
