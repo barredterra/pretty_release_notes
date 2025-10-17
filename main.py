@@ -17,6 +17,7 @@ def main(
 	owner: str | None = None,
 	database: bool = True,
 	prompt_path: Path | None = None,
+	force_use_commits: bool = False,
 ):
 	start_time = time.time()
 	cli = CLI()
@@ -32,6 +33,7 @@ def main(
 		ui=cli,
 		max_patch_size=int(config["MAX_PATCH_SIZE"]),
 		use_db=database,
+		force_use_commits=force_use_commits,
 	)
 	generator.initialize_repository(owner or config["DEFAULT_OWNER"], repo)
 	notes = generator.generate(tag)

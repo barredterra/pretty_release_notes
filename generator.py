@@ -29,6 +29,7 @@ class ReleaseNotesGenerator:
 		use_db: bool = True,
 		ui: "CLI | None" = None,
 		max_patch_size: int = 10000,
+		force_use_commits: bool = False,
 	):
 		self.github = GitHubClient(github_token)
 		self.repository = None
@@ -43,6 +44,7 @@ class ReleaseNotesGenerator:
 		self.db_type = db_type
 		self.db_name = db_name
 		self.use_db = use_db
+		self.force_use_commits = force_use_commits
 
 	def initialize_repository(self, owner: str, name: str):
 		self.repository = self.github.get_repository(owner, name)
@@ -81,8 +83,11 @@ class ReleaseNotesGenerator:
 			self.ui.show_success(f"Downloaded PRs in {pr_end_time - pr_start_time:.2f} seconds.")
 
 		if (
-			not any(line.change for line in release_notes.lines)
-			and "Full Changelog" in gh_notes["body"]
+			self.force_use_commits or
+			(
+				not any(line.change for line in release_notes.lines)
+				and "Full Changelog" in gh_notes["body"]
+			)
 		):
 			prev_tag = get_prev_tag(gh_notes["body"], self.repository)
 			release_notes.lines = (
