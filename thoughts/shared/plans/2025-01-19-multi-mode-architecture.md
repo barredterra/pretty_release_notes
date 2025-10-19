@@ -228,10 +228,10 @@ class EnvConfigLoader(ConfigLoader):
 ### Success Criteria:
 
 #### Automated Verification:
-- [x] New core module imports successfully: `python -c "from core import interfaces, config"`
-- [x] Configuration validation works: `python -c "from core.config import GitHubConfig; GitHubConfig('')"` raises ValueError
-- [x] Type checking passes: `mypy core/` (Success: no issues found in 4 source files)
-- [x] Unit tests pass: `pytest tests/test_core.py` (20 tests passed)
+- [x] New core module imports successfully: `env/bin/python3 -c "from core import interfaces, config"`
+- [x] Configuration validation works: `env/bin/python3 -c "from core.config import GitHubConfig; GitHubConfig('')"` raises ValueError
+- [x] Type checking passes: `env/bin/mypy core/` (Success: no issues found in 4 source files)
+- [x] Unit tests pass: `env/bin/pytest tests/test_core.py` (20 tests passed)
 
 #### Manual Verification:
 - [x] Configuration classes properly validate input (covered by automated tests)
@@ -383,10 +383,10 @@ if __name__ == "__main__":
 ### Success Criteria:
 
 #### Automated Verification:
-- [x] CLI still works with same commands: `python main.py --help`
-- [x] Tests still pass: `make test` (20 tests passed)
+- [x] CLI still works with same commands: `env/bin/python3 main.py --help`
+- [x] Tests still pass: `env/bin/pytest tests/` (20 tests passed)
 - [x] No direct UI imports in generator.py: `grep -c "from ui import" generator.py` returns 0
-- [x] Type checking passes: `mypy generator.py` (pre-existing errors in other files, no new errors)
+- [x] Type checking passes: `env/bin/mypy generator.py` (pre-existing errors in other files, no new errors)
 
 #### Manual Verification:
 - [x] CLI functionality unchanged from user perspective
@@ -629,10 +629,10 @@ print(notes)
 ### Success Criteria:
 
 #### Automated Verification:
-- [x] Library imports work: `python -c "from pretty_release_notes import ReleaseNotesBuilder"`
-- [x] Builder pattern works: `python examples/library_usage.py` (with valid tokens)
-- [x] Type hints are correct: `mypy api.py`
-- [x] No CLI dependencies: `python -c "import pretty_release_notes; import sys; assert 'typer' not in sys.modules"`
+- [x] Library imports work: `env/bin/python3 -c "import sys; sys.path.insert(0, '.'); from api import ReleaseNotesBuilder"`
+- [x] Builder pattern works: `env/bin/python3 examples/library_usage.py` (with valid tokens)
+- [x] Type hints are correct: `env/bin/mypy --follow-imports=skip api.py`
+- [x] No CLI dependencies: `env/bin/python3 -c "import sys; sys.path.insert(0, '.'); from api import ReleaseNotesBuilder; assert 'typer' not in sys.modules"`
 
 #### Manual Verification:
 - [x] Library API is intuitive and well-documented
@@ -801,9 +801,9 @@ class SQLiteDatabase(Database):
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] Thread pool execution works: `pytest tests/test_execution.py`
-- [ ] Database is thread-safe: `pytest tests/test_database_threading.py`
-- [ ] No deadlocks with concurrent access: `python tests/stress_test.py`
+- [ ] Thread pool execution works: `env/bin/pytest tests/test_execution.py`
+- [ ] Database is thread-safe: `env/bin/pytest tests/test_database_threading.py`
+- [ ] No deadlocks with concurrent access: `env/bin/python3 tests/stress_test.py`
 - [ ] Performance is maintained: Generation time within 10% of original
 
 #### Manual Verification:
@@ -1006,7 +1006,7 @@ pydantic>=2.0.0
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] API starts successfully: `python web/server.py` (Ctrl+C to stop)
+- [ ] API starts successfully: `env/bin/python3 web/server.py` (Ctrl+C to stop)
 - [ ] Health check works: `curl http://localhost:8000/health`
 - [ ] OpenAPI docs available: `curl http://localhost:8000/docs`
 - [ ] Job creation works: `curl -X POST http://localhost:8000/generate -H "Content-Type: application/json" -d '{"owner":"test","repo":"test","tag":"v1.0.0","github_token":"xxx","openai_key":"xxx"}'`
@@ -1253,10 +1253,10 @@ config = ReleaseNotesConfig(
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] Original CLI commands work: `python main.py --help`
-- [ ] Package installs correctly: `pip install -e .`
-- [ ] Console script works: `pretty-release-notes --help`
-- [ ] All original tests pass: `make test`
+- [ ] Original CLI commands work: `env/bin/python3 main.py --help`
+- [ ] Package installs correctly: `env/bin/pip install -e .`
+- [ ] Console script works: `env/bin/pretty-release-notes --help`
+- [ ] All original tests pass: `env/bin/pytest tests/`
 - [ ] No breaking changes: `git diff main.py | grep -c "^-"` shows minimal deletions
 
 #### Manual Verification:
