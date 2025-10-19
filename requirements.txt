@@ -4,3 +4,4 @@ python-dotenv
 typer
 pytest
 tenacity
+mypy

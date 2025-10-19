@@ -1,13 +1,13 @@
 from pathlib import Path
 import time
 import typer
-from dotenv import dotenv_values
 
+from adapters.cli_progress import CLIProgressReporter
+from core.config_loader import EnvConfigLoader
 from generator import ReleaseNotesGenerator
 from ui import CLI
 
 app = typer.Typer()
-config = dotenv_values(".env")
 
 
 @app.command()
@@ -20,33 +20,35 @@ def main(
 	force_use_commits: bool = False,
 ):
 	start_time = time.time()
+
+	# Load base config from .env
+	loader = EnvConfigLoader()
+	config = loader.load()
+
+	# Override with CLI arguments
+	if owner:
+		config.github.owner = owner
+	if prompt_path:
+		config.prompt_path = prompt_path
+	config.database.enabled = database
+	config.force_use_commits = force_use_commits
+
+	# Create UI and adapter
 	cli = CLI()
-	generator = ReleaseNotesGenerator(
-		prompt_path=prompt_path or Path("prompt.txt"),
-		github_token=config["GH_TOKEN"],
-		openai_model=config["OPENAI_MODEL"],
-		openai_api_key=config["OPENAI_API_KEY"],
-		exclude_change_types=get_config_set("EXCLUDE_PR_TYPES"),
-		exclude_change_labels=get_config_set("EXCLUDE_PR_LABELS"),
-		exclude_authors=get_config_set("EXCLUDE_AUTHORS"),
-		db_type=config["DB_TYPE"],
-		ui=cli,
-		max_patch_size=int(config["MAX_PATCH_SIZE"]),
-		use_db=database,
-		force_use_commits=force_use_commits,
-	)
-	generator.initialize_repository(owner or config["DEFAULT_OWNER"], repo)
+	progress_reporter = CLIProgressReporter(cli)
+
+	# Create generator with config
+	generator = ReleaseNotesGenerator(config, progress_reporter)
+	generator.initialize_repository(config.github.owner or owner, repo)
 	notes = generator.generate(tag)
 	cli.show_release_notes("New Release Notes", notes)
 	end_time = time.time()
-	cli.show_success(f"Generated release notes in {end_time - start_time:.2f} seconds total.")
+	cli.show_success(
+		f"Generated release notes in {end_time - start_time:.2f} seconds total."
+	)
 
 	if cli.confirm_update():
 		generator.update_on_github(notes, tag)
-
-
-def get_config_set(key: str) -> set[str]:
-	return set(config[key].split(",")) if config[key] else set()
 
 
 if __name__ == "__main__":
