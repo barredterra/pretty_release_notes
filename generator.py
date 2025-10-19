@@ -1,9 +1,9 @@
-import threading
 import time
 
 from requests import HTTPError
 
 from core.config import ReleaseNotesConfig
+from core.execution import ExecutionStrategy, ThreadPoolStrategy
 from core.interfaces import NullProgressReporter, ProgressEvent, ProgressReporter
 from database import get_db
 from github_client import GitHubClient
@@ -16,11 +16,13 @@ class ReleaseNotesGenerator:
 		self,
 		config: ReleaseNotesConfig,
 		progress_reporter: ProgressReporter | None = None,
+		execution_strategy: ExecutionStrategy | None = None,
 	):
 		self.config = config
 		self.github = GitHubClient(config.github.token)
 		self.repository = None
 		self.progress = progress_reporter or NullProgressReporter()
+		self.execution = execution_strategy or ThreadPoolStrategy()
 
 		# Store config values for easy access
 		self.exclude_change_types = config.filters.exclude_change_types
@@ -124,13 +126,13 @@ class ReleaseNotesGenerator:
 
 	def _get_prs_for_lines(self, lines: list["ReleaseNotesLine"]):
 		"""Download info for all PRs in parallel."""
-		threads = []
+		tasks = []
 		for line in lines:
-			thread = threading.Thread(target=self._get_pr_for_line, args=(line,))
-			threads.append(thread)
-			thread.start()
-		for thread in threads:
-			thread.join()
+			if line.pr_no and not line.is_new_contributor:
+				tasks.append(lambda line_item=line: self._get_pr_for_line(line_item))
+
+		if tasks:
+			self.execution.execute_parallel(tasks)
 
 	def _get_pr_for_line(self, line: "ReleaseNotesLine"):
 		"""Download info for a single PR."""
@@ -139,13 +141,9 @@ class ReleaseNotesGenerator:
 
 	def _process_lines(self, lines: list["ReleaseNotesLine"]):
 		"""Process all lines in parallel."""
-		threads = []
-		for line in lines:
-			thread = threading.Thread(target=self._process_line, args=(line,))
-			threads.append(thread)
-			thread.start()
-		for thread in threads:
-			thread.join()
+		tasks = [lambda line_item=line: self._process_line(line_item) for line in lines]
+		if tasks:
+			self.execution.execute_parallel(tasks)
 
 	def update_on_github(self, new_body: str, tag: str):
 		"""Update release notes on GitHub."""

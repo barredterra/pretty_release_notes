@@ -1,4 +1,6 @@
 import sqlite3
+import threading
+from contextlib import contextmanager
 from csv import DictReader, DictWriter
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -79,13 +81,41 @@ class CSVDatabase(Database):
 
 
 class SQLiteDatabase(Database):
+	"""Thread-safe SQLite database with thread-local connections."""
+
 	def __init__(self, path: Path):
 		self.path = path
-		self.conn = sqlite3.connect(path)
-		self.cursor = self.conn.cursor()
+		self._lock = threading.Lock()
+		self._local = threading.local()
+
+	@property
+	def connection(self):
+		"""Thread-local database connection."""
+		if not hasattr(self._local, "conn"):
+			self._local.conn = sqlite3.connect(self.path)
+			self._local.cursor = self._local.conn.cursor()
+			self._create_table()
+		return self._local.conn
+
+	@property
+	def cursor(self):
+		"""Thread-local cursor."""
+		_ = self.connection  # Ensure connection exists
+		return self._local.cursor
+
+	@contextmanager
+	def transaction(self):
+		"""Context manager for transactions with locking."""
+		with self._lock:
+			try:
+				yield self.cursor
+				self.connection.commit()
+			except Exception:
+				self.connection.rollback()
+				raise
 
 	def get_sentence(self, repository: "Repository", pr_no: str) -> str | None:
-		self._create_table()
+		# Read operations don't need locking, just use thread-local connection
 		self.cursor.execute(
 			"SELECT sentence FROM sentences WHERE owner = ? AND repo = ? AND pr_no = ?",
 			(repository.owner, repository.name, pr_no),
@@ -96,30 +126,28 @@ class SQLiteDatabase(Database):
 	def store_sentence(
 		self, repository: "Repository", pr_no: str, sentence: str
 	) -> None:
-		self._create_table()
-
-		self.cursor.execute(
-			"INSERT INTO sentences (owner, repo, pr_no, sentence) VALUES (?, ?, ?, ?)",
-			(repository.owner, repository.name, pr_no, sentence),
-		)
-		self.conn.commit()
+		with self.transaction():
+			self.cursor.execute(
+				"INSERT INTO sentences (owner, repo, pr_no, sentence) VALUES (?, ?, ?, ?)",
+				(repository.owner, repository.name, pr_no, sentence),
+			)
 
 	def delete_sentence(self, repository: "Repository", pr_no: str) -> None:
-		self._create_table()
-		self.cursor.execute(
-			"DELETE FROM sentences WHERE owner = ? AND repo = ? AND pr_no = ?",
-			(repository.owner, repository.name, pr_no),
-		)
-		self.conn.commit()
+		with self.transaction():
+			self.cursor.execute(
+				"DELETE FROM sentences WHERE owner = ? AND repo = ? AND pr_no = ?",
+				(repository.owner, repository.name, pr_no),
+			)
 
 	def _create_table(self):
+		"""Create table and index if they don't exist."""
 		self.cursor.execute(
 			"CREATE TABLE IF NOT EXISTS sentences (owner TEXT, repo TEXT, pr_no TEXT, sentence TEXT)"
 		)
 		self.cursor.execute(
 			"CREATE INDEX IF NOT EXISTS idx_owner_repo_pr_no ON sentences (owner, repo, pr_no)"
 		)
-		self.conn.commit()
+		self.connection.commit()
 
 
 def get_db(db_type: str, db_name: str) -> Database:
