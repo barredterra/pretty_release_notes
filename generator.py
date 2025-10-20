@@ -220,11 +220,17 @@ class ReleaseNotesGenerator:
 			max_patch_size=self.max_patch_size,
 		)
 
-		change_summary = get_chat_response(
-			content=prompt,
-			model=self.openai_model,
-			api_key=self.openai_api_key,
-		)
+		try:
+			change_summary = get_chat_response(
+				content=prompt,
+				model=self.openai_model,
+				api_key=self.openai_api_key,
+			)
+		except Exception as e:
+			error_msg = f"OpenAI API error for {line.change}: {str(e)}"
+			self.progress.report(ProgressEvent(type="error", message=error_msg))
+			return
+
 		if not change_summary:
 			return
 
