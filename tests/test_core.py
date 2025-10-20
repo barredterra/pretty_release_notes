@@ -1,21 +1,23 @@
 """Unit tests for core configuration and interfaces."""
 
-import pytest
 from pathlib import Path
-from core.interfaces import (
-	ProgressEvent,
-	ProgressReporter,
-	NullProgressReporter,
-	CompositeProgressReporter,
-)
+
+import pytest
+
 from core.config import (
-	GitHubConfig,
-	OpenAIConfig,
 	DatabaseConfig,
 	FilterConfig,
+	GitHubConfig,
+	OpenAIConfig,
 	ReleaseNotesConfig,
 )
 from core.config_loader import DictConfigLoader
+from core.interfaces import (
+	CompositeProgressReporter,
+	NullProgressReporter,
+	ProgressEvent,
+	ProgressReporter,
+)
 
 
 class TestProgressEvent:

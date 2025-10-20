@@ -10,7 +10,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from api import ReleaseNotesBuilder, ReleaseNotesClient
-from core.config import DatabaseConfig, FilterConfig, GitHubConfig, OpenAIConfig, ReleaseNotesConfig
+from core.config import DatabaseConfig, GitHubConfig, OpenAIConfig, ReleaseNotesConfig
 from core.interfaces import ProgressEvent, ProgressReporter
 
 
@@ -95,10 +95,7 @@ class TestProgressReporting:
 		"""Test that silent operation works (no progress output)."""
 		# Build without progress reporter (should use NullProgressReporter)
 		client = (
-			ReleaseNotesBuilder()
-			.with_github_token("test_token")
-			.with_openai("test_key")
-			.build()
+			ReleaseNotesBuilder().with_github_token("test_token").with_openai("test_key").build()
 		)
 
 		from core.interfaces import NullProgressReporter
@@ -145,10 +142,7 @@ class TestConfigurationValidation:
 	def test_valid_configuration_builds_successfully(self):
 		"""Test that valid configuration builds without errors."""
 		client = (
-			ReleaseNotesBuilder()
-			.with_github_token("test_token")
-			.with_openai("test_key")
-			.build()
+			ReleaseNotesBuilder().with_github_token("test_token").with_openai("test_key").build()
 		)
 
 		assert client is not None
@@ -212,10 +206,7 @@ class TestConfigurationValidation:
 	def test_database_defaults(self):
 		"""Test that database has sensible defaults."""
 		client = (
-			ReleaseNotesBuilder()
-			.with_github_token("test_token")
-			.with_openai("test_key")
-			.build()
+			ReleaseNotesBuilder().with_github_token("test_token").with_openai("test_key").build()
 		)
 
 		# Check defaults
@@ -226,10 +217,7 @@ class TestConfigurationValidation:
 	def test_openai_defaults(self):
 		"""Test that OpenAI config has sensible defaults."""
 		client = (
-			ReleaseNotesBuilder()
-			.with_github_token("test_token")
-			.with_openai("test_key")
-			.build()
+			ReleaseNotesBuilder().with_github_token("test_token").with_openai("test_key").build()
 		)
 
 		# Check defaults

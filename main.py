@@ -1,5 +1,9 @@
-from pathlib import Path
+#!/usr/bin/env python
+"""Pretty Release Notes CLI - Backward compatible entry point."""
+
 import time
+from pathlib import Path
+
 import typer
 
 from adapters.cli_progress import CLIProgressReporter
@@ -19,6 +23,10 @@ def main(
 	prompt_path: Path | None = None,
 	force_use_commits: bool = False,
 ):
+	"""Generate pretty release notes for a GitHub repository.
+
+	This command maintains full backward compatibility with the original CLI.
+	"""
 	start_time = time.time()
 
 	# Load base config from .env
@@ -43,9 +51,7 @@ def main(
 	notes = generator.generate(tag)
 	cli.show_release_notes("New Release Notes", notes)
 	end_time = time.time()
-	cli.show_success(
-		f"Generated release notes in {end_time - start_time:.2f} seconds total."
-	)
+	cli.show_success(f"Generated release notes in {end_time - start_time:.2f} seconds total.")
 
 	if cli.confirm_update():
 		generator.update_on_github(notes, tag)

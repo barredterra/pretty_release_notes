@@ -123,7 +123,7 @@ class TestSQLiteDatabaseThreadSafety:
 						temp_db.store_sentence(test_repo, pr_no, sentence)
 					else:
 						# Read
-						pr_no = f"pr-{thread_id}-{i-1}"
+						pr_no = f"pr-{thread_id}-{i - 1}"
 						temp_db.get_sentence(test_repo, pr_no)
 			except Exception as e:
 				errors.append(e)
@@ -225,7 +225,9 @@ class TestSQLiteDatabaseThreadSafety:
 			print(f"\nErrors encountered: {len(errors)}")
 			for i, (thread_id, error) in enumerate(errors[:5]):  # Print first 5 errors
 				print(f"  Thread {thread_id}: {error}")
-		assert completed["count"] + len(errors) == num_threads, f"Only {completed['count'] + len(errors)}/{num_threads} threads completed"
+		assert completed["count"] + len(errors) == num_threads, (
+			f"Only {completed['count'] + len(errors)}/{num_threads} threads completed"
+		)
 		# It's OK if some errors occurred due to database conflicts (INSERT of existing keys)
 		# The important thing is no deadlocks
 
