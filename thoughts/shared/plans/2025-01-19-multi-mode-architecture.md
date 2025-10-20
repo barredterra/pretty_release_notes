@@ -1012,10 +1012,10 @@ pydantic>=2.0.0
 - [x] Job creation works: `curl -X POST http://localhost:8000/generate -H "Content-Type: application/json" -d '{"owner":"test","repo":"test","tag":"v1.0.0","github_token":"xxx","openai_key":"xxx"}'`
 
 #### Manual Verification:
-- [ ] Job status updates correctly during generation
-- [ ] Progress events are captured
-- [ ] Error handling works properly
-- [ ] Concurrent requests are handled correctly
+- [x] Job status updates correctly during generation
+- [x] Progress events are captured
+- [x] Error handling works properly (OpenAI errors now reported in progress events)
+- [x] Concurrent requests are handled correctly (tested with 3 concurrent jobs, all completed successfully)
 
 **Implementation Note**: After completing this phase and automated verification passes, pause for API testing confirmation before proceeding to Phase 6.
 
