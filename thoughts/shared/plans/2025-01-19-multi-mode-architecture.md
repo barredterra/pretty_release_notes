@@ -1006,10 +1006,10 @@ pydantic>=2.0.0
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] API starts successfully: `env/bin/python3 web/server.py` (Ctrl+C to stop)
-- [ ] Health check works: `curl http://localhost:8000/health`
-- [ ] OpenAPI docs available: `curl http://localhost:8000/docs`
-- [ ] Job creation works: `curl -X POST http://localhost:8000/generate -H "Content-Type: application/json" -d '{"owner":"test","repo":"test","tag":"v1.0.0","github_token":"xxx","openai_key":"xxx"}'`
+- [x] API starts successfully: `env/bin/python3 -m uvicorn web.app:app --host 0.0.0.0 --port 8000`
+- [x] Health check works: `curl http://localhost:8000/health`
+- [x] OpenAPI docs available: `curl http://localhost:8000/docs`
+- [x] Job creation works: `curl -X POST http://localhost:8000/generate -H "Content-Type: application/json" -d '{"owner":"test","repo":"test","tag":"v1.0.0","github_token":"xxx","openai_key":"xxx"}'`
 
 #### Manual Verification:
 - [ ] Job status updates correctly during generation
