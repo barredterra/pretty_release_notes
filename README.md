@@ -31,6 +31,8 @@ You can choose a database type by setting the `DB_TYPE` environment variable. Cu
 
 ## Usage
 
+### CLI
+
 ```bash
 source env/bin/activate
 
@@ -56,6 +58,84 @@ Example output:
 
 **Full Changelog**: https://github.com/frappe/erpnext/compare/v15.38.3...v15.38.4
 **Authors**: @rohitwaghchaure
+```
+
+### Web API
+
+The tool can also be run as a REST API server for integration with web frontends.
+
+#### Starting the Server
+
+First, install the web dependencies:
+
+```bash
+source env/bin/activate
+pip install -r requirements-web.txt
+```
+
+Then start the server:
+
+```bash
+python -m uvicorn web.app:app --host 0.0.0.0 --port 8000
+```
+
+The API will be available at `http://localhost:8000` with interactive documentation at `http://localhost:8000/docs`.
+
+#### API Endpoints
+
+**Health Check**
+```bash
+curl http://localhost:8000/health
+```
+
+**Create Release Notes Job**
+```bash
+curl -X POST http://localhost:8000/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "owner": "frappe",
+    "repo": "erpnext",
+    "tag": "v15.38.4",
+    "github_token": "ghp_your_token_here",
+    "openai_key": "sk-your_key_here",
+    "openai_model": "gpt-4",
+    "exclude_types": ["chore", "ci", "refactor"],
+    "exclude_labels": ["skip-release-notes"],
+    "exclude_authors": ["dependabot[bot]"]
+  }'
+```
+
+Response:
+```json
+{
+  "job_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "pending",
+  "created_at": "2025-01-19T10:30:00.000000"
+}
+```
+
+**Check Job Status**
+```bash
+curl http://localhost:8000/jobs/{job_id}
+```
+
+Response:
+```json
+{
+  "job_id": "550e8400-e29b-41d4-a716-446655440000",
+  "status": "completed",
+  "created_at": "2025-01-19T10:30:00.000000",
+  "completed_at": "2025-01-19T10:30:15.000000",
+  "result": "## What's Changed\n* Fixed bug...",
+  "progress": [
+    {
+      "timestamp": "2025-01-19T10:30:05.000000",
+      "type": "success",
+      "message": "Downloaded PRs in 0.42 seconds."
+    }
+  ],
+  "error": null
+}
 ```
 
 ## Authors and Reviewers
