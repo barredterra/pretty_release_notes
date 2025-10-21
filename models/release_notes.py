@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 import threading
+from dataclasses import dataclass
 
 from .release_notes_line import ReleaseNotesLine
 
@@ -12,11 +12,7 @@ class ReleaseNotes:
 
 	@classmethod
 	def from_string(cls, release_notes: str) -> "ReleaseNotes":
-		return cls(
-			lines=[
-				ReleaseNotesLine.from_string(line) for line in release_notes.split("\n")
-			]
-		)
+		return cls(lines=[ReleaseNotesLine.from_string(line) for line in release_notes.split("\n")])
 
 	@property
 	def authors(self) -> set[str]:
@@ -57,11 +53,7 @@ class ReleaseNotes:
 			)
 
 		def has_excluded_label(change):
-			return (
-				change.labels
-				and exclude_change_labels
-				and change.labels & exclude_change_labels
-			)
+			return change.labels and exclude_change_labels and change.labels & exclude_change_labels
 
 		if exclude_authors is None:
 			exclude_authors = set()
@@ -70,9 +62,7 @@ class ReleaseNotes:
 			str(line)
 			for line in self.lines
 			if not line.change
-			or (
-				not is_exluded_type(line.change) and not has_excluded_label(line.change)
-			)
+			or (not is_exluded_type(line.change) and not has_excluded_label(line.change))
 		)
 
 		authors_string = ", ".join(
@@ -80,9 +70,7 @@ class ReleaseNotes:
 		)
 
 		reviewers_string = ", ".join(
-			f"@{reviewer}"
-			for reviewer in self.get_reviewers()
-			if reviewer not in exclude_authors
+			f"@{reviewer}" for reviewer in self.get_reviewers() if reviewer not in exclude_authors
 		)
 
 		if authors_string:

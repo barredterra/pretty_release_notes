@@ -93,9 +93,7 @@ class ReleaseNotesGenerator:
 			and "Full Changelog" in gh_notes["body"]
 		):
 			prev_tag = get_prev_tag(gh_notes["body"], self.repository)
-			release_notes.lines = (
-				self._get_commit_lines(tag, prev_tag) + release_notes.lines
-			)
+			release_notes.lines = self._get_commit_lines(tag, prev_tag) + release_notes.lines
 
 		process_start_time = time.time()
 		self._process_lines(release_notes.lines)
@@ -151,9 +149,7 @@ class ReleaseNotesGenerator:
 		try:
 			self.github.update_release(self.repository, release["id"], new_body)
 			self.progress.report(
-				ProgressEvent(
-					type="success", message="Release notes updated successfully."
-				)
+				ProgressEvent(type="success", message="Release notes updated successfully.")
 			)
 		except HTTPError as e:
 			if e.response.status_code != 403:

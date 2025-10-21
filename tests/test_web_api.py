@@ -221,7 +221,9 @@ class TestJobsEndpoint:
 
 			if data["status"] == "completed":
 				assert data["result"] is not None
-				assert isinstance(data["progress"], list)  # Progress should be a list (may be empty with mock)
+				assert isinstance(
+					data["progress"], list
+				)  # Progress should be a list (may be empty with mock)
 				assert data["error"] is None
 				return
 

@@ -1,14 +1,16 @@
 from openai import OpenAI
 from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_random_exponential,
+	retry,
+	stop_after_attempt,
+	wait_random_exponential,
 )
 
 
 @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6))
 def get_chat_response(
-	content: str, model: str, api_key: str,
+	content: str,
+	model: str,
+	api_key: str,
 ) -> str:
 	"""Get a chat response from OpenAI.
 

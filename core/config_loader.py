@@ -1,13 +1,15 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
+
 from dotenv import dotenv_values
+
 from .config import (
-	ReleaseNotesConfig,
-	GitHubConfig,
-	OpenAIConfig,
 	DatabaseConfig,
 	FilterConfig,
+	GitHubConfig,
+	OpenAIConfig,
+	ReleaseNotesConfig,
 )
 
 
@@ -82,17 +84,12 @@ class EnvConfigLoader(ConfigLoader):
 				enabled=True,
 			),
 			filters=FilterConfig(
-				exclude_change_types=self._parse_set(
-					config.get("EXCLUDE_PR_TYPES") or ""
-				),
-				exclude_change_labels=self._parse_set(
-					config.get("EXCLUDE_PR_LABELS") or ""
-				),
+				exclude_change_types=self._parse_set(config.get("EXCLUDE_PR_TYPES") or ""),
+				exclude_change_labels=self._parse_set(config.get("EXCLUDE_PR_LABELS") or ""),
 				exclude_authors=self._parse_set(config.get("EXCLUDE_AUTHORS") or ""),
 			),
 			prompt_path=Path(config.get("PROMPT_PATH") or "prompt.txt"),
-			force_use_commits=(config.get("FORCE_USE_COMMITS") or "false").lower()
-			== "true",
+			force_use_commits=(config.get("FORCE_USE_COMMITS") or "false").lower() == "true",
 		)
 
 	def _parse_set(self, value: str) -> set[str]:

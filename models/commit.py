@@ -51,9 +51,7 @@ class Commit(Change):
 		return self.github.get_commit_diff(self.repository, self.id)
 
 	@classmethod
-	def from_dict(
-		cls, github: "GitHubClient", repository: "Repository", data: dict
-	) -> "Commit":
+	def from_dict(cls, github: "GitHubClient", repository: "Repository", data: dict) -> "Commit":
 		return cls(
 			github=github,
 			repository=repository,

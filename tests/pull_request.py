@@ -28,7 +28,9 @@ def test_backport_no(pull_request):
 	)
 	assert pull_request.backport_no == "46737"
 
-	pull_request.title = 'Revert "perf: timeout while renaming cost center (backport #46641)" (backport #46749)'
+	pull_request.title = (
+		'Revert "perf: timeout while renaming cost center (backport #46641)" (backport #46749)'
+	)
 	assert pull_request.backport_no == "46749"
 
 

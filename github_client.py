@@ -26,9 +26,7 @@ class GitHubClient:
 		r.raise_for_status()
 		return Repository.from_dict(r.json())
 
-	def get_closed_issues(
-		self, repository: Repository, pr_no: str, first: int = 1
-	) -> list[Issue]:
+	def get_closed_issues(self, repository: Repository, pr_no: str, first: int = 1) -> list[Issue]:
 		"""Get a list of issues (title and body) that are closed by a PR."""
 		response = self.session.post(
 			"https://api.github.com/graphql",
@@ -63,14 +61,12 @@ class GitHubClient:
 
 		return [
 			Issue.from_dict(issue["node"])
-			for issue in response["data"]["repository"]["pullRequest"][
-				"closingIssuesReferences"
-			]["edges"]
+			for issue in response["data"]["repository"]["pullRequest"]["closingIssuesReferences"][
+				"edges"
+			]
 		]
 
-	def get_diff_commits(
-		self, repository: Repository, tag: str, prev_tag: str
-	) -> list[Commit]:
+	def get_diff_commits(self, repository: Repository, tag: str, prev_tag: str) -> list[Commit]:
 		"""Return a list of commits between two tags.
 
 		Use this to get the commits for a tag that has a previous tag. Else, use get_tag_commits.
@@ -84,10 +80,7 @@ class GitHubClient:
 		r.raise_for_status()
 		data = r.json()
 
-		return [
-			Commit.from_dict(self, repository, commit)
-			for commit in data.get("commits", [])
-		]
+		return [Commit.from_dict(self, repository, commit) for commit in data.get("commits", [])]
 
 	def get_tag_commits(self, repository: Repository, tag: str) -> list[Commit]:
 		"""Return a list of commits for a given tag.

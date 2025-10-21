@@ -1,9 +1,10 @@
 import re
+import threading
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
-import threading
-from .change import Change
+
 from ._utils import get_conventional_type
+from .change import Change
 
 if TYPE_CHECKING:
 	from github_client import GitHubClient
@@ -98,7 +99,7 @@ class PullRequest(Change):
 	def _get_reviewers(self) -> set[str]:
 		"""Get the reviewers for a PR."""
 		self.reviewers = self.github.get_pr_reviewers(self.repository, self.id)
-	
+
 	def _get_original_reviewers(self) -> set[str]:
 		"""Get the reviewers for the original PR."""
 		self._set_backport_of()

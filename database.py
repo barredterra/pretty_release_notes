@@ -16,9 +16,7 @@ class Database:
 	def get_sentence(self, repository: "Repository", pr_no: str) -> str | None:
 		pass
 
-	def store_sentence(
-		self, repository: "Repository", pr_no: str, sentence: str
-	) -> None:
+	def store_sentence(self, repository: "Repository", pr_no: str, sentence: str) -> None:
 		pass
 
 	def delete_sentence(self, repository: "Repository", pr_no: str) -> None:
@@ -44,9 +42,7 @@ class CSVDatabase(Database):
 
 		return None
 
-	def store_sentence(
-		self, repository: "Repository", pr_no: str, sentence: str
-	) -> None:
+	def store_sentence(self, repository: "Repository", pr_no: str, sentence: str) -> None:
 		write_header = not self.path.exists()
 		with open(self.path, "a") as f:
 			writer = DictWriter(f, self.columns)
@@ -123,9 +119,7 @@ class SQLiteDatabase(Database):
 		result = self.cursor.fetchone()
 		return result[0] if result else None
 
-	def store_sentence(
-		self, repository: "Repository", pr_no: str, sentence: str
-	) -> None:
+	def store_sentence(self, repository: "Repository", pr_no: str, sentence: str) -> None:
 		with self.transaction():
 			self.cursor.execute(
 				"INSERT INTO sentences (owner, repo, pr_no, sentence) VALUES (?, ?, ?, ?)",
