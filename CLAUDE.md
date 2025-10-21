@@ -4,8 +4,8 @@
 
 This is a multi-mode Python tool that transforms GitHub's auto-generated release notes into polished, human-readable sentences using OpenAI. It can be used as:
 1. **CLI Tool** - Traditional command-line interface
-2. **Python Library** - Programmatic API for integration (in development)
-3. **Web Backend** - REST API for web frontends (planned)
+2. **Python Library** - Programmatic API for integration
+3. **Web Backend** - REST API for web frontends
 
 It's designed for ERPNext and Frappe Framework projects but can be adapted for other repositories.
 
@@ -26,6 +26,8 @@ It's designed for ERPNext and Frappe Framework projects but can be adapted for o
   - `requests` - GitHub API interactions
   - `tenacity` - Retry logic with exponential backoff
   - `rich` - Terminal UI formatting
+  - `fastapi` - Web API framework (optional)
+  - `uvicorn` - ASGI server (optional)
 - **APIs**:
   - GitHub REST API - Repository, PR, commit, release data
   - GitHub GraphQL API - Linked issues
@@ -41,7 +43,7 @@ The project follows **Hexagonal Architecture** (Ports & Adapters pattern) to sup
 ┌───────────────────────────────────────────────────────┐
 │                   Adapters (External)                 │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐             │
-│  │   CLI    │  │  Library │  │   Web    │  (planned)  │
+│  │   CLI    │  │  Library │  │   Web    │             │
 │  │ Adapter  │  │   API    │  │   API    │             │
 │  └────┬─────┘  └────┬─────┘  └────┬─────┘             │
 └───────┼─────────────┼─────────────┼───────────────────┘
@@ -67,32 +69,46 @@ The project follows **Hexagonal Architecture** (Ports & Adapters pattern) to sup
 
 ```
 main.py                 # CLI entry point
+api.py                  # Library API (ReleaseNotesClient, ReleaseNotesBuilder)
 generator.py            # Core business logic (UI-independent)
 github_client.py        # GitHub API wrapper
-openai_client.py       # OpenAI API wrapper
-database.py            # Caching layer (CSV/SQLite)
-ui.py                  # Terminal UI (used via adapter)
-prompt.txt             # AI prompt template
-core/                  # Core abstractions (Hexagonal Architecture)
-├── __init__.py        # Package initialization
-├── interfaces.py      # ProgressReporter protocol & events
-├── config.py          # Type-safe configuration dataclasses
-└── config_loader.py   # Configuration loading strategies
-adapters/              # Adapters for external interfaces
-├── __init__.py        # Package initialization
-└── cli_progress.py    # CLI adapter for ProgressReporter
-models/                # Data models
-├── change.py          # Protocol for PR/Commit interface
-├── pull_request.py    # PR data model
-├── commit.py          # Commit data model
-├── issue.py           # Issue data model
-├── repository.py      # Repository data model
-├── release_notes.py   # Release notes container
+openai_client.py        # OpenAI API wrapper
+database.py             # Caching layer (CSV/SQLite with thread-safety)
+ui.py                   # Terminal UI (used via adapter)
+prompt.txt              # AI prompt template
+pyproject.toml          # Package configuration and dependencies
+.pre-commit-config.yaml # Pre-commit hooks (ruff, mypy)
+core/                   # Core abstractions (Hexagonal Architecture)
+├── __init__.py         # Package initialization
+├── interfaces.py       # ProgressReporter protocol & events
+├── config.py           # Type-safe configuration dataclasses
+├── config_loader.py    # Configuration loading strategies
+└── execution.py        # Execution strategies (ThreadPool, Sequential)
+adapters/               # Adapters for external interfaces
+├── __init__.py         # Package initialization
+└── cli_progress.py     # CLI adapter for ProgressReporter
+web/                    # Web API backend
+├── __init__.py         # Package initialization
+├── app.py              # FastAPI application with endpoints
+└── server.py           # Uvicorn server runner
+models/                 # Data models
+├── change.py           # Protocol for PR/Commit interface
+├── pull_request.py     # PR data model
+├── commit.py           # Commit data model
+├── issue.py            # Issue data model
+├── repository.py       # Repository data model
+├── release_notes.py    # Release notes container
 ├── release_notes_line.py  # Individual line model
-└── _utils.py          # Utility functions
-tests/                 # Test suite
-├── test_core.py       # Tests for core abstractions
-└── ...                # Other test files
+└── _utils.py           # Utility functions
+tests/                  # Test suite (77 tests, 75% coverage)
+├── test_core.py        # Tests for core abstractions
+├── test_api.py         # Tests for library API
+├── test_execution.py   # Tests for execution strategies
+├── test_database_threading.py  # Thread-safety tests
+├── test_web_api.py     # Tests for web endpoints
+└── ...                 # Other test files
+docs/adr/               # Architecture Decision Records
+└── 001-multi-mode-architecture.md  # Hexagonal architecture decisions
 ```
 
 ## Key Components
@@ -118,30 +134,61 @@ tests/                 # Test suite
 - `DictConfigLoader`: Load from dictionary (for programmatic usage)
 - `EnvConfigLoader`: Load from .env file (backward compatibility)
 
+**`core/execution.py`** - Execution Strategies:
+- `ExecutionStrategy`: Abstract interface for parallel execution
+- `ThreadPoolStrategy`: Managed thread pool (default, max_workers=10)
+- `ThreadingStrategy`: Original direct threading implementation
+- `SequentialStrategy`: For debugging or constrained environments
+
 ### Adapters: `adapters/`
 
 **`adapters/cli_progress.py`** - CLI Progress Adapter:
 - `CLIProgressReporter`: Bridges `ProgressReporter` interface to `CLI` class
 - Routes events to appropriate CLI methods (markdown, success, error, release_notes)
 
+### Library API: `api.py`
+
+**`ReleaseNotesClient`** - High-level client for library usage:
+- `generate_release_notes()`: Generate notes for a repository and tag
+- `update_github_release()`: Update release notes on GitHub
+- Accepts `ReleaseNotesConfig` and optional `ProgressReporter`
+
+**`ReleaseNotesBuilder`** - Fluent builder pattern:
+- `with_github_token()`: Configure GitHub authentication
+- `with_openai()`: Configure OpenAI API
+- `with_database()`: Configure caching
+- `with_filters()`: Configure PR/commit filtering
+- `with_progress_reporter()`: Add custom progress reporting
+- `build()`: Construct configured client
+
+### Web Backend: `web/`
+
+**`web/app.py`** - FastAPI REST API:
+- `POST /generate`: Create release notes generation job (background task)
+- `GET /jobs/{job_id}`: Get job status and result
+- `GET /health`: Health check endpoint
+- `WebProgressReporter`: Captures progress events for job tracking
+- In-memory job storage (use Redis for production)
+
 ### Entry Point: `main.py`
 - CLI command using Typer
 - Loads configuration using `EnvConfigLoader`
 - Creates `CLIProgressReporter` adapter
 - Orchestrates: initialize → generate → display → optionally update
-- Maintains 100% backward compatibility with original CLI interface
+- Maintains backward compatibility with original CLI interface
+- Console script entry point: `pretty-release-notes`
 
 ### Core Logic: `generator.py` - `ReleaseNotesGenerator`
-- **Constructor**: Accepts `ReleaseNotesConfig` and optional `ProgressReporter`
+- **Constructor**: Accepts `ReleaseNotesConfig`, optional `ProgressReporter`, and optional `ExecutionStrategy`
 - **UI-independent**: No direct UI dependencies, uses progress events
 - `initialize_repository()`: Fetches repository metadata
 - `generate()`: Main workflow for release note generation
   - Retrieves current release
   - Regenerates release notes via GitHub API
   - Parses into structured data
-  - Downloads PR information in parallel
+  - Downloads PR information in parallel (using execution strategy)
   - Falls back to commits if no PRs found
-  - Processes lines to generate AI summaries
+  - Processes lines to generate AI summaries in parallel
   - Loads reviewer information in parallel
   - Reports progress via `ProgressEvent` emissions (11 locations)
 - `_process_line()`: Core processing with cache checking and OpenAI calls
@@ -159,7 +206,9 @@ tests/                 # Test suite
 ### Data Persistence: `database.py`
 - Abstract `Database` base class
 - `CSVDatabase`: File-based storage
-- `SQLiteDatabase`: Indexed queries for performance
+- `SQLiteDatabase`: Thread-safe with thread-local connections
+  - Uses `threading.local()` for connection pooling
+  - Lock-based transactions for safe concurrent access
 - Factory pattern: `get_db()` returns appropriate backend
 
 ### UI: `ui.py` - `CLI`
@@ -235,14 +284,20 @@ config = loader.load()
 
 All configurations undergo validation at creation time, raising `ValueError` for invalid values.
 
-## Entry Point Usage
+## Usage
+
+### CLI Usage
 
 ```bash
+# Using python directly
 python main.py [OPTIONS] REPO TAG
+
+# Using installed console script
+pretty-release-notes [OPTIONS] REPO TAG
 
 # Examples:
 python main.py erpnext v15.38.4
-python main.py --owner alyf-de banking v0.0.1
+pretty-release-notes --owner alyf-de banking v0.0.1
 ```
 
 **CLI Parameters**:
@@ -253,7 +308,93 @@ python main.py --owner alyf-de banking v0.0.1
 - `--prompt-path`: Path to custom prompt file
 - `--force-use-commits`: Force using commits even when PRs available
 
+### Library Usage
+
+```python
+from api import ReleaseNotesBuilder
+
+# Build client with fluent API
+client = (
+    ReleaseNotesBuilder()
+    .with_github_token("ghp_xxxxx")
+    .with_openai("sk-xxxxx", model="gpt-4")
+    .with_database("sqlite", enabled=True)
+    .with_filters(
+        exclude_types={"chore", "ci", "refactor"},
+        exclude_labels={"skip-release-notes"},
+    )
+    .build()
+)
+
+# Generate release notes
+notes = client.generate_release_notes("frappe", "erpnext", "v15.38.4")
+print(notes)
+
+# Optionally update on GitHub
+client.update_github_release("frappe", "erpnext", "v15.38.4", notes)
+```
+
+### Web API Usage
+
+Start the server:
+```bash
+# Install web dependencies
+pip install -e .[web]
+
+# Run server
+python -m uvicorn web.app:app --host 0.0.0.0 --port 8000
+```
+
+Create a generation job:
+```bash
+curl -X POST http://localhost:8000/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "owner": "frappe",
+    "repo": "erpnext",
+    "tag": "v15.38.4",
+    "github_token": "ghp_xxx",
+    "openai_key": "sk-xxx"
+  }'
+```
+
+Check job status:
+```bash
+curl http://localhost:8000/jobs/{job_id}
+```
+
 ## Development Tools
+
+### Package Installation
+
+```bash
+# Install in editable mode
+pip install -e .
+
+# Install with web dependencies
+pip install -e .[web]
+
+# Install with dev dependencies
+pip install -e .[dev]
+```
+
+### Pre-commit Hooks
+
+Pre-commit hooks automatically run quality checks on commit:
+
+```bash
+# Install hooks (run once)
+pre-commit install
+
+# Run manually on all files
+pre-commit run --all-files
+```
+
+Hooks include:
+- Ruff linter and formatter
+- Mypy type checker
+- Standard checks (trailing whitespace, merge conflicts, etc.)
+- Commitlint for conventional commit messages
 
 ### Code Quality with Ruff
 
@@ -288,6 +429,8 @@ mypy .
 mypy generator.py
 ```
 
+**Configuration**: See `[tool.mypy]` section in `pyproject.toml`
+
 ### Testing with Pytest
 
 ```bash
@@ -298,8 +441,11 @@ pytest
 pytest --cov=. --cov-report=html
 
 # Run specific test file
-pytest tests/test_pull_request.py
+pytest tests/test_web_api.py
 ```
+
+**Test Suite**: 77 tests with 75% code coverage
+**Configuration**: See `[tool.pytest.ini_options]` section in `pyproject.toml`
 
 ## Notable Design Patterns
 
@@ -325,35 +471,44 @@ Multiple strategies for loading configuration:
 - All produce the same `ReleaseNotesConfig` output
 - Easy to add new loaders (YAML, JSON, etc.)
 
-### 4. Parallel Processing with Threading
+### 4. Strategy Pattern for Execution
+Abstracts parallel execution for flexibility:
+- `ThreadPoolStrategy` - Managed thread pool (default, 10 workers)
+- `ThreadingStrategy` - Original direct threading
+- `SequentialStrategy` - For debugging or testing
+- Enables testing without actual parallelism
+- Better resource management than direct threading
+
+### 5. Parallel Processing with Threading
 Used extensively for performance:
 - PR fetching & Line processing (`generator.py`)
 - Reviewer loading (`release_notes.py`)
 - Reviewer determination (`pull_request.py`)
+- Uses execution strategy for controlled parallelism
 
-### 5. Protocol-Based Polymorphism
+### 6. Protocol-Based Polymorphism
 `Change` protocol allows treating `PullRequest` and `Commit` uniformly:
 - Both implement: `get_prompt()`, `set_reviewers()`, `get_author()`, `get_summary_key()`
 - Enables consistent processing throughout the codebase
 
-### 6. Factory Pattern
+### 7. Factory Pattern
 Database creation uses factory pattern:
 - `get_db()` returns appropriate concrete class based on `db_type`
 - Abstract interface with two implementations
 
-### 7. Intelligent Caching Strategy
+### 8. Intelligent Caching Strategy
 - Uses `get_summary_key()` for cache lookups
 - Reuses summaries for backport PRs by returning original PR number
 - Skips OpenAI API call if cached entry found
 
-### 8. Type-Safe Configuration with Validation
+### 9. Type-Safe Configuration with Validation
 All configuration uses dataclasses with validation:
 - `__post_init__` methods validate required fields and value ranges
 - Type hints throughout for IDE support and mypy checking
 - Fails fast with clear error messages
 - Immutable once created (dataclass frozen in future versions)
 
-### 9. Backport Intelligence
+### 10. Backport Intelligence
 Sophisticated backport handling:
 - Extracts backport number using regex
 - Recursively fetches original PR
@@ -361,13 +516,13 @@ Sophisticated backport handling:
 - Combines reviewers from both PRs
 - Credits original author
 
-### 10. Retry Logic with Exponential Backoff
+### 11. Retry Logic with Exponential Backoff
 OpenAI API calls use `@retry` decorator:
 - Exponential backoff: 1-60 seconds
 - Maximum 6 attempts
 - Handles transient API failures gracefully
 
-### 11. Graceful Degradation
+### 12. Graceful Degradation
 Multiple fallback mechanisms:
 - If release notes generation fails (403), uses existing notes
 - If PR patch too large, falls back to commit messages
@@ -375,13 +530,13 @@ Multiple fallback mechanisms:
 - If no PRs found, falls back to commits
 - If GitHub update fails (403), continues without error
 
-### 12. Dataclass-Based Models
+### 13. Dataclass-Based Models
 All models use `@dataclass`:
 - Automatic `__init__()`, `__repr__()`, `__eq__()`
 - Type hints throughout
 - `from_dict()` class methods for API response parsing
 
-### 13. Conventional Commits Support
+### 14. Conventional Commits Support
 Extracts commit types using regex:
 - Matches format: `type(scope): message`
 - Used for filtering non-user-facing changes
@@ -409,6 +564,8 @@ This codebase demonstrates a well-structured approach to:
 - **Clean separation of concerns** with zero UI dependencies in core logic
 - **Event-based progress reporting** for flexible output handling
 - **Type-safe configuration** with validation and multiple loading strategies
+- **Execution strategies** for controlled parallelism and testability
+- **Thread-safe database** operations for concurrent access
 - **API integration** (GitHub + OpenAI) with retry logic
 - **Parallel processing** for performance optimization
 - **Intelligent caching** for cost optimization
@@ -417,16 +574,23 @@ This codebase demonstrates a well-structured approach to:
 
 The tool significantly improves release note quality by transforming technical PR titles into user-friendly descriptions while maintaining proper attribution and filtering out non-relevant changes.
 
-## Future Roadmap
+## Architecture Decisions
+
+Key architectural decisions are documented in Architecture Decision Records (ADRs):
+- **ADR 001**: Multi-Mode Architecture with Hexagonal Design (`docs/adr/001-multi-mode-architecture.md`)
+  - Documents the transition from monolithic CLI to multi-mode architecture
+  - Explains all design patterns and their rationale
+  - Covers consequences and trade-offs
+
+## Implementation Status
 
 ### Completed:
 - ✅ Phase 1: Core abstractions (interfaces, config, loaders)
 - ✅ Phase 2: Business logic decoupling (UI-free generator)
+- ✅ Phase 3: Library API with builder pattern
+- ✅ Phase 4: Concurrent execution support with thread pools
+- ✅ Phase 5: Web backend with REST API
+- ✅ Phase 6: Package distribution and backward compatibility
 
-### In Progress:
-- 🚧 Phase 3: Library API with builder pattern
-- 🚧 Phase 4: Concurrent execution support with thread pools
-- 🚧 Phase 5: Web backend with REST API
-- 🚧 Phase 6: Package distribution via PyPI
-
-See `thoughts/shared/plans/2025-01-19-multi-mode-architecture.md` for detailed implementation plan.
+**Test Coverage**: 77 tests with 75% code coverage
+**Package Status**: Installable via `pip install -e .` with optional `[web]` and `[dev]` extras
