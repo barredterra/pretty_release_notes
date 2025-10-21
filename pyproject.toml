@@ -1,0 +1,97 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pretty-release-notes"
+version = "1.0.0"
+description = "Transform GitHub release notes with AI"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Raffael Meyer" }
+]
+keywords = ["github", "release-notes", "openai", "cli"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: Text Processing :: Markup :: Markdown",
+]
+
+dependencies = [
+    "typer>=0.9.0",
+    "rich>=13.0.0",
+    "requests>=2.31.0",
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
+    "tenacity>=8.2.0",
+]
+
+[project.optional-dependencies]
+web = [
+    "fastapi>=0.119.0",
+    "uvicorn>=0.38.0",
+    "pydantic>=2.0.0",
+]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "mypy>=1.7.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+pretty-release-notes = "main:app"
+
+[project.urls]
+Homepage = "https://github.com/alyf-de/pretty_release_notes"
+Documentation = "https://github.com/alyf-de/pretty_release_notes#readme"
+Repository = "https://github.com/alyf-de/pretty_release_notes"
+Issues = "https://github.com/alyf-de/pretty_release_notes/issues"
+
+[tool.setuptools]
+packages = ["core", "adapters", "web", "models"]
+py-modules = ["main", "generator", "github_client", "openai_client", "database", "ui", "api"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.format]
+# Use ruff for formatting (replaces black)
+quote-style = "double"
+indent-style = "tab"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+]
+ignore = [
+    "W191", # Indentation contains tabs
+]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "--cov=. --cov-report=html --cov-report=term-missing"

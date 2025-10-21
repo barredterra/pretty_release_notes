@@ -2,3 +2,4 @@
 env/
 stored_lines.csv
 stored_lines.sqlite
+*.egg-info/

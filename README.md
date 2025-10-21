@@ -70,7 +70,7 @@ First, install the web dependencies:
 
 ```bash
 source env/bin/activate
-pip install -r requirements-web.txt
+pip install -e .[web]
 ```
 
 Then start the server:

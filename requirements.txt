@@ -1,7 +1,0 @@
-requests
-openai
-python-dotenv
-typer
-pytest
-tenacity
-mypy
