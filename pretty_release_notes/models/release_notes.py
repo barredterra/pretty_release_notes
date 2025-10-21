@@ -47,9 +47,7 @@ class ReleaseNotes:
 	) -> str:
 		def is_exluded_type(change):
 			return (
-				change.conventional_type
-				and exclude_change_types
-				and change.conventional_type in exclude_change_types
+				change.conventional_type and exclude_change_types and change.conventional_type in exclude_change_types
 			)
 
 		def has_excluded_label(change):
@@ -61,13 +59,10 @@ class ReleaseNotes:
 		lines = "\n".join(
 			str(line)
 			for line in self.lines
-			if not line.change
-			or (not is_exluded_type(line.change) and not has_excluded_label(line.change))
+			if not line.change or (not is_exluded_type(line.change) and not has_excluded_label(line.change))
 		)
 
-		authors_string = ", ".join(
-			f"@{author}" for author in self.authors if author not in exclude_authors
-		)
+		authors_string = ", ".join(f"@{author}" for author in self.authors if author not in exclude_authors)
 
 		reviewers_string = ", ".join(
 			f"@{reviewer}" for reviewer in self.get_reviewers() if reviewer not in exclude_authors
@@ -82,7 +77,10 @@ class ReleaseNotes:
 			lines += f"""\n\n<details>
 <summary>AI content</summary>
 
-For these release notes, we used an LLM ({model_name}) to review and summarise the code changes, along with the associated issue and PR descriptions. It may contain typical errors and inaccuracies. You can read the prompt [here](https://github.com/barredterra/pretty_release_notes).
+For these release notes, we used an LLM ({model_name}) to review and summarise
+the code changes, along with the associated issue and PR descriptions. It may
+contain typical errors and inaccuracies. You can read the prompt
+[here](https://github.com/barredterra/pretty_release_notes).
 
 </details>"""
 

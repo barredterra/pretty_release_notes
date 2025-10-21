@@ -2,15 +2,15 @@
 
 from pathlib import Path
 
-from core.config import (
+from .core.config import (
 	DatabaseConfig,
 	FilterConfig,
 	GitHubConfig,
 	OpenAIConfig,
 	ReleaseNotesConfig,
 )
-from core.interfaces import NullProgressReporter, ProgressReporter
-from generator import ReleaseNotesGenerator
+from .core.interfaces import NullProgressReporter, ProgressReporter
+from .generator import ReleaseNotesGenerator
 
 
 class ReleaseNotesClient:
@@ -87,9 +87,7 @@ class ReleaseNotesBuilder:
 		self._github_token = token
 		return self
 
-	def with_openai(
-		self, api_key: str, model: str = "gpt-4.1", max_patch_size: int = 10000
-	) -> "ReleaseNotesBuilder":
+	def with_openai(self, api_key: str, model: str = "gpt-4.1", max_patch_size: int = 10000) -> "ReleaseNotesBuilder":
 		"""Set OpenAI configuration."""
 		self._openai_key = api_key
 		self._openai_model = model

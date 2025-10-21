@@ -4,15 +4,15 @@ from pathlib import Path
 
 import pytest
 
-from core.config import (
+from pretty_release_notes.core.config import (
 	DatabaseConfig,
 	FilterConfig,
 	GitHubConfig,
 	OpenAIConfig,
 	ReleaseNotesConfig,
 )
-from core.config_loader import DictConfigLoader
-from core.interfaces import (
+from pretty_release_notes.core.config_loader import DictConfigLoader
+from pretty_release_notes.core.interfaces import (
 	CompositeProgressReporter,
 	NullProgressReporter,
 	ProgressEvent,

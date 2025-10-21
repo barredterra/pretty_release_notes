@@ -47,7 +47,7 @@ dev = [
 ]
 
 [project.scripts]
-pretty-release-notes = "main:app"
+pretty-release-notes = "pretty_release_notes.main:app"
 
 [project.urls]
 Homepage = "https://github.com/alyf-de/pretty_release_notes"
@@ -56,11 +56,13 @@ Repository = "https://github.com/alyf-de/pretty_release_notes"
 Issues = "https://github.com/alyf-de/pretty_release_notes/issues"
 
 [tool.setuptools]
-packages = ["core", "adapters", "web", "models"]
-py-modules = ["main", "generator", "github_client", "openai_client", "database", "ui", "api"]
+packages = ["pretty_release_notes"]
+
+[tool.setuptools.package-data]
+pretty_release_notes = ["py.typed"]
 
 [tool.ruff]
-line-length = 100
+line-length = 120
 target-version = "py311"
 
 [tool.ruff.format]
@@ -94,4 +96,4 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "--cov=. --cov-report=html --cov-report=term-missing"
+addopts = "--cov=pretty_release_notes --cov-report=html --cov-report=term-missing"

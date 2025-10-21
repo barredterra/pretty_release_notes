@@ -1,8 +1,8 @@
 import re
 from dataclasses import dataclass
 
-from models.commit import Commit
-from models.pull_request import PullRequest
+from .commit import Commit
+from .pull_request import PullRequest
 
 REGEX_PR_URL = re.compile(r"https://github.com/[^/]+/[^/]+/pull/(\d+)")
 

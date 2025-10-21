@@ -1,16 +1,11 @@
 """Tests for execution strategies."""
 
-import sys
 import threading
 import time
-from pathlib import Path
 
 import pytest
 
-# Add parent directory to path to import modules
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from core.execution import (
+from pretty_release_notes.core.execution import (
 	ExecutionStrategy,
 	SequentialStrategy,
 	ThreadingStrategy,
@@ -159,7 +154,7 @@ class TestExecutionStrategies:
 	def test_execution_strategy_is_abstract(self):
 		"""Test that ExecutionStrategy cannot be instantiated directly."""
 		with pytest.raises(TypeError):
-			ExecutionStrategy()  # noqa: E0110
+			ExecutionStrategy()
 
 
 class TestExecutionPerformance:

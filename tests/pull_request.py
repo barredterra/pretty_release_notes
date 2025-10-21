@@ -1,8 +1,8 @@
 import pytest
 
-from github_client import GitHubClient
-from models.pull_request import PullRequest
-from models.repository import Repository
+from pretty_release_notes.github_client import GitHubClient
+from pretty_release_notes.models.pull_request import PullRequest
+from pretty_release_notes.models.repository import Repository
 
 
 @pytest.fixture
@@ -23,14 +23,10 @@ def pull_request():
 
 
 def test_backport_no(pull_request):
-	pull_request.title = (
-		"feat(regional): Address Template for Germany & Switzerland (backport #46737)"
-	)
+	pull_request.title = "feat(regional): Address Template for Germany & Switzerland (backport #46737)"
 	assert pull_request.backport_no == "46737"
 
-	pull_request.title = (
-		'Revert "perf: timeout while renaming cost center (backport #46641)" (backport #46749)'
-	)
+	pull_request.title = 'Revert "perf: timeout while renaming cost center (backport #46641)" (backport #46749)'
 	assert pull_request.backport_no == "46749"
 
 

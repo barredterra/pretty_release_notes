@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from dotenv import dotenv_values
 
@@ -23,7 +23,7 @@ class ConfigLoader(ABC):
 class DictConfigLoader(ConfigLoader):
 	"""Load from dictionary (for programmatic usage)."""
 
-	def __init__(self, config_dict: Dict[str, Any]):
+	def __init__(self, config_dict: dict[str, Any]):
 		self.config_dict = config_dict
 
 	def load(self) -> ReleaseNotesConfig:

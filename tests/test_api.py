@@ -1,17 +1,18 @@
 """Tests for the library API (ReleaseNotesClient and ReleaseNotesBuilder)."""
 
-import sys
 from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
 
-# Add parent directory to path to import modules
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from api import ReleaseNotesBuilder, ReleaseNotesClient
-from core.config import DatabaseConfig, GitHubConfig, OpenAIConfig, ReleaseNotesConfig
-from core.interfaces import ProgressEvent, ProgressReporter
+from pretty_release_notes.api import ReleaseNotesBuilder, ReleaseNotesClient
+from pretty_release_notes.core.config import (
+	DatabaseConfig,
+	GitHubConfig,
+	OpenAIConfig,
+	ReleaseNotesConfig,
+)
+from pretty_release_notes.core.interfaces import ProgressEvent, ProgressReporter
 
 
 class TestProgressReporting:
@@ -58,7 +59,7 @@ class TestProgressReporting:
 		assert client.progress_reporter is not None
 
 		# NullProgressReporter should not raise errors when called
-		from core.interfaces import NullProgressReporter
+		from pretty_release_notes.core.interfaces import NullProgressReporter
 
 		assert isinstance(client.progress_reporter, NullProgressReporter)
 
@@ -75,7 +76,7 @@ class TestProgressReporting:
 		reporter = EventCapturingReporter()
 
 		# Mock the generator to avoid real API calls
-		with patch("api.ReleaseNotesGenerator") as MockGenerator:
+		with patch("pretty_release_notes.api.ReleaseNotesGenerator") as MockGenerator:  # noqa N806
 			mock_gen = MockGenerator.return_value
 			mock_gen.generate.return_value = "# Release Notes"
 
@@ -94,11 +95,9 @@ class TestProgressReporting:
 	def test_silent_operation_with_null_reporter(self):
 		"""Test that silent operation works (no progress output)."""
 		# Build without progress reporter (should use NullProgressReporter)
-		client = (
-			ReleaseNotesBuilder().with_github_token("test_token").with_openai("test_key").build()
-		)
+		client = ReleaseNotesBuilder().with_github_token("test_token").with_openai("test_key").build()
 
-		from core.interfaces import NullProgressReporter
+		from pretty_release_notes.core.interfaces import NullProgressReporter
 
 		assert isinstance(client.progress_reporter, NullProgressReporter)
 
@@ -141,9 +140,7 @@ class TestConfigurationValidation:
 
 	def test_valid_configuration_builds_successfully(self):
 		"""Test that valid configuration builds without errors."""
-		client = (
-			ReleaseNotesBuilder().with_github_token("test_token").with_openai("test_key").build()
-		)
+		client = ReleaseNotesBuilder().with_github_token("test_token").with_openai("test_key").build()
 
 		assert client is not None
 		assert isinstance(client, ReleaseNotesClient)
@@ -205,9 +202,7 @@ class TestConfigurationValidation:
 
 	def test_database_defaults(self):
 		"""Test that database has sensible defaults."""
-		client = (
-			ReleaseNotesBuilder().with_github_token("test_token").with_openai("test_key").build()
-		)
+		client = ReleaseNotesBuilder().with_github_token("test_token").with_openai("test_key").build()
 
 		# Check defaults
 		assert client.config.database.type == "sqlite"
@@ -216,9 +211,7 @@ class TestConfigurationValidation:
 
 	def test_openai_defaults(self):
 		"""Test that OpenAI config has sensible defaults."""
-		client = (
-			ReleaseNotesBuilder().with_github_token("test_token").with_openai("test_key").build()
-		)
+		client = ReleaseNotesBuilder().with_github_token("test_token").with_openai("test_key").build()
 
 		# Check defaults
 		assert client.config.openai.model == "gpt-4.1"
@@ -246,7 +239,7 @@ class TestClientAPI:
 		)
 		client = ReleaseNotesClient(config)
 
-		with patch("api.ReleaseNotesGenerator") as MockGenerator:
+		with patch("pretty_release_notes.api.ReleaseNotesGenerator") as MockGenerator:  # noqa N806
 			mock_gen = MockGenerator.return_value
 			mock_gen.generate.return_value = "# Release Notes"
 
@@ -266,7 +259,7 @@ class TestClientAPI:
 		)
 		client = ReleaseNotesClient(config)
 
-		with patch("api.ReleaseNotesGenerator") as MockGenerator:
+		with patch("pretty_release_notes.api.ReleaseNotesGenerator") as MockGenerator:  # noqa N806
 			mock_gen = MockGenerator.return_value
 
 			client.update_github_release("owner", "repo", "v1.0.0", "# New Notes")

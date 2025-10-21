@@ -1,12 +1,11 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 
 @dataclass
 class GitHubConfig:
 	token: str
-	owner: Optional[str] = None
+	owner: str | None = None
 
 	def __post_init__(self):
 		if not self.token:

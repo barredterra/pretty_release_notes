@@ -18,41 +18,41 @@ We adopted **Hexagonal Architecture** (Ports & Adapters pattern) to isolate core
 ### Key Architectural Decisions
 
 #### 1. Core Abstractions (Ports)
-- **ProgressReporter Interface** (`core/interfaces.py`)
+- **ProgressReporter Interface** (`pretty_release_notes/core/interfaces.py`)
   - Event-based progress reporting using `ProgressEvent` dataclass
   - `NullProgressReporter` for silent library usage
   - `CompositeProgressReporter` for multiple simultaneous reporters
   - Enables UI-independent business logic
 
-- **Type-Safe Configuration** (`core/config.py`)
+- **Type-Safe Configuration** (`pretty_release_notes/core/config.py`)
   - Dataclass-based configuration with validation in `__post_init__`
   - Separate configs for: GitHub, OpenAI, Database, Filters
   - Immutable once created, fails fast with clear errors
   - `ReleaseNotesConfig` as main container
 
-- **Configuration Loading Strategies** (`core/config_loader.py`)
+- **Configuration Loading Strategies** (`pretty_release_notes/core/config_loader.py`)
   - `EnvConfigLoader` - Load from .env files (CLI backward compatibility)
   - `DictConfigLoader` - Load from dictionaries (library/web usage)
   - Strategy pattern for extensibility
 
-- **Execution Strategies** (`core/execution.py`)
+- **Execution Strategies** (`pretty_release_notes/core/execution.py`)
   - `ThreadPoolStrategy` - Managed thread pool (default, max_workers=10)
   - `ThreadingStrategy` - Original direct threading
   - `SequentialStrategy` - For debugging or constrained environments
   - Abstracts parallelism for testability and control
 
 #### 2. Adapters (External Interfaces)
-- **CLI Adapter** (`adapters/cli_progress.py`)
+- **CLI Adapter** (`pretty_release_notes/adapters/cli_progress.py`)
   - `CLIProgressReporter` bridges `ProgressReporter` to `CLI` class
   - Routes events to appropriate UI methods
   - Maintains separation between core and CLI concerns
 
-- **Library API** (`api.py`)
+- **Library API** (`pretty_release_notes/api.py`)
   - `ReleaseNotesClient` - High-level client for library users
   - `ReleaseNotesBuilder` - Fluent builder pattern for configuration
   - No CLI dependencies, uses `NullProgressReporter` by default
 
-- **Web API** (`web/app.py`)
+- **Web API** (`pretty_release_notes/web/app.py`)
   - FastAPI-based REST endpoints
   - `WebProgressReporter` captures events for job status
   - Background task processing with job tracking

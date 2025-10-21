@@ -143,9 +143,7 @@ class PullRequest(Change):
 		self.backport_of = self.github.get_pr(self.repository, self.backport_no)
 
 	@classmethod
-	def from_dict(
-		cls, github: "GitHubClient", repository: "Repository", data: dict
-	) -> "PullRequest":
+	def from_dict(cls, github: "GitHubClient", repository: "Repository", data: dict) -> "PullRequest":
 		return cls(
 			github=github,
 			repository=repository,

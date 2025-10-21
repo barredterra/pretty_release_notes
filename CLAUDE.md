@@ -68,60 +68,70 @@ The project follows **Hexagonal Architecture** (Ports & Adapters pattern) to sup
 ## Project Structure
 
 ```
-main.py                 # CLI entry point
-api.py                  # Library API (ReleaseNotesClient, ReleaseNotesBuilder)
-generator.py            # Core business logic (UI-independent)
-github_client.py        # GitHub API wrapper
-openai_client.py        # OpenAI API wrapper
-database.py             # Caching layer (CSV/SQLite with thread-safety)
-ui.py                   # Terminal UI (used via adapter)
-prompt.txt              # AI prompt template
-pyproject.toml          # Package configuration and dependencies
-.pre-commit-config.yaml # Pre-commit hooks (ruff, mypy)
-core/                   # Core abstractions (Hexagonal Architecture)
-├── __init__.py         # Package initialization
-├── interfaces.py       # ProgressReporter protocol & events
-├── config.py           # Type-safe configuration dataclasses
-├── config_loader.py    # Configuration loading strategies
-└── execution.py        # Execution strategies (ThreadPool, Sequential)
-adapters/               # Adapters for external interfaces
-├── __init__.py         # Package initialization
-└── cli_progress.py     # CLI adapter for ProgressReporter
-web/                    # Web API backend
-├── __init__.py         # Package initialization
-├── app.py              # FastAPI application with endpoints
-└── server.py           # Uvicorn server runner
-models/                 # Data models
-├── change.py           # Protocol for PR/Commit interface
-├── pull_request.py     # PR data model
-├── commit.py           # Commit data model
-├── issue.py            # Issue data model
-├── repository.py       # Repository data model
-├── release_notes.py    # Release notes container
-├── release_notes_line.py  # Individual line model
-└── _utils.py           # Utility functions
-tests/                  # Test suite (77 tests, 75% coverage)
+pretty_release_notes/   # Main package directory
+├── __init__.py         # Package exports (public API)
+├── __main__.py         # CLI entry via python -m
+├── main.py             # CLI implementation
+├── api.py              # Library API (ReleaseNotesClient, ReleaseNotesBuilder)
+├── generator.py        # Core business logic (UI-independent)
+├── github_client.py    # GitHub API wrapper
+├── openai_client.py    # OpenAI API wrapper
+├── database.py         # Caching layer (CSV/SQLite with thread-safety)
+├── ui.py               # Terminal UI (used via adapter)
+├── py.typed            # PEP 561 type marker
+├── core/               # Core abstractions (Hexagonal Architecture)
+│   ├── __init__.py     # Package initialization
+│   ├── interfaces.py   # ProgressReporter protocol & events
+│   ├── config.py       # Type-safe configuration dataclasses
+│   ├── config_loader.py # Configuration loading strategies
+│   └── execution.py    # Execution strategies (ThreadPool, Sequential)
+├── adapters/           # Adapters for external interfaces
+│   ├── __init__.py     # Package initialization
+│   └── cli_progress.py # CLI adapter for ProgressReporter
+├── web/                # Web API backend
+│   ├── __init__.py     # Package initialization
+│   ├── app.py          # FastAPI application with endpoints
+│   └── server.py       # Uvicorn server runner
+└── models/             # Data models
+    ├── __init__.py     # Model re-exports
+    ├── change.py       # Protocol for PR/Commit interface
+    ├── pull_request.py # PR data model
+    ├── commit.py       # Commit data model
+    ├── issue.py        # Issue data model
+    ├── repository.py   # Repository data model
+    ├── release_notes.py # Release notes container
+    ├── release_notes_line.py # Individual line model
+    └── _utils.py       # Utility functions
+tests/                  # Test suite (77 tests, 58% coverage)
+├── __init__.py         # Test package
 ├── test_core.py        # Tests for core abstractions
 ├── test_api.py         # Tests for library API
 ├── test_execution.py   # Tests for execution strategies
-├── test_database_threading.py  # Thread-safety tests
+├── test_database_threading.py # Thread-safety tests
 ├── test_web_api.py     # Tests for web endpoints
-└── ...                 # Other test files
+└── pull_request.py     # Pull request test fixtures
+examples/               # Usage examples
+└── library_usage.py    # Library API examples
 docs/adr/               # Architecture Decision Records
-└── 001-multi-mode-architecture.md  # Hexagonal architecture decisions
+└── 001-multi-mode-architecture.md # Hexagonal architecture decisions
+prompt.txt              # AI prompt template
+pyproject.toml          # Package configuration and dependencies
+.pre-commit-config.yaml # Pre-commit hooks (ruff, mypy)
+.env                    # Environment configuration (not in repo)
+.env.example            # Example environment configuration
 ```
 
 ## Key Components
 
-### Core Abstractions: `core/`
+### Core Abstractions: `pretty_release_notes/core/`
 
-**`core/interfaces.py`** - Progress Reporting Protocol:
+**`pretty_release_notes/core/interfaces.py`** - Progress Reporting Protocol:
 - `ProgressEvent`: Dataclass for progress events (type, message, metadata)
 - `ProgressReporter`: Abstract interface for progress reporting
 - `NullProgressReporter`: No-op implementation for library usage
 - `CompositeProgressReporter`: Combine multiple reporters
 
-**`core/config.py`** - Type-Safe Configuration:
+**`pretty_release_notes/core/config.py`** - Type-Safe Configuration:
 - `GitHubConfig`: GitHub token and owner
 - `OpenAIConfig`: OpenAI API key, model, max patch size
 - `DatabaseConfig`: Database type, name, enabled state
@@ -129,24 +139,24 @@ docs/adr/               # Architecture Decision Records
 - `ReleaseNotesConfig`: Main configuration container
 - All configs include validation in `__post_init__`
 
-**`core/config_loader.py`** - Configuration Loading Strategies:
+**`pretty_release_notes/core/config_loader.py`** - Configuration Loading Strategies:
 - `ConfigLoader`: Abstract base class
 - `DictConfigLoader`: Load from dictionary (for programmatic usage)
 - `EnvConfigLoader`: Load from .env file (backward compatibility)
 
-**`core/execution.py`** - Execution Strategies:
+**`pretty_release_notes/core/execution.py`** - Execution Strategies:
 - `ExecutionStrategy`: Abstract interface for parallel execution
 - `ThreadPoolStrategy`: Managed thread pool (default, max_workers=10)
 - `ThreadingStrategy`: Original direct threading implementation
 - `SequentialStrategy`: For debugging or constrained environments
 
-### Adapters: `adapters/`
+### Adapters: `pretty_release_notes/adapters/`
 
-**`adapters/cli_progress.py`** - CLI Progress Adapter:
+**`pretty_release_notes/adapters/cli_progress.py`** - CLI Progress Adapter:
 - `CLIProgressReporter`: Bridges `ProgressReporter` interface to `CLI` class
 - Routes events to appropriate CLI methods (markdown, success, error, release_notes)
 
-### Library API: `api.py`
+### Library API: `pretty_release_notes/api.py`
 
 **`ReleaseNotesClient`** - High-level client for library usage:
 - `generate_release_notes()`: Generate notes for a repository and tag
@@ -161,24 +171,34 @@ docs/adr/               # Architecture Decision Records
 - `with_progress_reporter()`: Add custom progress reporting
 - `build()`: Construct configured client
 
-### Web Backend: `web/`
+### Web Backend: `pretty_release_notes/web/`
 
-**`web/app.py`** - FastAPI REST API:
+**`pretty_release_notes/web/app.py`** - FastAPI REST API:
 - `POST /generate`: Create release notes generation job (background task)
 - `GET /jobs/{job_id}`: Get job status and result
 - `GET /health`: Health check endpoint
 - `WebProgressReporter`: Captures progress events for job tracking
 - In-memory job storage (use Redis for production)
 
-### Entry Point: `main.py`
+### Entry Points
+
+**`pretty_release_notes/__init__.py`** - Package API:
+- Public API exports: `ReleaseNotesBuilder`, `ReleaseNotesClient`, config classes, interfaces
+- Enables: `from pretty_release_notes import ReleaseNotesBuilder`
+
+**`pretty_release_notes/__main__.py`** - Module Entry:
+- Enables: `python -m pretty_release_notes`
+- Delegates to `main.app()`
+
+**`pretty_release_notes/main.py`** - CLI Implementation:
 - CLI command using Typer
 - Loads configuration using `EnvConfigLoader`
 - Creates `CLIProgressReporter` adapter
 - Orchestrates: initialize → generate → display → optionally update
 - Maintains backward compatibility with original CLI interface
-- Console script entry point: `pretty-release-notes`
+- Console script entry point: `pretty-release-notes = "pretty_release_notes.main:app"`
 
-### Core Logic: `generator.py` - `ReleaseNotesGenerator`
+### Core Logic: `pretty_release_notes/generator.py` - `ReleaseNotesGenerator`
 - **Constructor**: Accepts `ReleaseNotesConfig`, optional `ProgressReporter`, and optional `ExecutionStrategy`
 - **UI-independent**: No direct UI dependencies, uses progress events
 - `initialize_repository()`: Fetches repository metadata
@@ -193,17 +213,17 @@ docs/adr/               # Architecture Decision Records
   - Reports progress via `ProgressEvent` emissions (11 locations)
 - `_process_line()`: Core processing with cache checking and OpenAI calls
 
-### GitHub Integration: `github_client.py` - `GitHubClient`
+### GitHub Integration: `pretty_release_notes/github_client.py` - `GitHubClient`
 - Authenticated session with Bearer token
 - Methods for: repositories, PRs, commits, reviewers, issues, diffs
 - Uses REST API and GraphQL API
 
-### AI Integration: `openai_client.py`
+### AI Integration: `pretty_release_notes/openai_client.py`
 - `get_chat_response()`: Wrapped with retry logic
 - Exponential backoff: 1-60s, max 6 attempts
 - Flex service tier for o3/o4-mini models
 
-### Data Persistence: `database.py`
+### Data Persistence: `pretty_release_notes/database.py`
 - Abstract `Database` base class
 - `CSVDatabase`: File-based storage
 - `SQLiteDatabase`: Thread-safe with thread-local connections
@@ -211,25 +231,25 @@ docs/adr/               # Architecture Decision Records
   - Lock-based transactions for safe concurrent access
 - Factory pattern: `get_db()` returns appropriate backend
 
-### UI: `ui.py` - `CLI`
+### UI: `pretty_release_notes/ui.py` - `CLI`
 - Uses Rich library for formatted terminal output
 - Methods for: markdown display, release notes, confirmations, errors, success
 
-### Models
+### Models: `pretty_release_notes/models/`
 
-**`PullRequest` class** (`models/pull_request.py`):
+**`PullRequest` class** (`pretty_release_notes/models/pull_request.py`):
 - Extracts backport PR number from title
 - Determines conventional commit type
 - Constructs AI prompts with issue context and PR patch
 - Resolves reviewers (excluding self-reviews and bots)
 - Recursively fetches original PR for backports
 
-**`Commit` class** (`models/commit.py`):
+**`Commit` class** (`pretty_release_notes/models/commit.py`):
 - Simpler than PullRequest
 - Uses commit diff instead of PR patch
 - Truncates large diffs with "[TRUNCATED]" marker
 
-**`ReleaseNotes` class** (`models/release_notes.py`):
+**`ReleaseNotes` class** (`pretty_release_notes/models/release_notes.py`):
 - Container for all release note lines
 - Parallel reviewer fetching
 - Serializes to markdown with exclusion filters
@@ -260,7 +280,7 @@ Primary config file for CLI usage: `.env`
 ### Method 2: Programmatic Configuration (Library Usage)
 
 ```python
-from core.config import ReleaseNotesConfig, GitHubConfig, OpenAIConfig
+from pretty_release_notes import ReleaseNotesConfig, GitHubConfig, OpenAIConfig
 
 config = ReleaseNotesConfig(
     github=GitHubConfig(token="ghp_xxxxx", owner="frappe"),
@@ -271,7 +291,7 @@ config = ReleaseNotesConfig(
 ### Method 3: Dictionary Configuration (Library Usage)
 
 ```python
-from core.config_loader import DictConfigLoader
+from pretty_release_notes.core.config_loader import DictConfigLoader
 
 loader = DictConfigLoader({
     "github_token": "ghp_xxxxx",
@@ -289,15 +309,16 @@ All configurations undergo validation at creation time, raising `ValueError` for
 ### CLI Usage
 
 ```bash
-# Using python directly
-python main.py [OPTIONS] REPO TAG
-
-# Using installed console script
+# Using installed console script (recommended)
 pretty-release-notes [OPTIONS] REPO TAG
 
+# Using python -m (alternative)
+python -m pretty_release_notes [OPTIONS] REPO TAG
+
 # Examples:
-python main.py erpnext v15.38.4
+pretty-release-notes erpnext v15.38.4
 pretty-release-notes --owner alyf-de banking v0.0.1
+python -m pretty_release_notes --owner frappe erpnext v15.38.4
 ```
 
 **CLI Parameters**:
@@ -311,7 +332,7 @@ pretty-release-notes --owner alyf-de banking v0.0.1
 ### Library Usage
 
 ```python
-from api import ReleaseNotesBuilder
+from pretty_release_notes import ReleaseNotesBuilder
 
 # Build client with fluent API
 client = (
@@ -342,7 +363,10 @@ Start the server:
 pip install -e .[web]
 
 # Run server
-python -m uvicorn web.app:app --host 0.0.0.0 --port 8000
+python -m uvicorn pretty_release_notes.web.app:app --host 0.0.0.0 --port 8000
+
+# Or using the provided server script
+python -m pretty_release_notes.web.server
 ```
 
 Create a generation job:
@@ -581,16 +605,3 @@ Key architectural decisions are documented in Architecture Decision Records (ADR
   - Documents the transition from monolithic CLI to multi-mode architecture
   - Explains all design patterns and their rationale
   - Covers consequences and trade-offs
-
-## Implementation Status
-
-### Completed:
-- ✅ Phase 1: Core abstractions (interfaces, config, loaders)
-- ✅ Phase 2: Business logic decoupling (UI-free generator)
-- ✅ Phase 3: Library API with builder pattern
-- ✅ Phase 4: Concurrent execution support with thread pools
-- ✅ Phase 5: Web backend with REST API
-- ✅ Phase 6: Package distribution and backward compatibility
-
-**Test Coverage**: 77 tests with 75% code coverage
-**Package Status**: Installable via `pip install -e .` with optional `[web]` and `[dev]` extras

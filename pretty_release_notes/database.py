@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-	from models import Repository
+	from .models import Repository
 
 
 class Database:
@@ -30,14 +30,10 @@ class CSVDatabase(Database):
 		if not self.path.exists():
 			return None
 
-		with open(self.path, "r") as f:
+		with open(self.path) as f:
 			reader = DictReader(f, fieldnames=self.columns)
 			for row in reader:
-				if (
-					row["owner"] == repository.owner
-					and row["repo"] == repository.name
-					and row["pr_no"] == pr_no
-				):
+				if row["owner"] == repository.owner and row["repo"] == repository.name and row["pr_no"] == pr_no:
 					return row["sentence"]
 
 		return None
@@ -60,14 +56,12 @@ class CSVDatabase(Database):
 			)
 
 	def delete_sentence(self, repository: "Repository", pr_no: str) -> None:
-		with open(self.path, "r") as f:
+		with open(self.path) as f:
 			reader = DictReader(f, fieldnames=self.columns)
 			rows = [
 				row
 				for row in reader
-				if row["owner"] != repository.owner
-				or row["repo"] != repository.name
-				or row["pr_no"] != pr_no
+				if row["owner"] != repository.owner or row["repo"] != repository.name or row["pr_no"] != pr_no
 			]
 
 		with open(self.path, "w") as f:
@@ -135,12 +129,8 @@ class SQLiteDatabase(Database):
 
 	def _create_table(self):
 		"""Create table and index if they don't exist."""
-		self.cursor.execute(
-			"CREATE TABLE IF NOT EXISTS sentences (owner TEXT, repo TEXT, pr_no TEXT, sentence TEXT)"
-		)
-		self.cursor.execute(
-			"CREATE INDEX IF NOT EXISTS idx_owner_repo_pr_no ON sentences (owner, repo, pr_no)"
-		)
+		self.cursor.execute("CREATE TABLE IF NOT EXISTS sentences (owner TEXT, repo TEXT, pr_no TEXT, sentence TEXT)")
+		self.cursor.execute("CREATE INDEX IF NOT EXISTS idx_owner_repo_pr_no ON sentences (owner, repo, pr_no)")
 		self.connection.commit()
 
 

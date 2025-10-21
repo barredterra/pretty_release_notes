@@ -2,8 +2,9 @@
 
 import threading
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Callable
+from typing import Any
 
 
 class ExecutionStrategy(ABC):

@@ -1,13 +1,13 @@
 """FastAPI application for Pretty Release Notes."""
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from pydantic import BaseModel
 
-from api import ReleaseNotesBuilder
-from core.interfaces import ProgressEvent, ProgressReporter
+from ..api import ReleaseNotesBuilder
+from ..core.interfaces import ProgressEvent, ProgressReporter
 
 app = FastAPI(title="Pretty Release Notes API", version="1.0.0")
 
@@ -35,10 +35,10 @@ class JobResponse(BaseModel):
 	job_id: str
 	status: str
 	created_at: datetime
-	completed_at: Optional[datetime] = None
-	result: Optional[str] = None
+	completed_at: datetime | None = None
+	result: str | None = None
 	progress: list[dict[str, Any]] = []
-	error: Optional[str] = None
+	error: str | None = None
 
 
 class WebProgressReporter(ProgressReporter):

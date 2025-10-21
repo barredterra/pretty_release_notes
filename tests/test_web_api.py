@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from web.app import app
+from pretty_release_notes.web.app import app
 
 
 @pytest.fixture
@@ -19,12 +19,10 @@ def client():
 @pytest.fixture
 def mock_generator():
 	"""Mock the ReleaseNotesGenerator to avoid actual API calls."""
-	with patch("web.app.ReleaseNotesBuilder") as mock_builder_class:
+	with patch("pretty_release_notes.web.app.ReleaseNotesBuilder") as mock_builder_class:
 		# Create mock client
 		mock_client = MagicMock()
-		mock_client.generate_release_notes.return_value = (
-			"## What's Changed\n* Test PR by @test-user\n"
-		)
+		mock_client.generate_release_notes.return_value = "## What's Changed\n* Test PR by @test-user\n"
 
 		# Create mock builder instance
 		mock_builder = MagicMock()
@@ -221,9 +219,7 @@ class TestJobsEndpoint:
 
 			if data["status"] == "completed":
 				assert data["result"] is not None
-				assert isinstance(
-					data["progress"], list
-				)  # Progress should be a list (may be empty with mock)
+				assert isinstance(data["progress"], list)  # Progress should be a list (may be empty with mock)
 				assert data["error"] is None
 				return
 

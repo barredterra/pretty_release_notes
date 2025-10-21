@@ -1,7 +1,7 @@
 """CLI adapter for progress reporting."""
 
-from core.interfaces import ProgressEvent, ProgressReporter
-from ui import CLI
+from ..core.interfaces import ProgressEvent, ProgressReporter
+from ..ui import CLI
 
 
 class CLIProgressReporter(ProgressReporter):
@@ -21,9 +21,5 @@ class CLIProgressReporter(ProgressReporter):
 		elif event.type == "info":
 			self.cli.show_markdown_text(event.message)
 		elif event.type == "release_notes":
-			heading = (
-				event.metadata.get("heading", "Release Notes")
-				if event.metadata
-				else "Release Notes"
-			)
+			heading = event.metadata.get("heading", "Release Notes") if event.metadata else "Release Notes"
 			self.cli.show_release_notes(heading, event.message)

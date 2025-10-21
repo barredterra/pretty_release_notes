@@ -1,7 +1,7 @@
 import requests
 
-from models import Issue, PullRequest, Repository
-from models.commit import Commit
+from .models import Issue, PullRequest, Repository
+from .models.commit import Commit
 
 
 class GitHubClient:
@@ -61,9 +61,7 @@ class GitHubClient:
 
 		return [
 			Issue.from_dict(issue["node"])
-			for issue in response["data"]["repository"]["pullRequest"]["closingIssuesReferences"][
-				"edges"
-			]
+			for issue in response["data"]["repository"]["pullRequest"]["closingIssuesReferences"]["edges"]
 		]
 
 	def get_diff_commits(self, repository: Repository, tag: str, prev_tag: str) -> list[Commit]:

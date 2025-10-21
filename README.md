@@ -29,16 +29,34 @@ Copy `.env.example` to `.env` and fill in your GitHub token and OpenAI API key.
 
 You can choose a database type by setting the `DB_TYPE` environment variable. Currently supported are `csv` and `sqlite`.
 
+## Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/barredterra/pretty_release_notes
+cd pretty_release_notes
+
+# Create virtual environment and install
+python -m venv env
+source env/bin/activate
+pip install -e .
+```
+
 ## Usage
 
 ### CLI
 
-```bash
-source env/bin/activate
+After installation, you can use the CLI in several ways:
 
-python main.py --help
-python main.py erpnext v15.38.4 # using DEFAULT_OWNER from .env
-python main.py --owner alyf-de banking v0.0.1
+```bash
+# Using the console script (recommended)
+pretty-release-notes --help
+pretty-release-notes erpnext v15.38.4  # using DEFAULT_OWNER from .env
+pretty-release-notes --owner alyf-de banking v0.0.1
+
+# Or using python -m
+python -m pretty_release_notes --help
+python -m pretty_release_notes erpnext v15.38.4
 ```
 
 Example output:
@@ -60,6 +78,40 @@ Example output:
 **Authors**: @rohitwaghchaure
 ```
 
+### Library Usage
+
+You can also use `pretty_release_notes` as a Python library in your own projects:
+
+```python
+from pretty_release_notes import ReleaseNotesBuilder
+
+# Build a client with configuration
+client = (
+    ReleaseNotesBuilder()
+    .with_github_token("ghp_your_token")
+    .with_openai("sk_your_key", model="gpt-4")
+    .with_database("sqlite", enabled=True)
+    .with_filters(
+        exclude_types={"chore", "ci", "refactor"},
+        exclude_labels={"skip-release-notes"},
+    )
+    .build()
+)
+
+# Generate release notes
+notes = client.generate_release_notes(
+    owner="frappe",
+    repo="erpnext",
+    tag="v15.38.4",
+)
+print(notes)
+
+# Optionally update on GitHub
+client.update_github_release("frappe", "erpnext", "v15.38.4", notes)
+```
+
+For more examples, see [`examples/library_usage.py`](examples/library_usage.py).
+
 ### Web API
 
 The tool can also be run as a REST API server for integration with web frontends.
@@ -76,7 +128,11 @@ pip install -e .[web]
 Then start the server:
 
 ```bash
-python -m uvicorn web.app:app --host 0.0.0.0 --port 8000
+# Using uvicorn directly
+python -m uvicorn pretty_release_notes.web.app:app --host 0.0.0.0 --port 8000
+
+# Or using the provided server script
+python -m pretty_release_notes.web.server
 ```
 
 The API will be available at `http://localhost:8000` with interactive documentation at `http://localhost:8000/docs`.

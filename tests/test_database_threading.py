@@ -1,16 +1,11 @@
 """Tests for thread-safe database access."""
 
-import sys
 import threading
-from pathlib import Path
 
 import pytest
 
-# Add parent directory to path to import modules
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from database import SQLiteDatabase
-from models import Repository
+from pretty_release_notes.database import SQLiteDatabase
+from pretty_release_notes.models import Repository
 
 
 class TestSQLiteDatabaseThreadSafety:
@@ -225,9 +220,9 @@ class TestSQLiteDatabaseThreadSafety:
 			print(f"\nErrors encountered: {len(errors)}")
 			for i, (thread_id, error) in enumerate(errors[:5]):  # Print first 5 errors
 				print(f"  Thread {thread_id}: {error}")
-		assert completed["count"] + len(errors) == num_threads, (
-			f"Only {completed['count'] + len(errors)}/{num_threads} threads completed"
-		)
+		assert (
+			completed["count"] + len(errors) == num_threads
+		), f"Only {completed['count'] + len(errors)}/{num_threads} threads completed"
 		# It's OK if some errors occurred due to database conflicts (INSERT of existing keys)
 		# The important thing is no deadlocks
 

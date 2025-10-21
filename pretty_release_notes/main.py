@@ -6,10 +6,10 @@ from pathlib import Path
 
 import typer
 
-from adapters.cli_progress import CLIProgressReporter
-from core.config_loader import EnvConfigLoader
-from generator import ReleaseNotesGenerator
-from ui import CLI
+from .adapters.cli_progress import CLIProgressReporter
+from .core.config_loader import EnvConfigLoader
+from .generator import ReleaseNotesGenerator
+from .ui import CLI
 
 app = typer.Typer()
 

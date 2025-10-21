@@ -2,13 +2,13 @@ import time
 
 from requests import HTTPError
 
-from core.config import ReleaseNotesConfig
-from core.execution import ExecutionStrategy, ThreadPoolStrategy
-from core.interfaces import NullProgressReporter, ProgressEvent, ProgressReporter
-from database import get_db
-from github_client import GitHubClient
-from models import ReleaseNotes, ReleaseNotesLine, Repository
-from openai_client import get_chat_response
+from .core.config import ReleaseNotesConfig
+from .core.execution import ExecutionStrategy, ThreadPoolStrategy
+from .core.interfaces import NullProgressReporter, ProgressEvent, ProgressReporter
+from .database import get_db
+from .github_client import GitHubClient
+from .models import ReleaseNotes, ReleaseNotesLine, Repository
+from .openai_client import get_chat_response
 
 
 class ReleaseNotesGenerator:
@@ -89,8 +89,7 @@ class ReleaseNotesGenerator:
 		)
 
 		if self.force_use_commits or (
-			not any(line.change for line in release_notes.lines)
-			and "Full Changelog" in gh_notes["body"]
+			not any(line.change for line in release_notes.lines) and "Full Changelog" in gh_notes["body"]
 		):
 			prev_tag = get_prev_tag(gh_notes["body"], self.repository)
 			release_notes.lines = self._get_commit_lines(tag, prev_tag) + release_notes.lines
@@ -148,9 +147,7 @@ class ReleaseNotesGenerator:
 		release = self._get_release(tag)
 		try:
 			self.github.update_release(self.repository, release["id"], new_body)
-			self.progress.report(
-				ProgressEvent(type="success", message="Release notes updated successfully.")
-			)
+			self.progress.report(ProgressEvent(type="success", message="Release notes updated successfully."))
 		except HTTPError as e:
 			if e.response.status_code != 403:
 				raise e

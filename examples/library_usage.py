@@ -1,10 +1,6 @@
 """Example of using pretty_release_notes as a library."""
 
-import sys
 from pathlib import Path
-
-# Add parent directory to path to allow importing pretty_release_notes
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from pretty_release_notes import ProgressEvent, ProgressReporter, ReleaseNotesBuilder
 
