@@ -230,6 +230,7 @@ pyproject.toml          # Package configuration and dependencies
   - Uses `threading.local()` for connection pooling
   - Lock-based transactions for safe concurrent access
 - Factory pattern: `get_db()` returns appropriate backend
+- **Storage location**: Relative paths (default) stored in `~/.pretty-release-notes/`, absolute paths stored at exact location
 
 ### UI: `pretty_release_notes/ui.py` - `CLI`
 - Uses Rich library for formatted terminal output
@@ -269,7 +270,7 @@ Primary config file for CLI usage: `.env`
 - `OPENAI_MODEL`: Model to use (default "gpt-4.1")
 - `MAX_PATCH_SIZE`: Max patch size before fallback (default 10000)
 - `DB_TYPE`: Database backend - "csv" or "sqlite" (default "sqlite")
-- `DB_NAME`: Database name (default "stored_lines")
+- `DB_NAME`: Database filename without extension (default "stored_lines"). If relative, stores in `~/.pretty-release-notes/`. If absolute path, stores at that exact location.
 - `DEFAULT_OWNER`: Default repository owner (e.g., "frappe")
 - `PROMPT_PATH`: Path to custom prompt file (default "prompt.txt")
 - `EXCLUDE_PR_TYPES`: Comma-separated types to exclude (default: "chore,refactor,ci,style,test")

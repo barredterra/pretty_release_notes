@@ -137,6 +137,12 @@ class SQLiteDatabase(Database):
 def get_db(db_type: str, db_name: str) -> Database:
 	db_path = Path(db_name)
 
+	# If path is relative (not absolute), use ~/.pretty-release-notes/ as base directory
+	if not db_path.is_absolute():
+		base_dir = Path.home() / ".pretty-release-notes"
+		base_dir.mkdir(parents=True, exist_ok=True)
+		db_path = base_dir / db_name
+
 	if db_type == "csv":
 		return CSVDatabase(db_path.with_suffix(".csv"))
 	elif db_type == "sqlite":

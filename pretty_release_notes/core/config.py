@@ -25,6 +25,15 @@ class OpenAIConfig:
 
 @dataclass
 class DatabaseConfig:
+	"""Database configuration for caching release note summaries.
+
+	Attributes:
+		type: Database backend type ("csv" or "sqlite")
+		name: Database filename (without extension). If relative, stores in ~/.pretty-release-notes/
+			If absolute path, stores at that exact location.
+		enabled: Whether to use database caching
+	"""
+
 	type: str = "sqlite"
 	name: str = "stored_lines"
 	enabled: bool = True
