@@ -1,4 +1,7 @@
 import time
+from collections.abc import Callable
+from functools import partial
+from typing import Any
 
 from requests import HTTPError
 
@@ -20,7 +23,7 @@ class ReleaseNotesGenerator:
 	):
 		self.config = config
 		self.github = GitHubClient(config.github.token)
-		self.repository = None
+		self.repository: Repository | None = None
 		self.progress = progress_reporter or NullProgressReporter()
 		self.execution = execution_strategy or ThreadPoolStrategy()
 
@@ -40,8 +43,9 @@ class ReleaseNotesGenerator:
 	def initialize_repository(self, owner: str, name: str):
 		self.repository = self.github.get_repository(owner, name)
 
-	def generate(self, tag: str):
+	def generate(self, tag: str) -> str:
 		"""Generate release notes for a given tag."""
+		assert self.repository is not None, "Repository must be initialized before generating release notes"
 		release = self._get_release(tag)
 		old_body = release["body"]
 
@@ -121,29 +125,30 @@ class ReleaseNotesGenerator:
 			model_name=f"OpenAI {self.openai_model}",
 		)
 
-	def _get_prs_for_lines(self, lines: list["ReleaseNotesLine"]):
+	def _get_prs_for_lines(self, lines: list["ReleaseNotesLine"]) -> None:
 		"""Download info for all PRs in parallel."""
-		tasks = []
-		for line in lines:
-			if line.pr_no and not line.is_new_contributor:
-				tasks.append(lambda line_item=line: self._get_pr_for_line(line_item))
+		tasks: list[Callable[[], Any]] = [
+			partial(self._get_pr_for_line, line) for line in lines if line.pr_no and not line.is_new_contributor
+		]
 
 		if tasks:
 			self.execution.execute_parallel(tasks)
 
 	def _get_pr_for_line(self, line: "ReleaseNotesLine"):
 		"""Download info for a single PR."""
+		assert self.repository is not None, "Repository must be initialized"
 		if line.pr_no and not line.is_new_contributor:
 			line.change = self.github.get_pr(self.repository, line.pr_no)
 
-	def _process_lines(self, lines: list["ReleaseNotesLine"]):
+	def _process_lines(self, lines: list["ReleaseNotesLine"]) -> None:
 		"""Process all lines in parallel."""
-		tasks = [lambda line_item=line: self._process_line(line_item) for line in lines]
+		tasks: list[Callable[[], Any]] = [partial(self._process_line, line) for line in lines]
 		if tasks:
 			self.execution.execute_parallel(tasks)
 
 	def update_on_github(self, new_body: str, tag: str):
 		"""Update release notes on GitHub."""
+		assert self.repository is not None, "Repository must be initialized before updating release notes"
 		release = self._get_release(tag)
 		try:
 			self.github.update_release(self.repository, release["id"], new_body)
@@ -160,6 +165,7 @@ class ReleaseNotesGenerator:
 			)
 
 	def _get_commit_lines(self, tag: str, prev_tag: str | None = None):
+		assert self.repository is not None, "Repository must be initialized"
 		if prev_tag:
 			commits = self.github.get_diff_commits(self.repository, tag, prev_tag)
 		else:
@@ -188,6 +194,7 @@ class ReleaseNotesGenerator:
 		)
 
 	def _process_line(self, line: "ReleaseNotesLine"):
+		assert self.repository is not None, "Repository must be initialized"
 		db = get_db(self.db_type, self.db_name) if self.use_db else None
 
 		if not line.change or line.is_new_contributor:
@@ -234,6 +241,7 @@ class ReleaseNotesGenerator:
 		self.progress.report(ProgressEvent(type="markdown", message=str(line)))
 
 	def _get_release(self, tag: str):
+		assert self.repository is not None, "Repository must be initialized"
 		return self.github.get_release(self.repository, tag)
 
 

@@ -7,9 +7,9 @@ from ._utils import get_conventional_type
 from .change import Change
 
 if TYPE_CHECKING:
-	from github_client import GitHubClient
-	from models.issue import Issue
-	from models.repository import Repository
+	from pretty_release_notes.github_client import GitHubClient
+	from pretty_release_notes.models.issue import Issue
+	from pretty_release_notes.models.repository import Repository
 
 
 BACKPORT_NO = re.compile(r"\(backport #(\d+)\)\s*$")
@@ -24,7 +24,7 @@ class PullRequest(Change):
 	body: str
 	html_url: str
 	commits_url: str | None = None
-	author: str | None = None
+	author: str = ""
 	merged_by: str | None = None
 	labels: set[str] | None = None
 	backport_of: "PullRequest | None" = None
@@ -79,28 +79,30 @@ class PullRequest(Change):
 		for thread in threads:
 			thread.join()
 
-		reviewers = self.reviewers.copy()
-		reviewers.add(self.merged_by)
+		reviewers = self.reviewers.copy() if self.reviewers else set()
+		if self.merged_by:
+			reviewers.add(self.merged_by)
 		reviewers.discard(self.author)
 
-		if self.backport_of:
+		if self.backport_of and self.backport_of.reviewers:
 			reviewers.update(self.backport_of.reviewers)
 			reviewers.discard(self.backport_of.author)
 
 		self.reviewers = reviewers
+		return self.reviewers
 
 	def get_author(self) -> str:
 		return self.backport_of.author if self.backport_of else self.author
 
 	def get_summary_key(self) -> str:
 		# Keep in mind that this needs to work before `self.backport_of` is initialised
-		return self.backport_no or self.id
+		return self.backport_no or str(self.id)
 
-	def _get_reviewers(self) -> set[str]:
+	def _get_reviewers(self) -> None:
 		"""Get the reviewers for a PR."""
-		self.reviewers = self.github.get_pr_reviewers(self.repository, self.id)
+		self.reviewers = self.github.get_pr_reviewers(self.repository, str(self.id))
 
-	def _get_original_reviewers(self) -> set[str]:
+	def _get_original_reviewers(self) -> None:
 		"""Get the reviewers for the original PR."""
 		self._set_backport_of()
 		if self.backport_of:
@@ -119,10 +121,12 @@ class PullRequest(Change):
 
 	def _get_patch(self) -> str:
 		"""Return the patch for a PR."""
-		return self.github.get_pr_patch(self.repository, self.id)
+		return self.github.get_pr_patch(self.repository, str(self.id))
 
 	def _get_commit_messages(self) -> list[str]:
 		"""Get the commit messages for a PR."""
+		if not self.commits_url:
+			return []
 		return self.github.get_commit_messages(self.commits_url)
 
 	def get_closed_issues(self) -> list["Issue"]:
@@ -134,7 +138,7 @@ class PullRequest(Change):
 		return issues
 
 	def _get_closed_issues(self) -> list["Issue"]:
-		return self.github.get_closed_issues(self.repository, self.id)
+		return self.github.get_closed_issues(self.repository, str(self.id))
 
 	def _set_backport_of(self):
 		if not self.backport_no or self.backport_of:

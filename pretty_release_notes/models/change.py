@@ -1,17 +1,21 @@
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
-	from github_client import GitHubClient
-	from models.repository import Repository
+	from pretty_release_notes.github_client import GitHubClient
+	from pretty_release_notes.models.repository import Repository
 
 
 class Change(Protocol):
 	github: "GitHubClient"
 	repository: "Repository"
-	conventional_type: str | None
 	author: str
 	labels: set[str] | None
 	reviewers: set[str] | None
+
+	@property
+	def conventional_type(self) -> str | None:
+		"""Extract the conventional type from the change."""
+		...
 
 	def get_prompt(self, prompt_template: str, max_patch_size: int) -> str:
 		"""Return the prompt used for summarising this change."""

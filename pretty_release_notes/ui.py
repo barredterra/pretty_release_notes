@@ -26,7 +26,8 @@ class CLI:
 		Returns:
 			bool: True if the user wants to update the release notes, False otherwise.
 		"""
-		return typer.confirm("Update release notes?")
+		result = typer.confirm("Update release notes?")
+		return bool(result)
 
 	def show_error(self, message: str) -> None:
 		"""Show a red error message, to stderr.
@@ -34,7 +35,7 @@ class CLI:
 		Args:
 			message (str): The error message to show.
 		"""
-		typer.echo(message, err=True, color=typer.colors.RED)
+		typer.echo(typer.style(message, fg=typer.colors.RED), err=True)
 
 	def show_success(self, message: str) -> None:
 		"""Show a green success message, to stdout.
@@ -42,4 +43,4 @@ class CLI:
 		Args:
 			message (str): The success message to show.
 		"""
-		typer.echo(message, color=typer.colors.GREEN)
+		typer.echo(typer.style(message, fg=typer.colors.GREEN))

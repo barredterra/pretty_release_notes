@@ -85,12 +85,13 @@ class GitHubClient:
 
 		Use this to get the commits for a tag that doesn't have a previous tag. Else, use get_diff_commits.
 		"""
+		params: dict[str, str | int] = {
+			"sha": tag,
+			"per_page": 100,
+		}
 		r = self.session.get(
 			f"{repository.url}/commits",
-			params={
-				"sha": tag,
-				"per_page": 100,
-			},
+			params=params,
 			headers={
 				"Accept": "application/vnd.github+json",
 			},

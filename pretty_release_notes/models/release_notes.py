@@ -18,7 +18,7 @@ class ReleaseNotes:
 	def authors(self) -> set[str]:
 		return {line.change.get_author() for line in self.lines if line.change}
 
-	def load_reviewers(self) -> set[str]:
+	def load_reviewers(self) -> None:
 		threads = []
 		for line in self.lines:
 			if not line.change:

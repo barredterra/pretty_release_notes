@@ -45,9 +45,14 @@ def main(
 	cli = CLI()
 	progress_reporter = CLIProgressReporter(cli)
 
+	# Determine the owner to use
+	repo_owner = owner or config.github.owner
+	if not repo_owner:
+		raise ValueError("Owner must be specified either via --owner flag or DEFAULT_OWNER in .env")
+
 	# Create generator with config
 	generator = ReleaseNotesGenerator(config, progress_reporter)
-	generator.initialize_repository(config.github.owner or owner, repo)
+	generator.initialize_repository(repo_owner, repo)
 	notes = generator.generate(tag)
 	cli.show_release_notes("New Release Notes", notes)
 	end_time = time.time()

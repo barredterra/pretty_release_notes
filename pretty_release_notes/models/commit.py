@@ -5,8 +5,8 @@ from ._utils import get_conventional_type
 from .change import Change
 
 if TYPE_CHECKING:
-	from github_client import GitHubClient
-	from models.repository import Repository
+	from pretty_release_notes.github_client import GitHubClient
+	from pretty_release_notes.models.repository import Repository
 
 
 @dataclass
@@ -34,9 +34,14 @@ class Commit(Change):
 
 	def set_reviewers(self) -> set[str]:
 		self.reviewers = set()
+		return self.reviewers
 
 	def get_author(self) -> str:
 		return self.author
+
+	def get_summary_key(self) -> str:
+		"""Return the commit SHA as the summary key."""
+		return self.id
 
 	def _get_changes(self, max_patch_size: int) -> str:
 		"""Return the diff if it is not too large. Otherwise, return a truncated diff."""

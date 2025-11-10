@@ -16,7 +16,7 @@ class ReleaseNotesLine:
 	sentence: str | None = None
 
 	def __str__(self):
-		if self.sentence:
+		if self.sentence and self.change:
 			return f"""* {self.sentence} ({self.change.html_url})"""
 
 		return self.original_line

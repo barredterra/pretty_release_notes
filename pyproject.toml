@@ -44,6 +44,7 @@ dev = [
     "pytest-cov>=4.1.0",
     "mypy>=1.7.0",
     "ruff>=0.1.0",
+    "types-requests",
 ]
 
 [project.scripts]

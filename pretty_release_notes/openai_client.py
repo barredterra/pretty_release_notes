@@ -16,6 +16,7 @@ def get_chat_response(
 
 	Raises:
 		Exception: If OpenAI API call fails after all retry attempts
+		ValueError: If OpenAI API returns empty content
 	"""
 	client = OpenAI(api_key=api_key, timeout=900.0)
 
@@ -30,4 +31,8 @@ def get_chat_response(
 		service_tier="flex" if model in {"o3", "o4-mini"} else "auto",
 	)
 
-	return chat_completion.choices[0].message.content
+	response_content: str | None = chat_completion.choices[0].message.content
+	if response_content is None:
+		raise ValueError("OpenAI API returned empty content")
+	# At this point, mypy knows response_content is str (not None)
+	return str(response_content)
