@@ -1,3 +1,4 @@
+import tomllib
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,7 @@ from .config import (
 	GitHubConfig,
 	OpenAIConfig,
 	ReleaseNotesConfig,
+	_get_default_prompt_path,
 )
 
 
@@ -47,7 +49,9 @@ class DictConfigLoader(ConfigLoader):
 				exclude_change_labels=set(self.config_dict.get("exclude_labels", [])),
 				exclude_authors=set(self.config_dict.get("exclude_authors", [])),
 			),
-			prompt_path=Path(self.config_dict.get("prompt_path", "prompt.txt")),
+			prompt_path=Path(self.config_dict["prompt_path"])
+			if "prompt_path" in self.config_dict
+			else _get_default_prompt_path(),
 			force_use_commits=self.config_dict.get("force_use_commits", False),
 		)
 
@@ -88,9 +92,85 @@ class EnvConfigLoader(ConfigLoader):
 				exclude_change_labels=self._parse_set(config.get("EXCLUDE_PR_LABELS") or ""),
 				exclude_authors=self._parse_set(config.get("EXCLUDE_AUTHORS") or ""),
 			),
-			prompt_path=Path(config.get("PROMPT_PATH") or "prompt.txt"),
+			prompt_path=(
+				Path(config["PROMPT_PATH"])
+				if "PROMPT_PATH" in config and config["PROMPT_PATH"] is not None
+				else _get_default_prompt_path()
+			),
 			force_use_commits=(config.get("FORCE_USE_COMMITS") or "false").lower() == "true",
 		)
 
 	def _parse_set(self, value: str) -> set[str]:
 		return set(value.split(",")) if value else set()
+
+
+class TomlConfigLoader(ConfigLoader):
+	"""Load from TOML file (default config format)."""
+
+	DEFAULT_CONFIG_PATH = Path.home() / ".pretty-release-notes" / "config.toml"
+
+	def __init__(self, config_path: Path | str | None = None):
+		"""Initialize TOML config loader.
+
+		Args:
+			config_path: Path to config file. If None, uses DEFAULT_CONFIG_PATH.
+		"""
+		if config_path is None:
+			self.config_path = self.DEFAULT_CONFIG_PATH
+		else:
+			self.config_path = Path(config_path)
+
+	def load(self) -> ReleaseNotesConfig:
+		"""Load configuration from TOML file.
+
+		Raises:
+			FileNotFoundError: If config file doesn't exist
+			ValueError: If required fields are missing or invalid
+		"""
+		if not self.config_path.exists():
+			raise FileNotFoundError(
+				f"Config file not found at {self.config_path}. "
+				f"Create it with the required fields or use --config-path to specify a different location."
+			)
+
+		with open(self.config_path, "rb") as f:
+			config = tomllib.load(f)
+
+		# Extract nested sections with defaults
+		github_config = config.get("github", {})
+		openai_config = config.get("openai", {})
+		database_config = config.get("database", {})
+		filters_config = config.get("filters", {})
+
+		# Required fields
+		github_token = github_config.get("token")
+		openai_key = openai_config.get("api_key")
+
+		if not github_token:
+			raise ValueError("github.token is required in config file")
+		if not openai_key:
+			raise ValueError("openai.api_key is required in config file")
+
+		return ReleaseNotesConfig(
+			github=GitHubConfig(
+				token=github_token,
+				owner=github_config.get("owner"),
+			),
+			openai=OpenAIConfig(
+				api_key=openai_key,
+				model=openai_config.get("model", "gpt-4.1"),
+				max_patch_size=openai_config.get("max_patch_size", 10000),
+			),
+			database=DatabaseConfig(
+				type=database_config.get("type", "sqlite"),
+				name=database_config.get("name", "stored_lines"),
+				enabled=database_config.get("enabled", True),
+			),
+			filters=FilterConfig(
+				exclude_change_types=set(filters_config.get("exclude_change_types", [])),
+				exclude_change_labels=set(filters_config.get("exclude_change_labels", [])),
+				exclude_authors=set(filters_config.get("exclude_authors", [])),
+			),
+			prompt_path=Path(config["prompt_path"]) if "prompt_path" in config else _get_default_prompt_path(),
+			force_use_commits=config.get("force_use_commits", False),
+		)

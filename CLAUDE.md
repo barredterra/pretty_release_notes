@@ -71,13 +71,15 @@ The project follows **Hexagonal Architecture** (Ports & Adapters pattern) to sup
 pretty_release_notes/   # Main package directory
 ├── __init__.py         # Package exports (public API)
 ├── __main__.py         # CLI entry via python -m
-├── main.py             # CLI implementation
+├── main.py             # CLI implementation with subcommands
+├── setup_command.py    # Interactive setup command for configuration
 ├── api.py              # Library API (ReleaseNotesClient, ReleaseNotesBuilder)
 ├── generator.py        # Core business logic (UI-independent)
 ├── github_client.py    # GitHub API wrapper
 ├── openai_client.py    # OpenAI API wrapper
 ├── database.py         # Caching layer (CSV/SQLite with thread-safety)
 ├── ui.py               # Terminal UI (used via adapter)
+├── prompt.txt          # AI prompt template (packaged with app)
 ├── py.typed            # PEP 561 type marker
 ├── core/               # Core abstractions (Hexagonal Architecture)
 │   ├── __init__.py     # Package initialization
@@ -114,11 +116,10 @@ examples/               # Usage examples
 └── library_usage.py    # Library API examples
 docs/adr/               # Architecture Decision Records
 └── 001-multi-mode-architecture.md # Hexagonal architecture decisions
-prompt.txt              # AI prompt template
+prompt.txt              # AI prompt template (project root, for reference)
 pyproject.toml          # Package configuration and dependencies
 .pre-commit-config.yaml # Pre-commit hooks (ruff, mypy)
-.env                    # Environment configuration (not in repo)
-.env.example            # Example environment configuration
+config.toml.example     # Example TOML configuration
 ```
 
 ## Key Components
@@ -141,8 +142,9 @@ pyproject.toml          # Package configuration and dependencies
 
 **`pretty_release_notes/core/config_loader.py`** - Configuration Loading Strategies:
 - `ConfigLoader`: Abstract base class
+- `TomlConfigLoader`: Load from TOML file (default for CLI)
 - `DictConfigLoader`: Load from dictionary (for programmatic usage)
-- `EnvConfigLoader`: Load from .env file (backward compatibility)
+- `EnvConfigLoader`: Legacy loader for .env files (deprecated)
 
 **`pretty_release_notes/core/execution.py`** - Execution Strategies:
 - `ExecutionStrategy`: Abstract interface for parallel execution
@@ -191,12 +193,26 @@ pyproject.toml          # Package configuration and dependencies
 - Delegates to `main.app()`
 
 **`pretty_release_notes/main.py`** - CLI Implementation:
-- CLI command using Typer
-- Loads configuration using `EnvConfigLoader`
+- CLI with subcommands using Typer
+- Two main commands:
+  - `generate`: Generate release notes for a repository
+  - `setup`: Interactive configuration setup
+- Loads configuration from `~/.pretty-release-notes/config.toml` using `TomlConfigLoader`
 - Creates `CLIProgressReporter` adapter
 - Orchestrates: initialize → generate → display → optionally update
-- Maintains backward compatibility with original CLI interface
 - Console script entry point: `pretty-release-notes = "pretty_release_notes.main:app"`
+- Supports `--config-path` flag for custom config location
+
+**`pretty_release_notes/setup_command.py`** - Interactive Setup Command:
+- Walks user through configuration with interactive prompts
+- Reads existing TOML config to show current values as defaults
+- Can migrate from `.env` files automatically
+- Validates inputs and builds properly formatted TOML
+- Helper functions:
+  - `_flatten_toml()`: Convert nested TOML to flat dict for defaults
+  - `_migrate_env_to_dict()`: Convert .env format to dict
+  - `_build_toml_content()`: Build formatted TOML file content
+- Offers to delete old .env file after successful migration
 
 ### Core Logic: `pretty_release_notes/generator.py` - `ReleaseNotesGenerator`
 - **Constructor**: Accepts `ReleaseNotesConfig`, optional `ProgressReporter`, and optional `ExecutionStrategy`
@@ -261,24 +277,61 @@ pyproject.toml          # Package configuration and dependencies
 
 The tool supports multiple configuration methods:
 
-### Method 1: .env File (CLI Default)
+### Method 1: Interactive Setup (Recommended for CLI)
 
-Primary config file for CLI usage: `.env`
+Use the interactive setup command to create or update your configuration:
 
-- `GH_TOKEN`: GitHub API token (required)
-- `OPENAI_API_KEY`: OpenAI API key (required)
-- `OPENAI_MODEL`: Model to use (default "gpt-4.1")
-- `MAX_PATCH_SIZE`: Max patch size before fallback (default 10000)
-- `DB_TYPE`: Database backend - "csv" or "sqlite" (default "sqlite")
-- `DB_NAME`: Database filename without extension (default "stored_lines"). If relative, stores in `~/.pretty-release-notes/`. If absolute path, stores at that exact location.
-- `DEFAULT_OWNER`: Default repository owner (e.g., "frappe")
-- `PROMPT_PATH`: Path to custom prompt file (default "prompt.txt")
-- `EXCLUDE_PR_TYPES`: Comma-separated types to exclude (default: "chore,refactor,ci,style,test")
-- `EXCLUDE_PR_LABELS`: Comma-separated labels to exclude (default: "skip-release-notes")
-- `EXCLUDE_AUTHORS`: Comma-separated bot usernames to exclude
-- `FORCE_USE_COMMITS`: Force using commits even when PRs available (default "false")
+```bash
+pretty-release-notes setup
+```
 
-### Method 2: Programmatic Configuration (Library Usage)
+This command:
+- Guides you through all configuration options with interactive prompts
+- Shows existing values as defaults (from existing TOML config)
+- Creates the config file at `~/.pretty-release-notes/config.toml`
+- Validates inputs and provides helpful error messages
+
+**Migration from .env**: Use `--migrate-env` flag to read values from existing `.env` file:
+```bash
+pretty-release-notes setup --migrate-env
+```
+
+### Method 2: TOML File (CLI Default)
+
+Primary config file for CLI usage: `~/.pretty-release-notes/config.toml`
+
+The configuration file uses TOML format with nested sections:
+
+```toml
+[github]
+token = "ghp_xxxxx"      # GitHub API token (required)
+owner = "frappe"         # Default repository owner (optional)
+
+[openai]
+api_key = "sk-xxxxx"     # OpenAI API key (required)
+model = "gpt-4.1"        # Model to use (default: "gpt-4.1")
+max_patch_size = 10000   # Max patch size before fallback (default: 10000)
+
+[database]
+type = "sqlite"          # Database backend: "csv" or "sqlite" (default: "sqlite")
+name = "stored_lines"    # Database filename without extension (default: "stored_lines")
+enabled = true           # Enable caching (default: true)
+
+[filters]
+exclude_change_types = ["chore", "refactor", "ci", "style", "test"]
+exclude_change_labels = ["skip-release-notes"]
+exclude_authors = ["mergify[bot]", "dependabot[bot]"]
+
+# Optional settings
+# prompt_path = "prompt.txt"
+# force_use_commits = false
+```
+
+**Setup**:
+- Recommended: Run `pretty-release-notes setup` for interactive configuration
+- Alternative: Copy `config.toml.example` to `~/.pretty-release-notes/config.toml` and edit manually
+
+### Method 3: Programmatic Configuration (Library Usage)
 
 ```python
 from pretty_release_notes import ReleaseNotesConfig, GitHubConfig, OpenAIConfig
@@ -289,7 +342,7 @@ config = ReleaseNotesConfig(
 )
 ```
 
-### Method 3: Dictionary Configuration (Library Usage)
+### Method 4: Dictionary Configuration (Library Usage)
 
 ```python
 from pretty_release_notes.core.config_loader import DictConfigLoader
@@ -310,25 +363,30 @@ All configurations undergo validation at creation time, raising `ValueError` for
 ### CLI Usage
 
 ```bash
-# Using installed console script (recommended)
-pretty-release-notes [OPTIONS] REPO TAG
+# Interactive setup (first-time or to update config)
+pretty-release-notes setup
+
+# Generate release notes
+pretty-release-notes generate [OPTIONS] REPO TAG
 
 # Using python -m (alternative)
-python -m pretty_release_notes [OPTIONS] REPO TAG
+python -m pretty_release_notes setup
+python -m pretty_release_notes generate [OPTIONS] REPO TAG
 
 # Examples:
-pretty-release-notes erpnext v15.38.4
-pretty-release-notes --owner alyf-de banking v0.0.1
-python -m pretty_release_notes --owner frappe erpnext v15.38.4
+pretty-release-notes generate erpnext v15.38.4
+pretty-release-notes generate --owner alyf-de banking v0.0.1
+python -m pretty_release_notes generate --owner frappe erpnext v15.38.4
 ```
 
 **CLI Parameters**:
 - `repo` (required): Repository name
 - `tag` (required): Git tag for release
-- `--owner`: Repository owner
-- `--database/--no-database`: Enable/disable caching
-- `--prompt-path`: Path to custom prompt file
-- `--force-use-commits`: Force using commits even when PRs available
+- `--owner`: Repository owner (overrides config file)
+- `--database/--no-database`: Enable/disable caching (overrides config file)
+- `--prompt-path`: Path to custom prompt file (overrides config file)
+- `--force-use-commits`: Force using commits even when PRs available (overrides config file)
+- `--config-path`: Path to custom config file (default: `~/.pretty-release-notes/config.toml`)
 
 ### Library Usage
 
@@ -491,8 +549,9 @@ Observer pattern implementation for progress updates:
 
 ### 3. Strategy Pattern for Configuration
 Multiple strategies for loading configuration:
-- `EnvConfigLoader` for .env files (CLI backward compatibility)
+- `TomlConfigLoader` for TOML files (CLI default)
 - `DictConfigLoader` for programmatic usage (library mode)
+- `EnvConfigLoader` for .env files (legacy/deprecated)
 - All produce the same `ReleaseNotesConfig` output
 - Easy to add new loaders (YAML, JSON, etc.)
 

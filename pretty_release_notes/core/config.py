@@ -50,11 +50,18 @@ class FilterConfig:
 	exclude_authors: set[str] = field(default_factory=set)
 
 
+def _get_default_prompt_path() -> Path:
+	"""Get the default prompt.txt path from the package directory."""
+	# Get the directory where this config.py file is located
+	package_dir = Path(__file__).parent.parent
+	return package_dir / "prompt.txt"
+
+
 @dataclass
 class ReleaseNotesConfig:
 	github: GitHubConfig
 	openai: OpenAIConfig
 	database: DatabaseConfig = field(default_factory=DatabaseConfig)
 	filters: FilterConfig = field(default_factory=FilterConfig)
-	prompt_path: Path = Path("prompt.txt")
+	prompt_path: Path = field(default_factory=_get_default_prompt_path)
 	force_use_commits: bool = False

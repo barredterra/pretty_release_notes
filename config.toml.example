@@ -1,0 +1,56 @@
+# Pretty Release Notes Configuration
+# Copy this file to ~/.pretty-release-notes/config.toml and fill in your credentials
+
+# Optional top-level settings
+# Path to custom AI prompt template (default: "prompt.txt" in current directory)
+# prompt_path = "prompt.txt"
+
+# Force using commits even when PRs are available (default: false)
+# force_use_commits = false
+
+[github]
+# GitHub personal access token (required)
+# Create one at: https://github.com/settings/tokens
+token = ""
+
+# Default repository owner (optional)
+# If not set, must be specified via --owner flag
+owner = "frappe"
+
+[openai]
+# OpenAI API key (required)
+# Get one at: https://platform.openai.com/api-keys
+api_key = ""
+
+# OpenAI model to use (default: "gpt-4.1")
+model = "o1"
+
+# Maximum patch size before fallback to commit message (default: 10000)
+max_patch_size = 10000
+
+[database]
+# Database type: "sqlite" or "csv" (default: "sqlite")
+type = "sqlite"
+
+# Database filename without extension (default: "stored_lines")
+# Stored in ~/.pretty-release-notes/ directory
+name = "stored_lines"
+
+# Enable caching (default: true)
+enabled = true
+
+[filters]
+# PR/commit types to exclude from release notes
+exclude_change_types = ["chore", "refactor", "ci", "style", "test"]
+
+# PR labels to exclude from release notes
+exclude_change_labels = ["skip-release-notes"]
+
+# Authors to exclude (typically bots)
+exclude_authors = [
+    "mergify[bot]",
+    "copilot-pull-request-reviewer[bot]",
+    "coderabbitai[bot]",
+    "dependabot[bot]",
+    "cursor[bot]"
+]

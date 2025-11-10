@@ -31,8 +31,9 @@ We adopted **Hexagonal Architecture** (Ports & Adapters pattern) to isolate core
   - `ReleaseNotesConfig` as main container
 
 - **Configuration Loading Strategies** (`pretty_release_notes/core/config_loader.py`)
-  - `EnvConfigLoader` - Load from .env files (CLI backward compatibility)
+  - `TomlConfigLoader` - Load from TOML files at `~/.pretty-release-notes/config.toml` (CLI default, see ADR 003)
   - `DictConfigLoader` - Load from dictionaries (library/web usage)
+  - `EnvConfigLoader` - Load from .env files (deprecated, legacy support)
   - Strategy pattern for extensibility
 
 - **Execution Strategies** (`pretty_release_notes/core/execution.py`)

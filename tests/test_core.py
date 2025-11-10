@@ -11,7 +11,7 @@ from pretty_release_notes.core.config import (
 	OpenAIConfig,
 	ReleaseNotesConfig,
 )
-from pretty_release_notes.core.config_loader import DictConfigLoader
+from pretty_release_notes.core.config_loader import DictConfigLoader, TomlConfigLoader
 from pretty_release_notes.core.interfaces import (
 	CompositeProgressReporter,
 	NullProgressReporter,
@@ -159,7 +159,9 @@ class TestReleaseNotesConfig:
 		assert config.openai.api_key == "openai_key"
 		assert config.database.type == "sqlite"
 		assert config.filters.exclude_change_types == set()
-		assert config.prompt_path == Path("prompt.txt")
+		# Check that prompt_path is set to the package's prompt.txt
+		assert config.prompt_path.name == "prompt.txt"
+		assert config.prompt_path.exists()
 		assert config.force_use_commits is False
 
 	def test_full_config(self):
@@ -230,3 +232,111 @@ class TestDictConfigLoader:
 		loader = DictConfigLoader(config_dict)
 		with pytest.raises(KeyError):
 			loader.load()
+
+
+class TestTomlConfigLoader:
+	"""Test TomlConfigLoader."""
+
+	def test_load_minimal_config(self, tmp_path):
+		config_file = tmp_path / "config.toml"
+		config_file.write_text(
+			"""
+[github]
+token = "gh_token"
+
+[openai]
+api_key = "openai_key"
+"""
+		)
+
+		loader = TomlConfigLoader(config_file)
+		config = loader.load()
+
+		assert config.github.token == "gh_token"
+		assert config.openai.api_key == "openai_key"
+		assert config.database.type == "sqlite"
+
+	def test_load_full_config(self, tmp_path):
+		config_file = tmp_path / "config.toml"
+		config_file.write_text(
+			"""prompt_path = "custom.txt"
+force_use_commits = true
+
+[github]
+token = "gh_token"
+owner = "test_owner"
+
+[openai]
+api_key = "openai_key"
+model = "gpt-4"
+max_patch_size = 5000
+
+[database]
+type = "csv"
+name = "custom_db"
+enabled = false
+
+[filters]
+exclude_change_types = ["chore", "refactor"]
+exclude_change_labels = ["skip"]
+exclude_authors = ["bot"]
+"""
+		)
+
+		loader = TomlConfigLoader(config_file)
+		config = loader.load()
+
+		assert config.github.token == "gh_token"
+		assert config.github.owner == "test_owner"
+		assert config.openai.api_key == "openai_key"
+		assert config.openai.model == "gpt-4"
+		assert config.openai.max_patch_size == 5000
+		assert config.database.type == "csv"
+		assert config.database.name == "custom_db"
+		assert config.database.enabled is False
+		assert config.filters.exclude_change_types == {"chore", "refactor"}
+		assert config.filters.exclude_change_labels == {"skip"}
+		assert config.filters.exclude_authors == {"bot"}
+		assert config.prompt_path == Path("custom.txt")
+		assert config.force_use_commits is True
+
+	def test_missing_file_raises_error(self, tmp_path):
+		config_file = tmp_path / "nonexistent.toml"
+		loader = TomlConfigLoader(config_file)
+		with pytest.raises(FileNotFoundError, match="Config file not found"):
+			loader.load()
+
+	def test_missing_required_github_token_raises_error(self, tmp_path):
+		config_file = tmp_path / "config.toml"
+		config_file.write_text(
+			"""
+[github]
+
+[openai]
+api_key = "openai_key"
+"""
+		)
+
+		loader = TomlConfigLoader(config_file)
+		with pytest.raises(ValueError, match="github.token is required"):
+			loader.load()
+
+	def test_missing_required_openai_key_raises_error(self, tmp_path):
+		config_file = tmp_path / "config.toml"
+		config_file.write_text(
+			"""
+[github]
+token = "gh_token"
+
+[openai]
+"""
+		)
+
+		loader = TomlConfigLoader(config_file)
+		with pytest.raises(ValueError, match="openai.api_key is required"):
+			loader.load()
+
+	def test_default_config_path(self):
+		loader = TomlConfigLoader()
+		expected_path = Path.home() / ".pretty-release-notes" / "config.toml"
+		assert loader.config_path == expected_path

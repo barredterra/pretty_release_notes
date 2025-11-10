@@ -25,9 +25,45 @@ https://github.com/user-attachments/assets/5d1dd513-b643-4f02-aac9-ba9c3f16d043
 
 ## Configuration
 
-Copy `.env.example` to `.env` and fill in your GitHub token and OpenAI API key.
+### Interactive Setup (Recommended)
 
-You can choose a database type by setting the `DB_TYPE` environment variable. Currently supported are `csv` and `sqlite`.
+The easiest way to configure the tool is using the interactive setup command:
+
+```bash
+pretty-release-notes setup
+```
+
+This will:
+- Guide you through all configuration options with helpful prompts
+- Show sane defaults for each setting
+- Create the config file at `~/.pretty-release-notes/config.toml`
+
+**First-time migration from .env?** Use the `--migrate-env` flag:
+```bash
+pretty-release-notes setup --migrate-env
+```
+This will read your existing `.env` file and suggest those values as defaults.
+
+### Manual Setup
+
+Alternatively, copy `config.toml.example` to `~/.pretty-release-notes/config.toml` and fill in your credentials:
+
+```bash
+# Create config directory
+mkdir -p ~/.pretty-release-notes
+
+# Copy example config
+cp config.toml.example ~/.pretty-release-notes/config.toml
+
+# Edit with your credentials
+nano ~/.pretty-release-notes/config.toml
+```
+
+### Configuration Format
+
+The configuration file uses TOML format with sections for GitHub credentials, OpenAI settings, database caching, and filters. See [`config.toml.example`](config.toml.example) for the complete structure and all available options.
+
+You can override the config location using the `--config-path` flag.
 
 ## Installation
 
@@ -49,14 +85,15 @@ pip install -e .
 After installation, you can use the CLI in several ways:
 
 ```bash
-# Using the console script (recommended)
+# View all commands
 pretty-release-notes --help
-pretty-release-notes erpnext v15.38.4  # using DEFAULT_OWNER from .env
-pretty-release-notes --owner alyf-de banking v0.0.1
 
-# Or using python -m
-python -m pretty_release_notes --help
-python -m pretty_release_notes erpnext v15.38.4
+# Generate release notes
+pretty-release-notes generate erpnext v15.38.4  # using owner from config.toml
+pretty-release-notes generate --owner alyf-de banking v0.0.1
+
+# Use a custom config file
+pretty-release-notes generate --config-path /path/to/config.toml erpnext v15.38.4
 ```
 
 Example output:

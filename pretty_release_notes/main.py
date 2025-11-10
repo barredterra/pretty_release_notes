@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Pretty Release Notes CLI - Backward compatible entry point."""
+"""Pretty Release Notes CLI."""
 
 import time
 from pathlib import Path
@@ -7,30 +7,43 @@ from pathlib import Path
 import typer
 
 from .adapters.cli_progress import CLIProgressReporter
-from .core.config_loader import EnvConfigLoader
+from .core.config_loader import TomlConfigLoader
 from .generator import ReleaseNotesGenerator
+from .setup_command import setup_config
 from .ui import CLI
 
-app = typer.Typer()
+app = typer.Typer(
+	help="Transform GitHub release notes with AI",
+	invoke_without_command=True,
+	no_args_is_help=True,
+)
+
+
+@app.callback()
+def callback():
+	"""Transform GitHub release notes with AI."""
+	pass
 
 
 @app.command()
-def main(
+def generate(
 	repo: str,
 	tag: str,
 	owner: str | None = None,
 	database: bool = True,
 	prompt_path: Path | None = None,
 	force_use_commits: bool = False,
+	config_path: Path | None = None,
 ):
 	"""Generate pretty release notes for a GitHub repository.
 
-	This command maintains full backward compatibility with the original CLI.
+	Configuration is loaded from ~/.pretty-release-notes/config.toml by default.
+	Use --config-path to specify a different location.
 	"""
 	start_time = time.time()
 
-	# Load base config from .env
-	loader = EnvConfigLoader()
+	# Load base config from TOML
+	loader = TomlConfigLoader(config_path)
 	config = loader.load()
 
 	# Override with CLI arguments
@@ -60,6 +73,28 @@ def main(
 
 	if cli.confirm_update():
 		generator.update_on_github(notes, tag)
+
+
+@app.command()
+def setup(
+	config_path: Path | None = typer.Option(
+		None,
+		"--config-path",
+		help="Path to config file (default: ~/.pretty-release-notes/config.toml)",
+	),
+	migrate_env: bool = typer.Option(
+		False,
+		"--migrate-env",
+		help="Attempt to read and migrate values from .env file",
+	),
+) -> None:
+	"""Interactive setup to create or update configuration file.
+
+	This command walks you through creating a configuration file with
+	interactive prompts. Use --migrate-env to read values from an existing
+	.env file (useful for one-time migration).
+	"""
+	setup_config(config_path=config_path, migrate_env=migrate_env)
 
 
 if __name__ == "__main__":

@@ -60,7 +60,7 @@ Issues = "https://github.com/alyf-de/pretty_release_notes/issues"
 packages = ["pretty_release_notes"]
 
 [tool.setuptools.package-data]
-pretty_release_notes = ["py.typed"]
+pretty_release_notes = ["py.typed", "prompt.txt"]
 
 [tool.ruff]
 line-length = 120
