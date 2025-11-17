@@ -14,4 +14,4 @@ def get_conventional_type(msg: str) -> str | None:
 		return None
 
 	match = CONVENTIONAL_TYPE_AND_SCOPE.match(msg)
-	return match.group(1) if match else None
+	return match.group(1).lower() if match else None
