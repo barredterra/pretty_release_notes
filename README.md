@@ -1,28 +1,28 @@
 Turn GitHub's auto-generated release notes into human-readable sentences.
 
-Converts this:
+Go from this:
 
 ![Original](img/original.png)
 
-Into this:
+To this:
 
 ![Modified](img/modified.png)
 
-Notice that:
+## Features
 
-- Commits that are inconsequential to the user are excluded (chore, ci, refactor).
-- PRs that were reverted within the same release are automatically filtered out (both the original and the revert).
-- Each PR is converted into a precise sentence, based on it's title, description, diff and any linked issue.
-- Each sentence has a consistent style and tense.
-- Human authors and reviewers are credited, not bots.
+- **AI-Powered Summaries** - Converts technical PR titles into clear, user-friendly sentences
+- **Smart Filtering** - Automatically excludes non-user-facing changes (chore, ci, refactor, test, style)
+- **Revert Detection** - Automatically filters out PRs that were reverted within the same release
+- **Backport Intelligence** - Reuses summaries from original PRs for backports, maintaining consistency
+- **Author & Reviewer Attribution** - Credits human contributors while excluding bots
+- **Intelligent Caching** - Stores generated summaries to avoid redundant API calls and reduce costs
+- **Grouped Release Notes** - Optional grouping by conventional commit type (Features, Bug Fixes, Performance, etc.)
+- **Multi-Mode Architecture** - Use as CLI tool, Python library, or REST API backend
+- **Rich Context** - Incorporates PR descriptions, linked issues, and code diffs for accurate summaries
+- **Interactive Setup** - Guided configuration with validation and migration from legacy formats
 
-UX:
-
-https://github.com/user-attachments/assets/5d1dd513-b643-4f02-aac9-ba9c3f16d043
-
-
-> [!WARNING]
-> The prompt is geared towards [ERPNext](https://github.com/frappe/erpnext) and the [Frappe Framework](https://github.com/frappe/frappe). If you want to use this for different projects, please fork and adjust to your liking.
+> [!NOTE]
+> The default prompt is geared towards [ERPNext](https://github.com/frappe/erpnext) and the [Frappe Framework](https://github.com/frappe/frappe). If you want to use this for different projects, set your own `prompt_path` in `config.toml`.
 
 ## Configuration
 
