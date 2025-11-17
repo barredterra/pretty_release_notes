@@ -142,7 +142,8 @@ class ReleaseNotesGenerator:
 
 	def _process_lines(self, lines: list["ReleaseNotesLine"]) -> None:
 		"""Process all lines in parallel."""
-		tasks: list[Callable[[], Any]] = [partial(self._process_line, line) for line in lines]
+		prompt_template = self.prompt_path.read_text()
+		tasks: list[Callable[[], Any]] = [partial(self._process_line, line, prompt_template) for line in lines]
 		if tasks:
 			self.execution.execute_parallel(tasks)
 
@@ -193,7 +194,7 @@ class ReleaseNotesGenerator:
 			]
 		)
 
-	def _process_line(self, line: "ReleaseNotesLine"):
+	def _process_line(self, line: "ReleaseNotesLine", prompt_template: str):
 		assert self.repository is not None, "Repository must be initialized"
 		db = get_db(self.db_type, self.db_name) if self.use_db else None
 
@@ -216,7 +217,7 @@ class ReleaseNotesGenerator:
 				return
 
 		prompt = line.change.get_prompt(
-			prompt_template=self.prompt_path.read_text(),
+			prompt_template=prompt_template,
 			max_patch_size=self.max_patch_size,
 		)
 
