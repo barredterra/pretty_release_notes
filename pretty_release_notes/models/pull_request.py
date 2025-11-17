@@ -114,7 +114,7 @@ class PullRequest(Change):
 		Return the patch if it is not too large. Otherwise, return the commit messages.
 		"""
 		changes = self._get_patch()
-		if len(changes) > max_patch_size:
+		if not changes or len(changes) > max_patch_size:
 			changes = "\n".join(self._get_commit_messages())
 
 		return changes

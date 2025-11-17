@@ -132,7 +132,15 @@ class GitHubClient:
 				"Accept": "application/vnd.github.patch",
 			},
 		)
-		r.raise_for_status()
+
+		try:
+			r.raise_for_status()
+		except requests.HTTPError:
+			if r.status_code == 406:
+				# patch is too big, return empty string
+				return ""
+			raise
+
 		return r.text
 
 	def get_pr_reviewers(self, repository: Repository, pr_no: str) -> set[str]:
