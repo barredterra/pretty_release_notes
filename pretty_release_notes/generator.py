@@ -93,9 +93,9 @@ class ReleaseNotesGenerator:
 		)
 
 		if self.force_use_commits or (
-			not any(line.change for line in release_notes.lines) and "Full Changelog" in gh_notes["body"]
+			not any(line.change for line in release_notes.lines) and "Full Changelog" in new_body
 		):
-			prev_tag = get_prev_tag(gh_notes["body"], self.repository)
+			prev_tag = get_prev_tag(new_body, self.repository)
 			release_notes.lines = self._get_commit_lines(tag, prev_tag) + release_notes.lines
 
 		process_start_time = time.time()
