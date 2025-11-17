@@ -13,6 +13,7 @@ It's designed for ERPNext and Frappe Framework projects but can be adapted for o
 
 - Converts PR titles into clear, user-friendly sentences using AI
 - Filters out non-user-facing commits (chore, ci, refactor)
+- Automatically detects and excludes reverted PRs within the same release
 - Intelligently handles backport PRs by reusing summaries
 - Credits human authors and reviewers (excludes bots)
 - Caches generated summaries to avoid redundant API calls
@@ -625,6 +626,22 @@ Extracts commit types using regex:
 - Matches format: `type(scope): message`
 - Used for filtering non-user-facing changes
 
+### 15. Automatic Revert Detection and Filtering
+The tool automatically detects and filters out reverted PRs from release notes:
+
+- **Detection**: PRs are identified as reverts by scanning the PR body for patterns like:
+  - `Reverts frappe/frappe#12345`
+  - `Reverts https://github.com/frappe/frappe/pull/12345`
+  - `Reverts #12345`
+- **Filtering**: When a PR is reverted within the same release:
+  - Both the original PR and the revert PR are excluded from output
+  - This prevents confusing users with changes that were ultimately not included
+  - Reverts of PRs from previous releases still appear in the notes
+- **Implementation**:
+  - Detection logic in `PullRequest.is_revert` and `PullRequest.reverted_pr_number` properties: `pretty_release_notes/models/pull_request.py:49-70`
+  - Filtering applied during `ReleaseNotes.serialize()`: `pretty_release_notes/models/release_notes.py:41-67`
+  - Helper method `_get_reverted_pr_numbers()` collects reverted PR numbers: `pretty_release_notes/models/release_notes.py:41-67`
+
 ## Workflow
 
 1. **Initialize**: Fetch repository metadata from GitHub
@@ -656,7 +673,7 @@ This codebase demonstrates a well-structured approach to:
 - **Protocol-based design** for flexibility
 - **Graceful error handling** with multiple fallback mechanisms
 
-The tool significantly improves release note quality by transforming technical PR titles into user-friendly descriptions while maintaining proper attribution and filtering out non-relevant changes.
+The tool significantly improves release note quality by transforming technical PR titles into user-friendly descriptions while maintaining proper attribution, filtering out non-relevant changes, and automatically excluding reverted PRs to avoid user confusion.
 
 ## Architecture Decisions
 

@@ -11,6 +11,7 @@ Into this:
 Notice that:
 
 - Commits that are inconsequential to the user are excluded (chore, ci, refactor).
+- PRs that were reverted within the same release are automatically filtered out (both the original and the revert).
 - Each PR is converted into a precise sentence, based on it's title, description, diff and any linked issue.
 - Each sentence has a consistent style and tense.
 - Human authors and reviewers are credited, not bots.

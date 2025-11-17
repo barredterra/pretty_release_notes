@@ -13,6 +13,11 @@ if TYPE_CHECKING:
 
 
 BACKPORT_NO = re.compile(r"\(backport #(\d+)\)\s*$")
+REVERT_PATTERNS = [
+	re.compile(r"[Rr]everts\s+[\w-]+/\w+#(\d+)"),
+	re.compile(r"[Rr]everts\s+https://github\.com/[\w-]+/[\w-]+/pull/(\d+)"),
+	re.compile(r"[Rr]everts\s+#(\d+)"),
+]
 
 
 @dataclass
@@ -40,6 +45,29 @@ class PullRequest(Change):
 		"""
 		match = BACKPORT_NO.search(self.title)
 		return match.group(1) if match else None
+
+	@property
+	def is_revert(self) -> bool:
+		"""Check if this PR is a revert of another PR."""
+		if not self.body:
+			return False
+		return any(pattern.search(self.body) for pattern in REVERT_PATTERNS)
+
+	@property
+	def reverted_pr_number(self) -> str | None:
+		"""Extract the PR number being reverted from the body.
+
+		Returns the PR number as a string, or None if this is not a revert.
+		"""
+		if not self.body:
+			return None
+
+		for pattern in REVERT_PATTERNS:
+			match = pattern.search(self.body)
+			if match:
+				return match.group(1)
+
+		return None
 
 	@property
 	def conventional_type(self) -> str | None:
