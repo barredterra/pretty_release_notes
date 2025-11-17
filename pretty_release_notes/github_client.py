@@ -1,4 +1,6 @@
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util import Retry
 
 from .models import Issue, PullRequest, Repository
 from .models.commit import Commit
@@ -14,6 +16,13 @@ class GitHubClient:
 				"Authorization": f"Bearer {token}",
 			}
 		)
+		retries = Retry(
+			total=3,
+			backoff_factor=0.1,
+			status_forcelist=[500, 502, 503, 504],
+			allowed_methods=None,
+		)
+		self.session.mount("https://", HTTPAdapter(max_retries=retries))
 
 	def get_repository(self, owner: str, name: str) -> Repository:
 		"""Return a repository object."""
