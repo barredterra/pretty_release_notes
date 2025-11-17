@@ -1,6 +1,7 @@
-import threading
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
+from .pull_request import PullRequest
 from .release_notes_line import ReleaseNotesLine
 
 
@@ -19,17 +20,17 @@ class ReleaseNotes:
 		return {line.change.get_author() for line in self.lines if line.change}
 
 	def load_reviewers(self) -> None:
-		threads = []
-		for line in self.lines:
-			if not line.change:
-				continue
+		pr_changes = [line.change for line in self.lines if isinstance(line.change, PullRequest)]
+		if not pr_changes:
+			return
 
-			thread = threading.Thread(target=line.change.set_reviewers)
-			threads.append(thread)
-			thread.start()
-
-		for thread in threads:
-			thread.join()
+		# Limit concurrency to avoid overwhelming DNS/HTTP clients
+		max_workers = min(10, len(pr_changes))
+		with ThreadPoolExecutor(max_workers=max_workers) as executor:
+			futures = [executor.submit(pr.set_reviewers) for pr in pr_changes]
+			for future in futures:
+				# Propagate exceptions if any reviewer loading fails
+				future.result()
 
 	def get_reviewers(self) -> set[str]:
 		reviewers = set()
