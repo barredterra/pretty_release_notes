@@ -10,7 +10,13 @@ def get_conventional_type(msg: str) -> str | None:
 	'feat(regional): Address Template for Germany & Switzerland' -> 'feat'
 	'Revert "perf: timeout while renaming cost center"' -> None
 	"""
-	if not msg or len(msg) < 3:
+	if not msg:
+		return None
+
+	# Strip leading/trailing whitespace
+	msg = msg.strip()
+
+	if len(msg) < 3:
 		return None
 
 	match = CONVENTIONAL_TYPE_AND_SCOPE.match(msg)
