@@ -6,6 +6,7 @@ from .core.config import (
 	DatabaseConfig,
 	FilterConfig,
 	GitHubConfig,
+	GroupingConfig,
 	OpenAIConfig,
 	ReleaseNotesConfig,
 )
@@ -78,6 +79,9 @@ class ReleaseNotesBuilder:
 		self._exclude_types = set()
 		self._exclude_labels = set()
 		self._exclude_authors = set()
+		self._group_by_type = False
+		self._type_headings = {}
+		self._other_heading = "Other Changes"
 		self._prompt_path = Path("prompt.txt")
 		self._force_use_commits = False
 		self._progress_reporter = None
@@ -116,6 +120,25 @@ class ReleaseNotesBuilder:
 			self._exclude_labels = exclude_labels
 		if exclude_authors:
 			self._exclude_authors = exclude_authors
+		return self
+
+	def with_grouping(
+		self,
+		group_by_type: bool = False,
+		type_headings: dict[str, str] | None = None,
+		other_heading: str = "Other Changes",
+	) -> "ReleaseNotesBuilder":
+		"""Configure output grouping by conventional commit type.
+
+		Args:
+			group_by_type: Enable grouping by type
+			type_headings: Custom mapping of types to section headings
+			other_heading: Heading for uncategorized changes
+		"""
+		self._group_by_type = group_by_type
+		if type_headings:
+			self._type_headings = type_headings
+		self._other_heading = other_heading
 		return self
 
 	def with_prompt_file(self, path: Path) -> "ReleaseNotesBuilder":
@@ -160,6 +183,11 @@ class ReleaseNotesBuilder:
 				exclude_change_types=self._exclude_types,
 				exclude_change_labels=self._exclude_labels,
 				exclude_authors=self._exclude_authors,
+			),
+			grouping=GroupingConfig(
+				group_by_type=self._group_by_type,
+				**({} if not self._type_headings else {"type_headings": self._type_headings}),
+				other_heading=self._other_heading,
 			),
 			prompt_path=self._prompt_path,
 			force_use_commits=self._force_use_commits,

@@ -126,6 +126,7 @@ class TestHelperFunctions:
 			exclude_types="chore,ci",
 			exclude_labels="skip",
 			exclude_authors="bot1,bot2",
+			group_by_type=False,
 		)
 
 		# Check key sections are present
@@ -144,6 +145,8 @@ class TestHelperFunctions:
 		assert '["chore", "ci"]' in content
 		assert '["skip"]' in content
 		assert '["bot1", "bot2"]' in content
+		assert "[grouping]" in content
+		assert "group_by_type = false" in content
 
 	def test_build_toml_content_with_empty_arrays(self):
 		"""Test building TOML with empty filter arrays."""
@@ -159,6 +162,7 @@ class TestHelperFunctions:
 			exclude_types="",
 			exclude_labels="",
 			exclude_authors="",
+			group_by_type=True,
 		)
 
 		# Check empty arrays are properly formatted
@@ -166,6 +170,7 @@ class TestHelperFunctions:
 		assert "exclude_change_labels = []" in content
 		assert "exclude_authors = []" in content
 		assert "enabled = false" in content
+		assert "group_by_type = true" in content
 
 
 class TestSetupCommand:
@@ -189,6 +194,7 @@ class TestSetupCommand:
 				"chore,ci",  # exclude types
 				"skip",  # exclude labels
 				"bot",  # exclude authors
+				"n",  # group_by_type
 				"y",  # confirm write
 			]
 		)
@@ -249,6 +255,7 @@ DEFAULT_OWNER=test_owner
 				"chore",  # exclude types
 				"skip",  # exclude labels
 				"bot",  # exclude authors
+				"n",  # group_by_type
 				"y",  # confirm write
 				"n",  # don't delete .env
 			]

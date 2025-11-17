@@ -50,6 +50,35 @@ class FilterConfig:
 	exclude_authors: set[str] = field(default_factory=set)
 
 
+@dataclass
+class GroupingConfig:
+	"""Configuration for grouping release notes output."""
+
+	group_by_type: bool = False
+	type_headings: dict[str, str] = field(
+		default_factory=lambda: {
+			"feat": "Features",
+			"fix": "Bug Fixes",
+			"perf": "Performance Improvements",
+			"docs": "Documentation",
+			"refactor": "Code Refactoring",
+			"test": "Tests",
+			"build": "Build System",
+			"ci": "CI/CD",
+			"chore": "Chores",
+			"style": "Style",
+			"revert": "Reverts",
+		}
+	)
+	other_heading: str = "Other Changes"
+
+	def get_heading(self, type_name: str | None) -> str:
+		"""Get the section heading for a given type."""
+		if not type_name:
+			return self.other_heading
+		return self.type_headings.get(type_name, self.other_heading)
+
+
 def _get_default_prompt_path() -> Path:
 	"""Get the default prompt.txt path from the package directory."""
 	# Get the directory where this config.py file is located
@@ -63,5 +92,6 @@ class ReleaseNotesConfig:
 	openai: OpenAIConfig
 	database: DatabaseConfig = field(default_factory=DatabaseConfig)
 	filters: FilterConfig = field(default_factory=FilterConfig)
+	grouping: GroupingConfig = field(default_factory=GroupingConfig)
 	prompt_path: Path = field(default_factory=_get_default_prompt_path)
 	force_use_commits: bool = False

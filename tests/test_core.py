@@ -8,6 +8,7 @@ from pretty_release_notes.core.config import (
 	DatabaseConfig,
 	FilterConfig,
 	GitHubConfig,
+	GroupingConfig,
 	OpenAIConfig,
 	ReleaseNotesConfig,
 )
@@ -145,6 +146,40 @@ class TestFilterConfig:
 		assert config.exclude_change_types == {"chore", "refactor"}
 		assert config.exclude_change_labels == {"skip"}
 		assert config.exclude_authors == {"bot"}
+
+
+class TestGroupingConfig:
+	"""Test GroupingConfig."""
+
+	def test_default_config(self):
+		"""Test default grouping configuration."""
+		config = GroupingConfig()
+		assert config.group_by_type is False
+		assert config.other_heading == "Other Changes"
+		assert config.get_heading("feat") == "Features"
+		assert config.get_heading("fix") == "Bug Fixes"
+		assert config.get_heading(None) == "Other Changes"
+		assert config.get_heading("unknown") == "Other Changes"
+
+	def test_custom_headings(self):
+		"""Test custom type headings."""
+		config = GroupingConfig(
+			group_by_type=True,
+			type_headings={"feat": "New Features", "fix": "Fixes"},
+			other_heading="Miscellaneous",
+		)
+		assert config.get_heading("feat") == "New Features"
+		assert config.get_heading("fix") == "Fixes"
+		assert config.get_heading("unknown") == "Miscellaneous"
+
+	def test_release_notes_config_with_grouping(self):
+		"""Test ReleaseNotesConfig includes GroupingConfig."""
+		config = ReleaseNotesConfig(
+			github=GitHubConfig(token="token"),
+			openai=OpenAIConfig(api_key="key"),
+			grouping=GroupingConfig(group_by_type=True),
+		)
+		assert config.grouping.group_by_type is True
 
 
 class TestReleaseNotesConfig:

@@ -323,6 +323,12 @@ exclude_change_types = ["chore", "refactor", "ci", "style", "test"]
 exclude_change_labels = ["skip-release-notes"]
 exclude_authors = ["mergify[bot]", "dependabot[bot]"]
 
+[grouping]
+group_by_type = false  # Enable grouping by conventional commit type (default: false)
+# Customize section headings (optional)
+# type_headings = { feat = "Features", fix = "Bug Fixes", perf = "Performance" }
+# other_heading = "Other Changes"
+
 # Optional settings
 # prompt_path = "prompt.txt"
 # force_use_commits = false
@@ -387,6 +393,7 @@ python -m pretty_release_notes generate --owner frappe erpnext v15.38.4
 - `--database/--no-database`: Enable/disable caching (overrides config file)
 - `--prompt-path`: Path to custom prompt file (overrides config file)
 - `--force-use-commits`: Force using commits even when PRs available (overrides config file)
+- `--group-by-type`: Group release notes by conventional commit type (overrides config file)
 - `--config-path`: Path to custom config file (default: `~/.pretty-release-notes/config.toml`)
 
 ### Library Usage
@@ -404,6 +411,11 @@ client = (
         exclude_types={"chore", "ci", "refactor"},
         exclude_labels={"skip-release-notes"},
     )
+    .with_grouping(
+        group_by_type=True,
+        type_headings={"feat": "New Features", "fix": "Fixes"},
+        other_heading="Other"
+    )
     .build()
 )
 
@@ -414,6 +426,48 @@ print(notes)
 # Optionally update on GitHub
 client.update_github_release("frappe", "erpnext", "v15.38.4", notes)
 ```
+
+#### Grouping Release Notes by Type
+
+The tool supports grouping release notes by conventional commit type for better organization:
+
+**CLI Usage:**
+```bash
+# Enable grouping via CLI flag
+pretty-release-notes generate --group-by-type erpnext v15.38.4
+```
+
+**TOML Configuration:**
+```toml
+[grouping]
+group_by_type = true  # Enable grouping by type
+
+# Optional: Customize section headings
+type_headings = { feat = "New Features", fix = "Fixes", perf = "Performance" }
+other_heading = "Miscellaneous"
+```
+
+**Library Usage:**
+```python
+client = (
+    ReleaseNotesBuilder()
+    .with_github_token("ghp_xxx")
+    .with_openai("sk_xxx")
+    .with_grouping(
+        group_by_type=True,
+        type_headings={"feat": "New Features"},
+        other_heading="Other"
+    )
+    .build()
+)
+```
+
+When enabled, release notes will be organized into sections:
+- **Features** - feat commits
+- **Bug Fixes** - fix commits
+- **Performance Improvements** - perf commits
+- **Documentation** - docs commits
+- **Other Changes** - uncategorized changes
 
 ### Web API Usage
 

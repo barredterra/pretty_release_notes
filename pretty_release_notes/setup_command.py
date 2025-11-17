@@ -120,6 +120,12 @@ def setup_config(
 		),
 	)
 
+	console.print("\n[bold cyan]Output Grouping[/bold cyan]")
+	group_by_type = Confirm.ask(
+		"Group release notes by conventional commit type?",
+		default=existing_values.get("group_by_type", False),
+	)
+
 	# Build TOML content
 	toml_content = _build_toml_content(
 		github_token=github_token,
@@ -133,6 +139,7 @@ def setup_config(
 		exclude_types=exclude_types,
 		exclude_labels=exclude_labels,
 		exclude_authors=exclude_authors,
+		group_by_type=group_by_type,
 	)
 
 	# Confirm before writing
@@ -189,6 +196,9 @@ def _flatten_toml(toml_config: dict) -> dict:
 	flat["exclude_labels"] = ",".join(filters.get("exclude_change_labels", []))
 	flat["exclude_authors"] = ",".join(filters.get("exclude_authors", []))
 
+	grouping = toml_config.get("grouping", {})
+	flat["group_by_type"] = grouping.get("group_by_type", False)
+
 	return flat
 
 
@@ -221,6 +231,7 @@ def _build_toml_content(
 	exclude_types: str,
 	exclude_labels: str,
 	exclude_authors: str,
+	group_by_type: bool,
 ) -> str:
 	"""Build TOML file content from values."""
 
@@ -259,6 +270,12 @@ enabled = {str(db_enabled).lower()}
 exclude_change_types = {to_toml_array(exclude_types)}
 exclude_change_labels = {to_toml_array(exclude_labels)}
 exclude_authors = {to_toml_array(exclude_authors)}
+
+[grouping]
+group_by_type = {str(group_by_type).lower()}
+# Customize type headings by editing the config file directly
+# type_headings = {{ feat = "Features", fix = "Bug Fixes" }}
+# other_heading = "Other Changes"
 """
 
 

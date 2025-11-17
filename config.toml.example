@@ -54,3 +54,13 @@ exclude_authors = [
     "dependabot[bot]",
     "cursor[bot]"
 ]
+
+[grouping]
+# Enable grouping by conventional commit type (default: false)
+group_by_type = false
+
+# Customize section headings (optional)
+# type_headings = { feat = "Features", fix = "Bug Fixes", perf = "Performance" }
+
+# Heading for uncategorized changes (optional)
+# other_heading = "Other Changes"

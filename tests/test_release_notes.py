@@ -1,3 +1,4 @@
+from pretty_release_notes.core.config import GroupingConfig
 from pretty_release_notes.github_client import GitHubClient
 from pretty_release_notes.models.pull_request import PullRequest
 from pretty_release_notes.models.release_notes import ReleaseNotes, ReleaseNotesLine
@@ -152,3 +153,188 @@ def test_revert_filtering_with_excluded_original():
 	assert "Reverted dependency update" not in output
 	# The unrelated PR should still be included
 	assert "Fixed issue Y" in output
+
+
+def test_group_by_type_with_multiple_types():
+	"""Test grouping release notes by conventional commit type."""
+	github = GitHubClient("test_token")
+	repo = Repository(
+		owner="test_org",
+		name="test_repo",
+		url="https://api.github.com/repos/test_org/test_repo",
+		html_url="https://github.com/test_org/test_repo",
+	)
+
+	# Create PRs with different types
+	feat_pr1 = PullRequest(
+		github=github,
+		repository=repo,
+		id=1,
+		title="feat: add new dashboard",
+		body="",
+		html_url="https://github.com/org/repo/pull/1",
+	)
+
+	feat_pr2 = PullRequest(
+		github=github,
+		repository=repo,
+		id=2,
+		title="feat(ui): improve navigation",
+		body="",
+		html_url="https://github.com/org/repo/pull/2",
+	)
+
+	fix_pr = PullRequest(
+		github=github,
+		repository=repo,
+		id=3,
+		title="fix: resolve login bug",
+		body="",
+		html_url="https://github.com/org/repo/pull/3",
+	)
+
+	no_type_pr = PullRequest(
+		github=github,
+		repository=repo,
+		id=4,
+		title="Update dependencies",
+		body="",
+		html_url="https://github.com/org/repo/pull/4",
+	)
+
+	# Create release notes
+	lines = [
+		ReleaseNotesLine(original_line="", change=feat_pr1, sentence="Added new dashboard"),
+		ReleaseNotesLine(original_line="", change=feat_pr2, sentence="Improved navigation"),
+		ReleaseNotesLine(original_line="", change=fix_pr, sentence="Fixed login bug"),
+		ReleaseNotesLine(original_line="", change=no_type_pr, sentence="Updated dependencies"),
+	]
+
+	release_notes = ReleaseNotes(lines=lines)
+
+	# Test with grouping enabled
+	grouping = GroupingConfig(group_by_type=True)
+	output = release_notes.serialize(grouping=grouping)
+
+	# Verify sections are created
+	assert "## Features" in output
+	assert "## Bug Fixes" in output
+	assert "## Other Changes" in output
+
+	# Verify items are in correct sections
+	lines_output = output.split("\n")
+	feat_section_start = lines_output.index("## Features")
+	fix_section_start = lines_output.index("## Bug Fixes")
+	other_section_start = lines_output.index("## Other Changes")
+
+	# Features should come before fixes
+	assert feat_section_start < fix_section_start
+
+	# Both feature PRs should be in Features section
+	features_text = "\n".join(lines_output[feat_section_start:fix_section_start])
+	assert "Added new dashboard" in features_text
+	assert "Improved navigation" in features_text
+
+	# Fix should be in Bug Fixes section
+	fixes_text = "\n".join(lines_output[fix_section_start:other_section_start])
+	assert "Fixed login bug" in fixes_text
+
+	# No-type PR should be in Other Changes
+	other_text = "\n".join(lines_output[other_section_start:])
+	assert "Updated dependencies" in other_text
+
+
+def test_group_by_type_with_filtering():
+	"""Test that filtering works with grouping."""
+	github = GitHubClient("test_token")
+	repo = Repository(
+		owner="test_org",
+		name="test_repo",
+		url="https://api.github.com/repos/test_org/test_repo",
+		html_url="https://github.com/test_org/test_repo",
+	)
+
+	feat_pr = PullRequest(
+		github=github,
+		repository=repo,
+		id=1,
+		title="feat: add feature",
+		body="",
+		html_url="https://github.com/org/repo/pull/1",
+	)
+
+	chore_pr = PullRequest(
+		github=github,
+		repository=repo,
+		id=2,
+		title="chore: update deps",
+		body="",
+		html_url="https://github.com/org/repo/pull/2",
+	)
+
+	lines = [
+		ReleaseNotesLine(original_line="", change=feat_pr, sentence="Added feature"),
+		ReleaseNotesLine(original_line="", change=chore_pr, sentence="Updated deps"),
+	]
+
+	release_notes = ReleaseNotes(lines=lines)
+
+	# Test with grouping and filtering
+	grouping = GroupingConfig(group_by_type=True)
+	output = release_notes.serialize(exclude_change_types={"chore"}, grouping=grouping)
+
+	# Feature should be included
+	assert "## Features" in output
+	assert "Added feature" in output
+
+	# Chore should be filtered out
+	assert "Updated deps" not in output
+	# No "Chores" section should exist
+	assert "## Chores" not in output
+
+
+def test_group_by_type_disabled():
+	"""Test that grouping can be disabled (default behavior)."""
+	github = GitHubClient("test_token")
+	repo = Repository(
+		owner="test_org",
+		name="test_repo",
+		url="https://api.github.com/repos/test_org/test_repo",
+		html_url="https://github.com/test_org/test_repo",
+	)
+
+	pr1 = PullRequest(
+		github=github,
+		repository=repo,
+		id=1,
+		title="feat: add feature",
+		body="",
+		html_url="https://github.com/org/repo/pull/1",
+	)
+
+	pr2 = PullRequest(
+		github=github,
+		repository=repo,
+		id=2,
+		title="fix: fix bug",
+		body="",
+		html_url="https://github.com/org/repo/pull/2",
+	)
+
+	lines = [
+		ReleaseNotesLine(original_line="", change=pr1, sentence="Added feature"),
+		ReleaseNotesLine(original_line="", change=pr2, sentence="Fixed bug"),
+	]
+
+	release_notes = ReleaseNotes(lines=lines)
+
+	# Test with grouping disabled (or not provided)
+	output = release_notes.serialize()
+
+	# Should not have section headers
+	assert "## Features" not in output
+	assert "## Bug Fixes" not in output
+
+	# Should be flat list
+	assert "* Added feature" in output
+	assert "* Fixed bug" in output

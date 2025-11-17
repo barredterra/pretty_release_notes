@@ -1,8 +1,12 @@
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from .pull_request import PullRequest
 from .release_notes_line import ReleaseNotesLine
+
+if TYPE_CHECKING:
+	from ..core.config import GroupingConfig
 
 
 @dataclass
@@ -72,6 +76,7 @@ class ReleaseNotes:
 		exclude_change_types: set[str] | None = None,
 		exclude_change_labels: set[str] | None = None,
 		exclude_authors: set[str] | None = None,
+		grouping: "GroupingConfig | None" = None,
 		model_name: str | None = None,
 	) -> str:
 		def is_exluded_type(change):
@@ -103,16 +108,76 @@ class ReleaseNotes:
 		if exclude_authors is None:
 			exclude_authors = set()
 
-		lines = "\n".join(
-			str(line)
-			for line in self.lines
-			if not line.change
-			or (
-				not is_exluded_type(line.change)
-				and not has_excluded_label(line.change)
-				and not is_reverted_or_revert(line.change)
+		# Build output - either grouped or flat
+		if grouping and grouping.group_by_type:
+			# Group lines by type
+			grouped_lines: dict[str, list[ReleaseNotesLine]] = {}
+			other_lines: list[ReleaseNotesLine] = []
+
+			for line in self.lines:
+				# Skip filtered lines
+				if line.change and (
+					is_exluded_type(line.change)
+					or has_excluded_label(line.change)
+					or is_reverted_or_revert(line.change)
+				):
+					continue
+
+				# Group by conventional type
+				if line.change and line.change.conventional_type:
+					type_key = line.change.conventional_type
+					if type_key not in grouped_lines:
+						grouped_lines[type_key] = []
+					grouped_lines[type_key].append(line)
+				elif line.change:  # Has change but no type
+					other_lines.append(line)
+				# Skip lines without changes (headers, empty lines)
+
+			# Build grouped output
+			sections = []
+
+			# Add sections in a consistent order
+			type_order = ["feat", "fix", "perf", "docs", "refactor", "test", "build", "ci", "chore", "style", "revert"]
+
+			# Add typed sections
+			for type_key in type_order:
+				if type_key in grouped_lines and grouped_lines[type_key]:
+					heading = grouping.get_heading(type_key)
+					sections.append(f"## {heading}")
+					for line in grouped_lines[type_key]:
+						sections.append(str(line))
+					sections.append("")  # Empty line after section
+
+			# Add any types not in the standard order
+			for type_key, lines_list in grouped_lines.items():
+				if type_key not in type_order and lines_list:
+					heading = grouping.get_heading(type_key)
+					sections.append(f"## {heading}")
+					for line in lines_list:
+						sections.append(str(line))
+					sections.append("")
+
+			# Add other changes section if needed
+			if other_lines:
+				sections.append(f"## {grouping.other_heading}")
+				for line in other_lines:
+					sections.append(str(line))
+				sections.append("")
+
+			# Join sections, removing trailing empty line
+			lines = "\n".join(sections)
+		else:
+			# Original flat list logic
+			lines = "\n".join(
+				str(line)
+				for line in self.lines
+				if not line.change
+				or (
+					not is_exluded_type(line.change)
+					and not has_excluded_label(line.change)
+					and not is_reverted_or_revert(line.change)
+				)
 			)
-		)
 
 		authors_string = ", ".join(f"@{author}" for author in self.authors if author not in exclude_authors)
 

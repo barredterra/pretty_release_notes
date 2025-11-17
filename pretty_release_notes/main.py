@@ -33,6 +33,7 @@ def generate(
 	database: bool = True,
 	prompt_path: Path | None = None,
 	force_use_commits: bool = False,
+	group_by_type: bool = False,
 	config_path: Path | None = None,
 ):
 	"""Generate pretty release notes for a GitHub repository.
@@ -53,6 +54,8 @@ def generate(
 		config.prompt_path = prompt_path
 	config.database.enabled = database
 	config.force_use_commits = force_use_commits
+	if group_by_type:
+		config.grouping.group_by_type = True
 
 	# Create UI and adapter
 	cli = CLI()

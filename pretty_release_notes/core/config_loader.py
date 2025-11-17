@@ -9,6 +9,7 @@ from .config import (
 	DatabaseConfig,
 	FilterConfig,
 	GitHubConfig,
+	GroupingConfig,
 	OpenAIConfig,
 	ReleaseNotesConfig,
 	_get_default_prompt_path,
@@ -48,6 +49,19 @@ class DictConfigLoader(ConfigLoader):
 				exclude_change_types=set(self.config_dict.get("exclude_types", [])),
 				exclude_change_labels=set(self.config_dict.get("exclude_labels", [])),
 				exclude_authors=set(self.config_dict.get("exclude_authors", [])),
+			),
+			grouping=GroupingConfig(
+				group_by_type=self.config_dict.get("group_by_type", False),
+				**(
+					{}
+					if "type_headings" not in self.config_dict
+					else {"type_headings": self.config_dict["type_headings"]}
+				),
+				**(
+					{}
+					if "other_heading" not in self.config_dict
+					else {"other_heading": self.config_dict["other_heading"]}
+				),
 			),
 			prompt_path=Path(self.config_dict["prompt_path"])
 			if "prompt_path" in self.config_dict
@@ -91,6 +105,9 @@ class EnvConfigLoader(ConfigLoader):
 				exclude_change_types=self._parse_set(config.get("EXCLUDE_PR_TYPES") or ""),
 				exclude_change_labels=self._parse_set(config.get("EXCLUDE_PR_LABELS") or ""),
 				exclude_authors=self._parse_set(config.get("EXCLUDE_AUTHORS") or ""),
+			),
+			grouping=GroupingConfig(
+				group_by_type=(config.get("GROUP_BY_TYPE") or "false").lower() == "true",
 			),
 			prompt_path=(
 				Path(config["PROMPT_PATH"])
@@ -141,6 +158,7 @@ class TomlConfigLoader(ConfigLoader):
 		openai_config = config.get("openai", {})
 		database_config = config.get("database", {})
 		filters_config = config.get("filters", {})
+		grouping_config = config.get("grouping", {})
 
 		# Required fields
 		github_token = github_config.get("token")
@@ -170,6 +188,19 @@ class TomlConfigLoader(ConfigLoader):
 				exclude_change_types=set(filters_config.get("exclude_change_types", [])),
 				exclude_change_labels=set(filters_config.get("exclude_change_labels", [])),
 				exclude_authors=set(filters_config.get("exclude_authors", [])),
+			),
+			grouping=GroupingConfig(
+				group_by_type=grouping_config.get("group_by_type", False),
+				**(
+					{}
+					if "type_headings" not in grouping_config
+					else {"type_headings": grouping_config["type_headings"]}
+				),
+				**(
+					{}
+					if "other_heading" not in grouping_config
+					else {"other_heading": grouping_config["other_heading"]}
+				),
 			),
 			prompt_path=Path(config["prompt_path"]) if "prompt_path" in config else _get_default_prompt_path(),
 			force_use_commits=config.get("force_use_commits", False),

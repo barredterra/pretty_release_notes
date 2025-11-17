@@ -31,6 +31,7 @@ class ReleaseNotesGenerator:
 		self.exclude_change_types = config.filters.exclude_change_types
 		self.exclude_change_labels = config.filters.exclude_change_labels
 		self.exclude_authors = config.filters.exclude_authors
+		self.grouping = config.grouping
 		self.openai_api_key = config.openai.api_key
 		self.openai_model = config.openai.model
 		self.max_patch_size = config.openai.max_patch_size
@@ -122,6 +123,7 @@ class ReleaseNotesGenerator:
 			self.exclude_change_types,
 			self.exclude_change_labels,
 			self.exclude_authors,
+			grouping=self.grouping,
 			model_name=f"OpenAI {self.openai_model}",
 		)
 
