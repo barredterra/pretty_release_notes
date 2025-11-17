@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 BACKPORT_NO = re.compile(r"\(backport #(\d+)\)\s*$")
 REVERT_PATTERNS = [
-	re.compile(r"[Rr]everts\s+[\w-]+/\w+#(\d+)"),
+	re.compile(r"[Rr]everts\s+[\w-]+/[\w-]+#(\d+)"),
 	re.compile(r"[Rr]everts\s+https://github\.com/[\w-]+/[\w-]+/pull/(\d+)"),
 	re.compile(r"[Rr]everts\s+#(\d+)"),
 ]
