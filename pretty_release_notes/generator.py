@@ -69,7 +69,7 @@ class ReleaseNotesGenerator:
 				)
 			)
 		except HTTPError as e:
-			if e.response.status_code != 403:
+			if e.response.status_code not in [403, 404]:
 				raise e
 
 			self.progress.report(
