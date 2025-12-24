@@ -30,6 +30,7 @@ def generate(
 	repo: str,
 	tag: str,
 	owner: str | None = None,
+	previous_tag: str | None = None,
 	database: bool = True,
 	prompt_path: Path | None = None,
 	force_use_commits: bool = False,
@@ -69,7 +70,7 @@ def generate(
 	# Create generator with config
 	generator = ReleaseNotesGenerator(config, progress_reporter)
 	generator.initialize_repository(repo_owner, repo)
-	notes = generator.generate(tag)
+	notes = generator.generate(tag, previous_tag_name=previous_tag)
 	cli.show_release_notes("New Release Notes", notes)
 	end_time = time.time()
 	cli.show_success(f"Generated release notes in {end_time - start_time:.2f} seconds total.")

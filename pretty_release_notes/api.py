@@ -30,6 +30,7 @@ class ReleaseNotesClient:
 		owner: str,
 		repo: str,
 		tag: str,
+		previous_tag_name: str | None = None,
 	) -> str:
 		"""Generate release notes for a repository and tag.
 
@@ -37,13 +38,14 @@ class ReleaseNotesClient:
 			owner: Repository owner
 			repo: Repository name
 			tag: Git tag for the release
+			previous_tag_name: Optional previous tag to use as starting point
 
 		Returns:
 			Formatted release notes as markdown
 		"""
 		generator = ReleaseNotesGenerator(self.config, self.progress_reporter)
 		generator.initialize_repository(owner, repo)
-		return generator.generate(tag)
+		return generator.generate(tag, previous_tag_name)
 
 	def update_github_release(
 		self,

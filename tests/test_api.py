@@ -248,7 +248,7 @@ class TestClientAPI:
 			# Verify generator was created and used correctly
 			MockGenerator.assert_called_once()
 			mock_gen.initialize_repository.assert_called_once_with("owner", "repo")
-			mock_gen.generate.assert_called_once_with("v1.0.0")
+			mock_gen.generate.assert_called_once_with("v1.0.0", None)
 			assert result == "# Release Notes"
 
 	def test_update_github_release_calls_generator(self):

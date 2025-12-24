@@ -44,8 +44,13 @@ class ReleaseNotesGenerator:
 	def initialize_repository(self, owner: str, name: str):
 		self.repository = self.github.get_repository(owner, name)
 
-	def generate(self, tag: str) -> str:
-		"""Generate release notes for a given tag."""
+	def generate(self, tag: str, previous_tag_name: str | None = None) -> str:
+		"""Generate release notes for a given tag.
+
+		Args:
+			tag: Git tag for the release
+			previous_tag_name: Optional previous tag to use as starting point
+		"""
 		assert self.repository is not None, "Repository must be initialized before generating release notes"
 		release = self._get_release(tag)
 		old_body = release["body"]
@@ -58,8 +63,11 @@ class ReleaseNotesGenerator:
 			)
 		)
 
+		if not previous_tag_name:
+			previous_tag_name = get_previous_tag_name(old_body, self.repository)
+
 		try:
-			gh_notes = self.github.generate_release_notes(self.repository, tag)
+			gh_notes = self.github.generate_release_notes(self.repository, tag, previous_tag_name)
 			new_body = gh_notes["body"]
 			self.progress.report(
 				ProgressEvent(
@@ -96,8 +104,7 @@ class ReleaseNotesGenerator:
 		if self.force_use_commits or (
 			not any(line.change for line in release_notes.lines) and "Full Changelog" in new_body
 		):
-			prev_tag = get_prev_tag(new_body, self.repository)
-			release_notes.lines = self._get_commit_lines(tag, prev_tag) + release_notes.lines
+			release_notes.lines = self._get_commit_lines(tag, previous_tag_name) + release_notes.lines
 
 		process_start_time = time.time()
 		self._process_lines(release_notes.lines)
@@ -167,10 +174,10 @@ class ReleaseNotesGenerator:
 				)
 			)
 
-	def _get_commit_lines(self, tag: str, prev_tag: str | None = None):
+	def _get_commit_lines(self, tag: str, previous_tag_name: str | None = None):
 		assert self.repository is not None, "Repository must be initialized"
-		if prev_tag:
-			commits = self.github.get_diff_commits(self.repository, tag, prev_tag)
+		if previous_tag_name:
+			commits = self.github.get_diff_commits(self.repository, tag, previous_tag_name)
 		else:
 			commits = self.github.get_tag_commits(self.repository, tag)
 
@@ -248,7 +255,7 @@ class ReleaseNotesGenerator:
 		return self.github.get_release(self.repository, tag)
 
 
-def get_prev_tag(release_notes_body: str, repository: Repository) -> str | None:
+def get_previous_tag_name(release_notes_body: str, repository: Repository) -> str | None:
 	compare_url = f"https://github.com/{repository.owner}/{repository.name}/compare/"
 	pos = release_notes_body.find(compare_url)
 	if pos != -1:

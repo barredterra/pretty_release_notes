@@ -172,14 +172,24 @@ class GitHubClient:
 			},
 		).json()
 
-	def generate_release_notes(self, repository: Repository, tag: str):
-		"""Generate release notes for a given tag."""
+	def generate_release_notes(self, repository: Repository, tag: str, previous_tag_name: str | None = None):
+		"""Generate release notes for a given tag.
+
+		Args:
+			repository: Repository object
+			tag: Tag name for the release
+			previous_tag_name: Optional previous tag to use as starting point for comparison
+		"""
+		json_payload = {"tag_name": tag}
+		if previous_tag_name:
+			json_payload["previous_tag_name"] = previous_tag_name
+
 		response = self.session.post(
 			f"{repository.url}/releases/generate-notes",
 			headers={
 				"Accept": "application/vnd.github+json",
 			},
-			json={"tag_name": tag},
+			json=json_payload,
 		)
 
 		response.raise_for_status()

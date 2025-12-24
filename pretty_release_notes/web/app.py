@@ -27,6 +27,7 @@ class GenerateRequest(BaseModel):
 	exclude_types: list[str] = []
 	exclude_labels: list[str] = []
 	exclude_authors: list[str] = []
+	previous_tag_name: str | None = None
 
 
 class JobResponse(BaseModel):
@@ -124,6 +125,7 @@ async def process_generation(job_id: str, request: GenerateRequest) -> None:
 			request.owner,
 			request.repo,
 			request.tag,
+			previous_tag_name=request.previous_tag_name,
 		)
 
 		# Update job

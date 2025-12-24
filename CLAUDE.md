@@ -17,6 +17,7 @@ It's designed for ERPNext and Frappe Framework projects but can be adapted for o
 - Intelligently handles backport PRs by reusing summaries
 - Credits human authors and reviewers (excludes bots)
 - Caches generated summaries to avoid redundant API calls
+- Supports optional manual specification of previous tag for custom comparison ranges
 
 ## Technology Stack
 
@@ -390,6 +391,7 @@ python -m pretty_release_notes generate --owner frappe erpnext v15.38.4
 - `repo` (required): Repository name
 - `tag` (required): Git tag for release
 - `--owner`: Repository owner (overrides config file)
+- `--previous-tag`: Previous tag for custom comparison range (optional)
 - `--database/--no-database`: Enable/disable caching (overrides config file)
 - `--prompt-path`: Path to custom prompt file (overrides config file)
 - `--force-use-commits`: Force using commits even when PRs available (overrides config file)
@@ -420,7 +422,7 @@ client = (
 )
 
 # Generate release notes
-notes = client.generate_release_notes("frappe", "erpnext", "v15.38.4")
+notes = client.generate_release_notes("frappe", "erpnext", "v15.38.4", previous_tag_name="v15.38.0")
 print(notes)
 
 # Optionally update on GitHub
@@ -491,6 +493,7 @@ curl -X POST http://localhost:8000/generate \
     "owner": "frappe",
     "repo": "erpnext",
     "tag": "v15.38.4",
+    "previous_tag_name": "v15.38.0",
     "github_token": "ghp_xxx",
     "openai_key": "sk-xxx"
   }'

@@ -95,6 +95,9 @@ pretty-release-notes generate --owner alyf-de banking v0.0.1
 
 # Use a custom config file
 pretty-release-notes generate --config-path /path/to/config.toml erpnext v15.38.4
+
+# Specify custom comparison range
+pretty-release-notes generate erpnext v15.38.4 --previous-tag v15.38.0
 ```
 
 Example output:
@@ -141,6 +144,7 @@ notes = client.generate_release_notes(
     owner="frappe",
     repo="erpnext",
     tag="v15.38.4",
+    previous_tag_name="v15.38.0",  # Optional: custom comparison range
 )
 print(notes)
 
@@ -190,6 +194,7 @@ curl -X POST http://localhost:8000/generate \
     "owner": "frappe",
     "repo": "erpnext",
     "tag": "v15.38.4",
+    "previous_tag_name": "v15.38.0",
     "github_token": "ghp_your_token_here",
     "openai_key": "sk-your_key_here",
     "openai_model": "gpt-4",
