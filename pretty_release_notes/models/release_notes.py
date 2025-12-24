@@ -191,13 +191,17 @@ class ReleaseNotes:
 			lines += f"\n**Reviewers**: {reviewers_string}"
 
 		if model_name:
+			disclaimer = f"""
+				For these release notes, we used an LLM ({model_name}) to review and summarise
+				the code changes, along with the associated issue and PR descriptions. It may
+				contain typical errors and inaccuracies. You can read the prompt
+				[here](https://github.com/barredterra/pretty_release_notes).
+			"""
+			disclaimer = " ".join(line.strip() for line in disclaimer.splitlines())
 			lines += f"""\n\n<details>
 <summary>AI content</summary>
 
-For these release notes, we used an LLM ({model_name}) to review and summarise
-the code changes, along with the associated issue and PR descriptions. It may
-contain typical errors and inaccuracies. You can read the prompt
-[here](https://github.com/barredterra/pretty_release_notes).
+{disclaimer}
 
 </details>"""
 
