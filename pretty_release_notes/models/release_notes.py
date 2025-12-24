@@ -198,6 +198,15 @@ class ReleaseNotes:
 				[here](https://github.com/barredterra/pretty_release_notes).
 			"""
 			disclaimer = " ".join(line.strip() for line in disclaimer.splitlines())
+
+			if exclude_change_labels:
+				labels_string = "\n - ".join(exclude_change_labels)
+				disclaimer += f"\n\nChanges with the following labels were excluded:\n- {labels_string}"
+
+			if exclude_change_types:
+				types_string = "\n - ".join(exclude_change_types)
+				disclaimer += f"\n\nChanges with the following types were excluded:\n- {types_string}"
+
 			lines += f"""\n\n<details>
 <summary>AI content</summary>
 
