@@ -5,6 +5,8 @@ from tenacity import (
 	wait_random_exponential,
 )
 
+MODELS_WITH_FLEX = {"o3", "o4-mini", "gpt-5-nano", "gpt-5-mini", "gpt-5", "gpt-5.1", "gpt-5.2"}
+
 
 @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6))
 def get_chat_response(
@@ -28,7 +30,7 @@ def get_chat_response(
 			}
 		],
 		model=model,
-		service_tier="flex" if model in {"o3", "o4-mini"} else "auto",
+		service_tier="flex" if model in MODELS_WITH_FLEX else "auto",
 	)
 
 	response_content: str | None = chat_completion.choices[0].message.content
