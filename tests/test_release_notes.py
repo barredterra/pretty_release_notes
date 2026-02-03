@@ -338,3 +338,195 @@ def test_group_by_type_disabled():
 	# Should be flat list
 	assert "* Added feature" in output
 	assert "* Fixed bug" in output
+
+
+def test_breaking_changes_section():
+	"""Test that breaking changes are grouped in their own section."""
+	github = GitHubClient("test_token")
+	repo = Repository(
+		owner="test_org",
+		name="test_repo",
+		url="https://api.github.com/repos/test_org/test_repo",
+		html_url="https://github.com/test_org/test_repo",
+	)
+
+	# Create PRs with breaking changes
+	breaking_feat_pr = PullRequest(
+		github=github,
+		repository=repo,
+		id=1,
+		title="feat!: breaking feature change",
+		body="",
+		html_url="https://github.com/org/repo/pull/1",
+	)
+
+	breaking_fix_pr = PullRequest(
+		github=github,
+		repository=repo,
+		id=2,
+		title="fix(api)!: breaking API fix",
+		body="",
+		html_url="https://github.com/org/repo/pull/2",
+	)
+
+	# Regular PRs
+	feat_pr = PullRequest(
+		github=github,
+		repository=repo,
+		id=3,
+		title="feat: regular feature",
+		body="",
+		html_url="https://github.com/org/repo/pull/3",
+	)
+
+	fix_pr = PullRequest(
+		github=github,
+		repository=repo,
+		id=4,
+		title="fix: regular fix",
+		body="",
+		html_url="https://github.com/org/repo/pull/4",
+	)
+
+	# Create release notes
+	lines = [
+		ReleaseNotesLine(original_line="", change=breaking_feat_pr, sentence="Breaking feature change"),
+		ReleaseNotesLine(original_line="", change=breaking_fix_pr, sentence="Breaking API fix"),
+		ReleaseNotesLine(original_line="", change=feat_pr, sentence="Regular feature"),
+		ReleaseNotesLine(original_line="", change=fix_pr, sentence="Regular fix"),
+	]
+
+	release_notes = ReleaseNotes(lines=lines)
+
+	# Test with grouping enabled
+	grouping = GroupingConfig(group_by_type=True)
+	output = release_notes.serialize(grouping=grouping)
+
+	# Verify breaking changes section exists
+	assert "## Breaking Changes" in output
+
+	# Verify other sections exist
+	assert "## Features" in output
+	assert "## Bug Fixes" in output
+
+	# Verify items are in correct sections
+	lines_output = output.split("\n")
+	breaking_section_start = lines_output.index("## Breaking Changes")
+	feat_section_start = lines_output.index("## Features")
+	fix_section_start = lines_output.index("## Bug Fixes")
+
+	# Breaking changes should come first
+	assert breaking_section_start < feat_section_start
+	assert breaking_section_start < fix_section_start
+
+	# Breaking changes should be in Breaking Changes section
+	breaking_text = "\n".join(lines_output[breaking_section_start:feat_section_start])
+	assert "Breaking feature change" in breaking_text
+	assert "Breaking API fix" in breaking_text
+
+	# Regular changes should NOT be in Breaking Changes section
+	assert "Regular feature" not in breaking_text
+	assert "Regular fix" not in breaking_text
+
+	# Regular changes should be in their respective sections
+	features_text = "\n".join(lines_output[feat_section_start:fix_section_start])
+	assert "Regular feature" in features_text
+
+	fixes_text = "\n".join(lines_output[fix_section_start:])
+	assert "Regular fix" in fixes_text
+
+
+def test_breaking_changes_without_grouping():
+	"""Test that breaking changes appear normally when grouping is disabled."""
+	github = GitHubClient("test_token")
+	repo = Repository(
+		owner="test_org",
+		name="test_repo",
+		url="https://api.github.com/repos/test_org/test_repo",
+		html_url="https://github.com/test_org/test_repo",
+	)
+
+	breaking_pr = PullRequest(
+		github=github,
+		repository=repo,
+		id=1,
+		title="feat!: breaking change",
+		body="",
+		html_url="https://github.com/org/repo/pull/1",
+	)
+
+	regular_pr = PullRequest(
+		github=github,
+		repository=repo,
+		id=2,
+		title="feat: regular change",
+		body="",
+		html_url="https://github.com/org/repo/pull/2",
+	)
+
+	lines = [
+		ReleaseNotesLine(original_line="", change=breaking_pr, sentence="Breaking change"),
+		ReleaseNotesLine(original_line="", change=regular_pr, sentence="Regular change"),
+	]
+
+	release_notes = ReleaseNotes(lines=lines)
+
+	# Test without grouping
+	output = release_notes.serialize()
+
+	# Should not have section headers
+	assert "## Breaking Changes" not in output
+	assert "## Features" not in output
+
+	# Both should appear as flat list
+	assert "Breaking change" in output
+	assert "Regular change" in output
+
+
+def test_breaking_changes_with_filtering():
+	"""Test that breaking changes respect filtering rules."""
+	github = GitHubClient("test_token")
+	repo = Repository(
+		owner="test_org",
+		name="test_repo",
+		url="https://api.github.com/repos/test_org/test_repo",
+		html_url="https://github.com/test_org/test_repo",
+	)
+
+	# Breaking chore (should be filtered)
+	breaking_chore_pr = PullRequest(
+		github=github,
+		repository=repo,
+		id=1,
+		title="chore!: breaking chore change",
+		body="",
+		html_url="https://github.com/org/repo/pull/1",
+	)
+
+	# Breaking feat (should be included)
+	breaking_feat_pr = PullRequest(
+		github=github,
+		repository=repo,
+		id=2,
+		title="feat!: breaking feature",
+		body="",
+		html_url="https://github.com/org/repo/pull/2",
+	)
+
+	lines = [
+		ReleaseNotesLine(original_line="", change=breaking_chore_pr, sentence="Breaking chore"),
+		ReleaseNotesLine(original_line="", change=breaking_feat_pr, sentence="Breaking feature"),
+	]
+
+	release_notes = ReleaseNotes(lines=lines)
+
+	# Test with grouping and filtering
+	grouping = GroupingConfig(group_by_type=True)
+	output = release_notes.serialize(exclude_change_types={"chore"}, grouping=grouping)
+
+	# Breaking chore should be filtered
+	assert "Breaking chore" not in output
+
+	# Breaking feature should be included
+	assert "## Breaking Changes" in output
+	assert "Breaking feature" in output

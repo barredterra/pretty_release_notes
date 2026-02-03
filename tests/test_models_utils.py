@@ -1,6 +1,6 @@
 """Tests for models utility functions."""
 
-from pretty_release_notes.models._utils import get_conventional_type
+from pretty_release_notes.models._utils import get_conventional_type, is_breaking_change
 
 
 class TestGetConventionalType:
@@ -68,3 +68,52 @@ class TestGetConventionalType:
 		assert get_conventional_type('Revert "perf: timeout while renaming cost center"') is None
 		assert get_conventional_type(" Fix: Product Bundle Purchase Order Creation Logic") == "fix"
 		assert get_conventional_type("fix(accounting): correct tax calculation") == "fix"
+
+	def test_breaking_changes_with_exclamation(self):
+		"""Test that breaking changes with ! are still parsed correctly."""
+		assert get_conventional_type("feat!: breaking feature") == "feat"
+		assert get_conventional_type("fix!: breaking fix") == "fix"
+		assert get_conventional_type("fix(api)!: breaking fix with scope") == "fix"
+		assert get_conventional_type("perf!: breaking performance improvement") == "perf"
+
+
+class TestIsBreakingChange:
+	"""Test breaking change detection."""
+
+	def test_breaking_changes_with_exclamation(self):
+		"""Test detection of breaking changes with ! indicator."""
+		assert is_breaking_change("feat!: breaking feature") is True
+		assert is_breaking_change("fix!: breaking fix") is True
+		assert is_breaking_change("perf!: breaking performance improvement") is True
+
+	def test_breaking_changes_with_scope(self):
+		"""Test detection of breaking changes with scope."""
+		assert is_breaking_change("feat(api)!: breaking API change") is True
+		assert is_breaking_change("fix(core)!: breaking fix in core") is True
+		assert is_breaking_change("refactor(ui)!: breaking UI refactor") is True
+
+	def test_non_breaking_changes(self):
+		"""Test that regular changes are not detected as breaking."""
+		assert is_breaking_change("feat: regular feature") is False
+		assert is_breaking_change("fix: regular fix") is False
+		assert is_breaking_change("fix(api): regular fix with scope") is False
+
+	def test_case_insensitive(self):
+		"""Test that breaking change detection is case-insensitive."""
+		assert is_breaking_change("FEAT!: breaking feature") is True
+		assert is_breaking_change("Fix!: breaking fix") is True
+		assert is_breaking_change("Perf(api)!: breaking perf") is True
+
+	def test_with_whitespace(self):
+		"""Test that whitespace doesn't affect detection."""
+		assert is_breaking_change(" feat!: breaking feature") is True
+		assert is_breaking_change("  fix!: breaking fix  ") is True
+		assert is_breaking_change("\tfeat(api)!: breaking change") is True
+
+	def test_edge_cases(self):
+		"""Test edge cases."""
+		assert is_breaking_change("") is False
+		assert is_breaking_change("  ") is False
+		assert is_breaking_change("feat: no exclamation") is False
+		assert is_breaking_change("feat :! wrong format") is False
+		assert is_breaking_change("feat (scope)!: space before scope") is False

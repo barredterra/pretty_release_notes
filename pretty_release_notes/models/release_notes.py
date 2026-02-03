@@ -112,6 +112,7 @@ class ReleaseNotes:
 		if grouping and grouping.group_by_type:
 			# Group lines by type
 			grouped_lines: dict[str, list[ReleaseNotesLine]] = {}
+			breaking_lines: list[ReleaseNotesLine] = []
 			other_lines: list[ReleaseNotesLine] = []
 
 			for line in self.lines:
@@ -123,8 +124,11 @@ class ReleaseNotes:
 				):
 					continue
 
+				# Check for breaking changes first
+				if line.change and hasattr(line.change, "is_breaking") and line.change.is_breaking:
+					breaking_lines.append(line)
 				# Group by conventional type
-				if line.change and line.change.conventional_type:
+				elif line.change and line.change.conventional_type:
 					type_key = line.change.conventional_type
 					if type_key not in grouped_lines:
 						grouped_lines[type_key] = []
@@ -135,6 +139,13 @@ class ReleaseNotes:
 
 			# Build grouped output
 			sections = []
+
+			# Add breaking changes section first (highest priority)
+			if breaking_lines:
+				sections.append(f"## {grouping.breaking_changes_heading}")
+				for line in breaking_lines:
+					sections.append(str(line))
+				sections.append("")  # Empty line after section
 
 			# Add sections in a consistent order
 			type_order = ["feat", "fix", "perf", "docs", "refactor", "test", "build", "ci", "chore", "style", "revert"]
