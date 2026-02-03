@@ -1,6 +1,7 @@
 import re
 
 CONVENTIONAL_TYPE_AND_SCOPE = re.compile(r"^([a-zA-Z]{2,8})(?:\(([^)]+)\))?!?:")
+BREAKING_CHANGE_PATTERN = re.compile(r"^[a-zA-Z]{2,8}(?:\([^)]+\))?!:")
 
 
 def get_conventional_type(msg: str) -> str | None:
@@ -43,5 +44,4 @@ def is_breaking_change(msg: str) -> bool:
 
 	# Check for the ! indicator before the colon
 	# Pattern: type(scope)!: or type!:
-	breaking_pattern = re.compile(r"^[a-zA-Z]{2,8}(?:\([^)]+\))?!:")
-	return bool(breaking_pattern.match(msg))
+	return bool(BREAKING_CHANGE_PATTERN.match(msg))
