@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ._utils import get_conventional_type
+from ._utils import get_conventional_type, is_breaking_change
 from .change import Change
 
 if TYPE_CHECKING:
@@ -23,6 +23,11 @@ class Commit(Change):
 	@property
 	def conventional_type(self) -> str | None:
 		return get_conventional_type(self.message)
+
+	@property
+	def is_breaking(self) -> bool:
+		"""Check if this commit represents a breaking change."""
+		return is_breaking_change(self.message)
 
 	def get_prompt(self, prompt_template: str, max_patch_size: int) -> str:
 		prompt = prompt_template

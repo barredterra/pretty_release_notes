@@ -3,7 +3,7 @@ import threading
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ._utils import get_conventional_type
+from ._utils import get_conventional_type, is_breaking_change
 from .change import Change
 
 if TYPE_CHECKING:
@@ -76,8 +76,20 @@ class PullRequest(Change):
 		Examples:
 		'feat(regional): Address Template for Germany & Switzerland' -> 'feat'
 		'Revert "perf: timeout while renaming cost center"' -> None
+		'fix!: breaking change' -> 'fix'
 		"""
 		return get_conventional_type(self.title)
+
+	@property
+	def is_breaking(self) -> bool:
+		"""Check if this PR represents a breaking change.
+
+		Examples:
+		'feat!: breaking feature' -> True
+		'fix(api)!: breaking fix' -> True
+		'feat: regular feature' -> False
+		"""
+		return is_breaking_change(self.title)
 
 	def get_prompt(self, prompt_template: str, max_patch_size: int) -> str:
 		prompt = prompt_template

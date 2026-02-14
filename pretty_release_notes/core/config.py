@@ -71,6 +71,7 @@ class GroupingConfig:
 		}
 	)
 	other_heading: str = "Other Changes"
+	breaking_changes_heading: str = "Breaking Changes"
 
 	def get_heading(self, type_name: str | None) -> str:
 		"""Get the section heading for a given type."""

@@ -158,6 +158,19 @@ class ReleaseNotesBuilder:
 		self._progress_reporter = reporter
 		return self
 
+	def _build_grouping_config(self) -> GroupingConfig:
+		"""Build grouping config, preserving defaults when no custom headings are set."""
+		if self._type_headings:
+			return GroupingConfig(
+				group_by_type=self._group_by_type,
+				type_headings=self._type_headings,
+				other_heading=self._other_heading,
+			)
+		return GroupingConfig(
+			group_by_type=self._group_by_type,
+			other_heading=self._other_heading,
+		)
+
 	def build(self) -> ReleaseNotesClient:
 		"""Build the client with configured options.
 
@@ -186,11 +199,7 @@ class ReleaseNotesBuilder:
 				exclude_change_labels=self._exclude_labels,
 				exclude_authors=self._exclude_authors,
 			),
-			grouping=GroupingConfig(
-				group_by_type=self._group_by_type,
-				**({} if not self._type_headings else {"type_headings": self._type_headings}),
-				other_heading=self._other_heading,
-			),
+			grouping=self._build_grouping_config(),
 			prompt_path=self._prompt_path,
 			force_use_commits=self._force_use_commits,
 		)
