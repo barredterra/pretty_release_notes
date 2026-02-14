@@ -251,26 +251,6 @@ We try to use the same message for backports as for the original PR. For this, w
 
 This means that backports of backports are currently not supported / will get a new message. To get the same message, PRs must be a direct backport of the original PR.
 
-## Testing
+## Contributing
 
-Run the full test suite:
-
-```bash
-pytest tests/
-```
-
-Run specific test files:
-
-```bash
-pytest tests/test_web_api.py      # Web API tests
-pytest tests/test_core.py          # Core configuration tests
-pytest tests/test_execution.py     # Concurrent execution tests
-```
-
-The test suite includes:
-- **Core abstractions** - Configuration, progress reporting, execution strategies
-- **Web API** - All REST endpoints, concurrent requests, error handling
-- **Database threading** - Thread-safe operations under load
-- **API client** - Library usage patterns
-
-All tests use mocks to avoid actual API calls, making them fast and reliable.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing, code quality tools, and commit conventions.
