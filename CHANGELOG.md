@@ -5,7 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0 - 2026-02-14]
+
+### Added
+
+- Breaking changes are now detected and grouped in their own section.
+
+### Fixed
+
+- The New Contributors section is now preserved when grouping by type.
+
+## [1.0.0]
 
 ### Added
 - **TOML Configuration**: New TOML-based configuration format stored in `~/.pretty-release-notes/config.toml`. Provides structured, human-readable configuration with sections for GitHub, OpenAI, database, and filters.
