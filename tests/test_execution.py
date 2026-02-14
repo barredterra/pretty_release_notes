@@ -111,7 +111,7 @@ class TestExecutionStrategies:
 			return "success"
 
 		# Sequential strategy should raise exception
-		strategy = SequentialStrategy()
+		strategy: ExecutionStrategy = SequentialStrategy()
 		with pytest.raises(ValueError, match="Task failed"):
 			strategy.execute_parallel([failing_task])
 
@@ -129,7 +129,7 @@ class TestExecutionStrategies:
 		values = [1, 2, 3, 4, 5]
 
 		# Sequential
-		strategy = SequentialStrategy()
+		strategy: ExecutionStrategy = SequentialStrategy()
 		results = strategy.execute_parallel([task(v) for v in values])
 		assert set(results) == {2, 4, 6, 8, 10}
 
@@ -154,7 +154,7 @@ class TestExecutionStrategies:
 	def test_execution_strategy_is_abstract(self):
 		"""Test that ExecutionStrategy cannot be instantiated directly."""
 		with pytest.raises(TypeError):
-			ExecutionStrategy()
+			ExecutionStrategy()  # type: ignore[abstract]
 
 
 class TestExecutionPerformance:
@@ -196,8 +196,14 @@ class TestIntegrationWithGenerator:
 			with lock:
 				results.append(item * 2)
 
+		def make_task(item):
+			def task():
+				process_item(item)
+
+			return task
+
 		# Create tasks with proper closure
-		tasks = [lambda item=item: process_item(item) for item in items]
+		tasks = [make_task(item) for item in items]
 
 		strategy = ThreadPoolStrategy()
 		strategy.execute_parallel(tasks)
@@ -218,7 +224,13 @@ class TestIntegrationWithGenerator:
 			item.processed = True
 			item.value *= 2
 
-		tasks = [lambda item=item: process_item(item) for item in items]
+		def make_task(item):
+			def task():
+				process_item(item)
+
+			return task
+
+		tasks = [make_task(item) for item in items]
 
 		strategy = ThreadPoolStrategy()
 		strategy.execute_parallel(tasks)
