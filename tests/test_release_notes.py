@@ -340,6 +340,111 @@ def test_group_by_type_disabled():
 	assert "* Fixed bug" in output
 
 
+def test_new_contributors_preserved_with_grouping():
+	"""Test that New Contributors section is preserved when grouping is enabled."""
+	github = GitHubClient("test_token")
+	repo = Repository(
+		owner="test_org",
+		name="test_repo",
+		url="https://api.github.com/repos/test_org/test_repo",
+		html_url="https://github.com/test_org/test_repo",
+	)
+
+	# Create a regular PR
+	feat_pr = PullRequest(
+		github=github,
+		repository=repo,
+		id=1,
+		title="feat: add new feature",
+		body="",
+		html_url="https://github.com/test_org/test_repo/pull/1",
+	)
+
+	fix_pr = PullRequest(
+		github=github,
+		repository=repo,
+		id=2,
+		title="fix: fix bug",
+		body="",
+		html_url="https://github.com/test_org/test_repo/pull/2",
+	)
+
+	# Create release notes with PRs and new contributor lines
+	lines = [
+		ReleaseNotesLine(original_line="", change=feat_pr, sentence="Added new feature"),
+		ReleaseNotesLine(original_line="", change=fix_pr, sentence="Fixed bug"),
+		ReleaseNotesLine(
+			original_line="* @newuser made their first contribution in https://github.com/test_org/test_repo/pull/1",
+			is_new_contributor=True,
+		),
+		ReleaseNotesLine(
+			original_line="* @anotheruser made their first contribution in https://github.com/test_org/test_repo/pull/3",
+			is_new_contributor=True,
+		),
+	]
+
+	release_notes = ReleaseNotes(lines=lines)
+
+	# Test with grouping enabled
+	grouping = GroupingConfig(group_by_type=True)
+	output = release_notes.serialize(grouping=grouping)
+
+	# Verify PR sections are created
+	assert "## Features" in output
+	assert "## Bug Fixes" in output
+	assert "Added new feature" in output
+	assert "Fixed bug" in output
+
+	# Verify New Contributors section is preserved
+	assert "## New Contributors" in output
+	assert "@newuser made their first contribution" in output
+	assert "@anotheruser made their first contribution" in output
+
+	# Verify New Contributors section comes after the change sections
+	lines_output = output.split("\n")
+	if "## Features" in output:
+		feat_idx = lines_output.index("## Features")
+		new_contrib_idx = lines_output.index("## New Contributors")
+		assert new_contrib_idx > feat_idx, "New Contributors should come after change sections"
+
+
+def test_new_contributors_without_grouping():
+	"""Test that New Contributors lines work correctly without grouping."""
+	github = GitHubClient("test_token")
+	repo = Repository(
+		owner="test_org",
+		name="test_repo",
+		url="https://api.github.com/repos/test_org/test_repo",
+		html_url="https://github.com/test_org/test_repo",
+	)
+
+	feat_pr = PullRequest(
+		github=github,
+		repository=repo,
+		id=1,
+		title="feat: add feature",
+		body="",
+		html_url="https://github.com/test_org/test_repo/pull/1",
+	)
+
+	lines = [
+		ReleaseNotesLine(original_line="", change=feat_pr, sentence="Added feature"),
+		ReleaseNotesLine(
+			original_line="* @newuser made their first contribution in https://github.com/test_org/test_repo/pull/1",
+			is_new_contributor=True,
+		),
+	]
+
+	release_notes = ReleaseNotes(lines=lines)
+
+	# Test without grouping
+	output = release_notes.serialize()
+
+	# Should preserve new contributor line in flat list
+	assert "Added feature" in output
+	assert "@newuser made their first contribution" in output
+
+
 def test_breaking_changes_section():
 	"""Test that breaking changes are grouped in their own section."""
 	github = GitHubClient("test_token")
