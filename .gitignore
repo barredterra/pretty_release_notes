@@ -5,6 +5,11 @@ stored_lines.sqlite
 *.egg-info/
 __pycache__/
 *.pyc
+.vscode/
+.cursor/
+.claude/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
 .coverage
 htmlcov/
-.pytest_cache/
