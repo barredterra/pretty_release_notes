@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pretty-release-notes"
-version = "1.0.0"
+dynamic = ["version"]
 description = "Transform GitHub release notes with AI"
 readme = "README.md"
 requires-python = ">=3.11"
