@@ -20,7 +20,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: pip install -e .[dev]
+        run: pip install -e .[dev,web]
 
       - name: Run tests
         run: pytest --cov=pretty_release_notes --cov-report=term-missing
