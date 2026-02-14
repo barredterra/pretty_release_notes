@@ -113,8 +113,14 @@ class ReleaseNotes:
 			# Group lines by type
 			grouped_lines: dict[str, list[ReleaseNotesLine]] = {}
 			other_lines: list[ReleaseNotesLine] = []
+			new_contributor_lines: list[ReleaseNotesLine] = []
 
 			for line in self.lines:
+				# Preserve new contributor lines
+				if line.is_new_contributor:
+					new_contributor_lines.append(line)
+					continue
+
 				# Skip filtered lines
 				if line.change and (
 					is_exluded_type(line.change)
@@ -161,6 +167,13 @@ class ReleaseNotes:
 			if other_lines:
 				sections.append(f"## {grouping.other_heading}")
 				for line in other_lines:
+					sections.append(str(line))
+				sections.append("")
+
+			# Add new contributors section if needed
+			if new_contributor_lines:
+				sections.append("## New Contributors")
+				for line in new_contributor_lines:
 					sections.append(str(line))
 				sections.append("")
 

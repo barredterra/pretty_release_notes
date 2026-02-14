@@ -3,6 +3,8 @@ env/
 stored_lines.csv
 stored_lines.sqlite
 *.egg-info/
+__pycache__/
+*.pyc
 .vscode/
 .cursor/
 .claude/
