@@ -132,7 +132,10 @@ class PullRequest(Change):
 		return self.reviewers
 
 	def get_author(self) -> str:
-		return self.backport_of.author if self.backport_of else self.author
+		if self.backport_of:
+			self.backport_of._set_backport_of()
+			return self.backport_of.get_author()
+		return self.author
 
 	def get_summary_key(self) -> str:
 		# Keep in mind that this needs to work before `self.backport_of` is initialised
