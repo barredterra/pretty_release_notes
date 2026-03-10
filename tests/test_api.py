@@ -9,7 +9,7 @@ from pretty_release_notes.api import ReleaseNotesBuilder, ReleaseNotesClient
 from pretty_release_notes.core.config import (
 	DatabaseConfig,
 	GitHubConfig,
-	OpenAIConfig,
+	LLMConfig,
 	ReleaseNotesConfig,
 )
 from pretty_release_notes.core.interfaces import ProgressEvent, ProgressReporter
@@ -26,7 +26,7 @@ class TestProgressReporting:
 		# Build a client with the mock reporter
 		config = ReleaseNotesConfig(
 			github=GitHubConfig(token="test_token"),
-			openai=OpenAIConfig(api_key="test_key"),
+			llm=LLMConfig(api_key="test_key"),
 		)
 		client = ReleaseNotesClient(config, progress_reporter=mock_reporter)
 
@@ -40,7 +40,7 @@ class TestProgressReporting:
 		client = (
 			ReleaseNotesBuilder()
 			.with_github_token("test_token")
-			.with_openai("test_key")
+			.with_llm("test_key")
 			.with_progress_reporter(mock_reporter)
 			.build()
 		)
@@ -51,7 +51,7 @@ class TestProgressReporting:
 		"""Test that NullProgressReporter is used when none provided."""
 		config = ReleaseNotesConfig(
 			github=GitHubConfig(token="test_token"),
-			openai=OpenAIConfig(api_key="test_key"),
+			llm=LLMConfig(api_key="test_key"),
 		)
 		client = ReleaseNotesClient(config)
 
@@ -82,7 +82,7 @@ class TestProgressReporting:
 
 			config = ReleaseNotesConfig(
 				github=GitHubConfig(token="test_token"),
-				openai=OpenAIConfig(api_key="test_key"),
+				llm=LLMConfig(api_key="test_key"),
 			)
 			client = ReleaseNotesClient(config, progress_reporter=reporter)
 
@@ -95,7 +95,7 @@ class TestProgressReporting:
 	def test_silent_operation_with_null_reporter(self):
 		"""Test that silent operation works (no progress output)."""
 		# Build without progress reporter (should use NullProgressReporter)
-		client = ReleaseNotesBuilder().with_github_token("test_token").with_openai("test_key").build()
+		client = ReleaseNotesBuilder().with_github_token("test_token").with_llm("test_key").build()
 
 		from pretty_release_notes.core.interfaces import NullProgressReporter
 
@@ -111,16 +111,16 @@ class TestConfigurationValidation:
 
 	def test_missing_github_token_raises_error(self):
 		"""Test that building without GitHub token raises ValueError."""
-		builder = ReleaseNotesBuilder().with_openai("test_key")
+		builder = ReleaseNotesBuilder().with_llm("test_key")
 
 		with pytest.raises(ValueError, match="GitHub token is required"):
 			builder.build()
 
-	def test_missing_openai_key_raises_error(self):
-		"""Test that building without OpenAI key raises ValueError."""
+	def test_missing_llm_key_raises_error(self):
+		"""Test that building without LLM key raises ValueError."""
 		builder = ReleaseNotesBuilder().with_github_token("test_token")
 
-		with pytest.raises(ValueError, match="OpenAI API key is required"):
+		with pytest.raises(ValueError, match="LLM API key is required"):
 			builder.build()
 
 	def test_invalid_database_type_raises_error(self):
@@ -133,14 +133,14 @@ class TestConfigurationValidation:
 		with pytest.raises(ValueError, match="GitHub token is required"):
 			GitHubConfig(token="")
 
-	def test_empty_openai_key_raises_error(self):
-		"""Test that empty OpenAI API key raises ValueError."""
-		with pytest.raises(ValueError, match="OpenAI API key is required"):
-			OpenAIConfig(api_key="")
+	def test_empty_llm_key_raises_error(self):
+		"""Test that empty LLM API key raises ValueError."""
+		with pytest.raises(ValueError, match="LLM API key is required"):
+			LLMConfig(api_key="")
 
 	def test_valid_configuration_builds_successfully(self):
 		"""Test that valid configuration builds without errors."""
-		client = ReleaseNotesBuilder().with_github_token("test_token").with_openai("test_key").build()
+		client = ReleaseNotesBuilder().with_github_token("test_token").with_llm("test_key").build()
 
 		assert client is not None
 		assert isinstance(client, ReleaseNotesClient)
@@ -150,7 +150,7 @@ class TestConfigurationValidation:
 		client = (
 			ReleaseNotesBuilder()
 			.with_github_token("test_token")
-			.with_openai("test_key", model="gpt-4", max_patch_size=15000)
+			.with_llm("test_key", model="gpt-4", max_patch_size=15000)
 			.with_database("sqlite", db_name="test_db", enabled=True)
 			.with_filters(
 				exclude_types={"chore", "ci"},
@@ -163,9 +163,9 @@ class TestConfigurationValidation:
 		)
 
 		assert client.config.github.token == "test_token"
-		assert client.config.openai.api_key == "test_key"
-		assert client.config.openai.model == "gpt-4"
-		assert client.config.openai.max_patch_size == 15000
+		assert client.config.llm.api_key == "test_key"
+		assert client.config.llm.model == "gpt-4"
+		assert client.config.llm.max_patch_size == 15000
 		assert client.config.database.type == "sqlite"
 		assert client.config.database.name == "test_db"
 		assert client.config.database.enabled is True
@@ -180,18 +180,26 @@ class TestConfigurationValidation:
 		builder = ReleaseNotesBuilder()
 
 		assert builder.with_github_token("token") is builder
+		assert builder.with_llm("key") is builder
 		assert builder.with_openai("key") is builder
 		assert builder.with_database() is builder
 		assert builder.with_filters() is builder
 		assert builder.with_prompt_file(Path("test.txt")) is builder
 		assert builder.with_force_commits() is builder
 
+	def test_with_openai_alias_populates_llm_config(self):
+		"""Test that with_openai remains a working alias."""
+		client = ReleaseNotesBuilder().with_github_token("test_token").with_openai("test_key").build()
+
+		assert client.config.llm.api_key == "test_key"
+		assert client.config.openai.api_key == "test_key"
+
 	def test_partial_filters_work(self):
 		"""Test that filters can be set partially (not all at once)."""
 		client = (
 			ReleaseNotesBuilder()
 			.with_github_token("test_token")
-			.with_openai("test_key")
+			.with_llm("test_key")
 			.with_filters(exclude_types={"chore"})
 			.build()
 		)
@@ -202,20 +210,20 @@ class TestConfigurationValidation:
 
 	def test_database_defaults(self):
 		"""Test that database has sensible defaults."""
-		client = ReleaseNotesBuilder().with_github_token("test_token").with_openai("test_key").build()
+		client = ReleaseNotesBuilder().with_github_token("test_token").with_llm("test_key").build()
 
 		# Check defaults
 		assert client.config.database.type == "sqlite"
 		assert client.config.database.name == "stored_lines"
 		assert client.config.database.enabled is True
 
-	def test_openai_defaults(self):
-		"""Test that OpenAI config has sensible defaults."""
-		client = ReleaseNotesBuilder().with_github_token("test_token").with_openai("test_key").build()
+	def test_llm_defaults(self):
+		"""Test that LLM config has sensible defaults."""
+		client = ReleaseNotesBuilder().with_github_token("test_token").with_llm("test_key").build()
 
 		# Check defaults
-		assert client.config.openai.model == "gpt-4.1"
-		assert client.config.openai.max_patch_size == 10000
+		assert client.config.llm.model == "gpt-4.1"
+		assert client.config.llm.max_patch_size == 10000
 
 
 class TestClientAPI:
@@ -225,7 +233,7 @@ class TestClientAPI:
 		"""Test that client initializes with configuration."""
 		config = ReleaseNotesConfig(
 			github=GitHubConfig(token="test_token"),
-			openai=OpenAIConfig(api_key="test_key"),
+			llm=LLMConfig(api_key="test_key"),
 		)
 		client = ReleaseNotesClient(config)
 
@@ -235,7 +243,7 @@ class TestClientAPI:
 		"""Test that generate_release_notes calls the generator correctly."""
 		config = ReleaseNotesConfig(
 			github=GitHubConfig(token="test_token"),
-			openai=OpenAIConfig(api_key="test_key"),
+			llm=LLMConfig(api_key="test_key"),
 		)
 		client = ReleaseNotesClient(config)
 
@@ -255,7 +263,7 @@ class TestClientAPI:
 		"""Test that update_github_release calls the generator correctly."""
 		config = ReleaseNotesConfig(
 			github=GitHubConfig(token="test_token"),
-			openai=OpenAIConfig(api_key="test_key"),
+			llm=LLMConfig(api_key="test_key"),
 		)
 		client = ReleaseNotesClient(config)
 

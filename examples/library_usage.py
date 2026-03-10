@@ -18,7 +18,7 @@ def basic_usage():
 	client = (
 		ReleaseNotesBuilder()
 		.with_github_token("ghp_xxxxx")  # Replace with your token
-		.with_openai("sk-xxxxx")  # Replace with your API key
+		.with_llm("sk-xxxxx")  # Replace with your API key
 		.build()
 	)
 
@@ -37,7 +37,7 @@ def advanced_usage():
 	client = (
 		ReleaseNotesBuilder()
 		.with_github_token("ghp_xxxxx")  # Replace with your token
-		.with_openai("sk-xxxxx", model="gpt-4", max_patch_size=15000)
+		.with_llm("sk-xxxxx", model="gpt-4", max_patch_size=15000)
 		.with_database("sqlite", enabled=True)
 		.with_filters(
 			exclude_types={"chore", "refactor", "ci", "style", "test"},
@@ -69,14 +69,14 @@ def direct_config_usage():
 		DatabaseConfig,
 		FilterConfig,
 		GitHubConfig,
-		OpenAIConfig,
+		LLMConfig,
 		ReleaseNotesClient,
 		ReleaseNotesConfig,
 	)
 
 	config = ReleaseNotesConfig(
 		github=GitHubConfig(token="ghp_xxxxx"),  # Replace with your token
-		openai=OpenAIConfig(api_key="sk-xxxxx", model="gpt-4.1"),  # Replace with your key
+		llm=LLMConfig(api_key="sk-xxxxx", model="gpt-4.1"),  # Replace with your key
 		database=DatabaseConfig(type="sqlite", enabled=True),
 		filters=FilterConfig(
 			exclude_change_types={"chore", "refactor"},
@@ -101,17 +101,15 @@ def silent_usage():
 	client = (
 		ReleaseNotesBuilder()
 		.with_github_token("ghp_xxxxx")  # Replace with your token
-		.with_openai("sk-xxxxx")  # Replace with your API key
+		.with_llm("sk-xxxxx")  # Replace with your API key
 		.build()
 	)  # No progress reporter = NullProgressReporter used by default
 
-	notes = client.generate_release_notes(
+	return client.generate_release_notes(
 		owner="frappe",
 		repo="erpnext",
 		tag="v15.38.4",
 	)
-
-	return notes
 
 
 if __name__ == "__main__":

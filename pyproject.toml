@@ -12,7 +12,7 @@ license = {text = "MIT"}
 authors = [
     {name = "Raffael Meyer" }
 ]
-keywords = ["github", "release-notes", "openai", "cli"]
+keywords = ["github", "release-notes", "llm", "cli"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -28,9 +28,9 @@ dependencies = [
     "typer>=0.9.0",
     "rich>=13.0.0",
     "requests>=2.31.0",
-    "openai>=1.0.0",
     "python-dotenv>=1.0.0",
     "tenacity>=8.2.0",
+    "any-llm-sdk[all]",
 ]
 
 [project.optional-dependencies]

@@ -10,7 +10,7 @@ from .config import (
 	FilterConfig,
 	GitHubConfig,
 	GroupingConfig,
-	OpenAIConfig,
+	LLMConfig,
 	ReleaseNotesConfig,
 	_get_default_prompt_path,
 )
@@ -30,14 +30,18 @@ class DictConfigLoader(ConfigLoader):
 		self.config_dict = config_dict
 
 	def load(self) -> ReleaseNotesConfig:
+		llm_api_key = self.config_dict.get("llm_api_key", self.config_dict.get("openai_api_key"))
+		if llm_api_key is None:
+			raise KeyError("llm_api_key")
+
 		return ReleaseNotesConfig(
 			github=GitHubConfig(
 				token=self.config_dict["github_token"],
 				owner=self.config_dict.get("github_owner"),
 			),
-			openai=OpenAIConfig(
-				api_key=self.config_dict["openai_api_key"],
-				model=self.config_dict.get("openai_model", "gpt-4.1"),
+			llm=LLMConfig(
+				api_key=llm_api_key,
+				model=self.config_dict.get("llm_model", self.config_dict.get("openai_model", "gpt-4.1")),
 				max_patch_size=self.config_dict.get("max_patch_size", 10000),
 			),
 			database=DatabaseConfig(
@@ -79,21 +83,21 @@ class EnvConfigLoader(ConfigLoader):
 	def load(self) -> ReleaseNotesConfig:
 		config = dotenv_values(self.env_path)
 
-		# Required fields - will raise KeyError if missing
+		# Required fields
 		github_token = config["GH_TOKEN"]
-		openai_key = config["OPENAI_API_KEY"]
+		llm_key = config.get("LLM_API_KEY") or config.get("OPENAI_API_KEY")
 
-		# Ensure github_token and openai_key are not None
+		# Ensure github_token and llm_key are not None
 		if github_token is None:
 			raise ValueError("GH_TOKEN is required in .env file")
-		if openai_key is None:
-			raise ValueError("OPENAI_API_KEY is required in .env file")
+		if llm_key is None:
+			raise ValueError("LLM_API_KEY is required in .env file")
 
 		return ReleaseNotesConfig(
 			github=GitHubConfig(token=github_token, owner=config.get("DEFAULT_OWNER")),
-			openai=OpenAIConfig(
-				api_key=openai_key,
-				model=config.get("OPENAI_MODEL") or "gpt-4.1",
+			llm=LLMConfig(
+				api_key=llm_key,
+				model=config.get("LLM_MODEL") or config.get("OPENAI_MODEL") or "gpt-4.1",
 				max_patch_size=int(config.get("MAX_PATCH_SIZE") or "10000"),
 			),
 			database=DatabaseConfig(
@@ -155,29 +159,29 @@ class TomlConfigLoader(ConfigLoader):
 
 		# Extract nested sections with defaults
 		github_config = config.get("github", {})
-		openai_config = config.get("openai", {})
+		llm_config = {**config.get("openai", {}), **config.get("llm", {})}
 		database_config = config.get("database", {})
 		filters_config = config.get("filters", {})
 		grouping_config = config.get("grouping", {})
 
 		# Required fields
 		github_token = github_config.get("token")
-		openai_key = openai_config.get("api_key")
+		llm_key = llm_config.get("api_key")
 
 		if not github_token:
 			raise ValueError("github.token is required in config file")
-		if not openai_key:
-			raise ValueError("openai.api_key is required in config file")
+		if not llm_key:
+			raise ValueError("llm.api_key is required in config file")
 
 		return ReleaseNotesConfig(
 			github=GitHubConfig(
 				token=github_token,
 				owner=github_config.get("owner"),
 			),
-			openai=OpenAIConfig(
-				api_key=openai_key,
-				model=openai_config.get("model", "gpt-4.1"),
-				max_patch_size=openai_config.get("max_patch_size", 10000),
+			llm=LLMConfig(
+				api_key=llm_key,
+				model=llm_config.get("model", "gpt-4.1"),
+				max_patch_size=llm_config.get("max_patch_size", 10000),
 			),
 			database=DatabaseConfig(
 				type=database_config.get("type", "sqlite"),

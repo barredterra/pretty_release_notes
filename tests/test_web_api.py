@@ -27,7 +27,7 @@ def mock_generator():
 		# Create mock builder instance
 		mock_builder = MagicMock()
 		mock_builder.with_github_token.return_value = mock_builder
-		mock_builder.with_openai.return_value = mock_builder
+		mock_builder.with_llm.return_value = mock_builder
 		mock_builder.with_filters.return_value = mock_builder
 		mock_builder.with_progress_reporter.return_value = mock_builder
 		mock_builder.build.return_value = mock_client
@@ -64,7 +64,7 @@ class TestGenerateEndpoint:
 				"repo": "test-repo",
 				"tag": "v1.0.0",
 				"github_token": "test-token",
-				"openai_key": "test-key",
+				"llm_key": "test-key",
 			},
 		)
 
@@ -82,7 +82,7 @@ class TestGenerateEndpoint:
 				"repo": "test-repo",
 				"tag": "v1.0.0",
 				"github_token": "test-token",
-				"openai_key": "test-key",
+				"llm_key": "test-key",
 			},
 		)
 
@@ -96,7 +96,7 @@ class TestGenerateEndpoint:
 				"owner": "test-owner",
 				"tag": "v1.0.0",
 				"github_token": "test-token",
-				"openai_key": "test-key",
+				"llm_key": "test-key",
 			},
 		)
 
@@ -110,7 +110,7 @@ class TestGenerateEndpoint:
 				"owner": "test-owner",
 				"repo": "test-repo",
 				"github_token": "test-token",
-				"openai_key": "test-key",
+				"llm_key": "test-key",
 			},
 		)
 
@@ -124,14 +124,14 @@ class TestGenerateEndpoint:
 				"owner": "test-owner",
 				"repo": "test-repo",
 				"tag": "v1.0.0",
-				"openai_key": "test-key",
+				"llm_key": "test-key",
 			},
 		)
 
 		assert response.status_code == 422
 
-	def test_generate_requires_openai_key(self, client):
-		"""Generate endpoint should require openai_key field."""
+	def test_generate_requires_llm_key(self, client):
+		"""Generate endpoint should require llm_key field."""
 		response = client.post(
 			"/generate",
 			json={
@@ -143,6 +143,21 @@ class TestGenerateEndpoint:
 		)
 
 		assert response.status_code == 422
+
+	def test_generate_accepts_openai_key_alias(self, client, mock_generator):
+		"""Generate endpoint should accept legacy openai_key field."""
+		response = client.post(
+			"/generate",
+			json={
+				"owner": "test-owner",
+				"repo": "test-repo",
+				"tag": "v1.0.0",
+				"github_token": "test-token",
+				"openai_key": "test-key",
+			},
+		)
+
+		assert response.status_code == 200
 
 	def test_generate_accepts_optional_parameters(self, client, mock_generator):
 		"""Generate endpoint should accept optional configuration parameters."""
@@ -153,8 +168,8 @@ class TestGenerateEndpoint:
 				"repo": "test-repo",
 				"tag": "v1.0.0",
 				"github_token": "test-token",
-				"openai_key": "test-key",
-				"openai_model": "gpt-4",
+				"llm_key": "test-key",
+				"llm_model": "gpt-4",
 				"exclude_types": ["chore", "ci"],
 				"exclude_labels": ["skip-release-notes"],
 				"exclude_authors": ["bot[bot]"],
@@ -184,7 +199,7 @@ class TestJobsEndpoint:
 				"repo": "test-repo",
 				"tag": "v1.0.0",
 				"github_token": "test-token",
-				"openai_key": "test-key",
+				"llm_key": "test-key",
 			},
 		)
 		job_id = create_response.json()["job_id"]
@@ -206,7 +221,7 @@ class TestJobsEndpoint:
 				"repo": "test-repo",
 				"tag": "v1.0.0",
 				"github_token": "test-token",
-				"openai_key": "test-key",
+				"llm_key": "test-key",
 			},
 		)
 		job_id = create_response.json()["job_id"]
@@ -240,7 +255,7 @@ class TestJobsEndpoint:
 				"repo": "test-repo",
 				"tag": "v1.0.0",
 				"github_token": "test-token",
-				"openai_key": "test-key",
+				"llm_key": "test-key",
 			},
 		)
 		job_id = create_response.json()["job_id"]
@@ -272,7 +287,7 @@ class TestConcurrentRequests:
 					"repo": f"repo-{job_num}",
 					"tag": "v1.0.0",
 					"github_token": "test-token",
-					"openai_key": "test-key",
+					"llm_key": "test-key",
 				},
 			)
 			job_id = response.json()["job_id"]
@@ -316,7 +331,7 @@ class TestConcurrentRequests:
 					"repo": f"repo-{job_num}",
 					"tag": "v1.0.0",
 					"github_token": "test-token",
-					"openai_key": "test-key",
+					"llm_key": "test-key",
 				},
 			)
 			return response.json()["job_id"]
@@ -351,7 +366,7 @@ class TestErrorHandling:
 				"repo": "nonexistent-repo",
 				"tag": "v1.0.0",
 				"github_token": "invalid-token",
-				"openai_key": "invalid-key",
+				"llm_key": "invalid-key",
 			},
 		)
 		job_id = response.json()["job_id"]
