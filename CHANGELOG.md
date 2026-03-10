@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0 - 2026-03-10]
+
+### Added
+
+- **Multi-provider LLM support**: AI generation now runs through `any-llm`, allowing provider-qualified model values such as `openai:o3` and `anthropic:claude-sonnet-4-5`.
+- **Unified LLM configuration**: Added canonical `[llm]` config support, `llm_key` and `llm_model` request fields for the web API, and a new `ReleaseNotesBuilder.with_llm()` method for library usage.
+
+### Changed
+
+- **Default model handling**: Default model selection is now centralized across config loaders, interactive setup, examples, and runtime behavior, and provider-qualified `provider:model` values are now the preferred format.
+- **Backward compatibility**: Legacy OpenAI-style names such as `[openai]`, `openai_key`, `openai_model`, and `with_openai()` are still accepted and continue to map to the new LLM configuration flow.
+- **Default model value**: New configurations now default to `openai:o3` after the LLM integration refactor.
+
 ## [1.1.0 - 2026-02-14]
 
 ### Added
