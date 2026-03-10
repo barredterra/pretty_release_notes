@@ -9,6 +9,7 @@ from pretty_release_notes.core.config import (
 	FilterConfig,
 	GitHubConfig,
 	GroupingConfig,
+	LLMConfig,
 	OpenAIConfig,
 	ReleaseNotesConfig,
 )
@@ -88,24 +89,28 @@ class TestGitHubConfig:
 			GitHubConfig(token="")
 
 
-class TestOpenAIConfig:
-	"""Test OpenAIConfig validation."""
+class TestLLMConfig:
+	"""Test LLMConfig validation."""
 
 	def test_valid_config_with_defaults(self):
-		config = OpenAIConfig(api_key="test_key")
+		config = LLMConfig(api_key="test_key")
 		assert config.api_key == "test_key"
 		assert config.model == "gpt-4.1"
 		assert config.max_patch_size == 10000
 
 	def test_valid_config_with_custom_values(self):
-		config = OpenAIConfig(api_key="test_key", model="gpt-4", max_patch_size=5000)
+		config = LLMConfig(api_key="test_key", model="gpt-4", max_patch_size=5000)
 		assert config.api_key == "test_key"
 		assert config.model == "gpt-4"
 		assert config.max_patch_size == 5000
 
 	def test_empty_api_key_raises_error(self):
-		with pytest.raises(ValueError, match="OpenAI API key is required"):
-			OpenAIConfig(api_key="")
+		with pytest.raises(ValueError, match="LLM API key is required"):
+			LLMConfig(api_key="")
+
+	def test_openai_config_alias_still_works(self):
+		config = OpenAIConfig(api_key="test_key")
+		assert config.api_key == "test_key"
 
 
 class TestDatabaseConfig:
@@ -176,7 +181,7 @@ class TestGroupingConfig:
 		"""Test ReleaseNotesConfig includes GroupingConfig."""
 		config = ReleaseNotesConfig(
 			github=GitHubConfig(token="token"),
-			openai=OpenAIConfig(api_key="key"),
+			llm=LLMConfig(api_key="key"),
 			grouping=GroupingConfig(group_by_type=True),
 		)
 		assert config.grouping.group_by_type is True
@@ -188,10 +193,11 @@ class TestReleaseNotesConfig:
 	def test_minimal_config(self):
 		config = ReleaseNotesConfig(
 			github=GitHubConfig(token="gh_token"),
-			openai=OpenAIConfig(api_key="openai_key"),
+			llm=LLMConfig(api_key="llm_key"),
 		)
 		assert config.github.token == "gh_token"
-		assert config.openai.api_key == "openai_key"
+		assert config.llm.api_key == "llm_key"
+		assert config.openai.api_key == "llm_key"
 		assert config.database.type == "sqlite"
 		assert config.filters.exclude_change_types == set()
 		# Check that prompt_path is set to the package's prompt.txt
@@ -202,39 +208,55 @@ class TestReleaseNotesConfig:
 	def test_full_config(self):
 		config = ReleaseNotesConfig(
 			github=GitHubConfig(token="gh_token", owner="owner"),
-			openai=OpenAIConfig(api_key="openai_key", model="gpt-4"),
+			llm=LLMConfig(api_key="llm_key", model="gpt-4"),
 			database=DatabaseConfig(type="csv", enabled=False),
 			filters=FilterConfig(exclude_change_types={"chore"}),
 			prompt_path=Path("custom_prompt.txt"),
 			force_use_commits=True,
 		)
 		assert config.github.owner == "owner"
-		assert config.openai.model == "gpt-4"
+		assert config.llm.model == "gpt-4"
 		assert config.database.type == "csv"
 		assert config.database.enabled is False
 		assert config.filters.exclude_change_types == {"chore"}
 		assert config.prompt_path == Path("custom_prompt.txt")
 		assert config.force_use_commits is True
 
+	def test_openai_constructor_alias(self):
+		config = ReleaseNotesConfig(
+			github=GitHubConfig(token="gh_token"),
+			openai=OpenAIConfig(api_key="legacy_key"),
+		)
+
+		assert config.llm.api_key == "legacy_key"
+		assert config.openai.api_key == "legacy_key"
+
 
 class TestDictConfigLoader:
 	"""Test DictConfigLoader."""
 
 	def test_load_minimal_config(self):
-		config_dict = {"github_token": "gh_token", "openai_api_key": "openai_key"}
+		config_dict = {"github_token": "gh_token", "llm_api_key": "llm_key"}
 		loader = DictConfigLoader(config_dict)
 		config = loader.load()
 
 		assert config.github.token == "gh_token"
-		assert config.openai.api_key == "openai_key"
+		assert config.llm.api_key == "llm_key"
 		assert config.database.type == "sqlite"
+
+	def test_load_minimal_config_with_openai_alias_keys(self):
+		config_dict = {"github_token": "gh_token", "openai_api_key": "legacy_key"}
+		loader = DictConfigLoader(config_dict)
+		config = loader.load()
+
+		assert config.llm.api_key == "legacy_key"
 
 	def test_load_full_config(self):
 		config_dict = {
 			"github_token": "gh_token",
 			"github_owner": "test_owner",
-			"openai_api_key": "openai_key",
-			"openai_model": "gpt-4",
+			"llm_api_key": "llm_key",
+			"llm_model": "gpt-4",
 			"max_patch_size": 5000,
 			"db_type": "csv",
 			"db_name": "custom_db",
@@ -250,9 +272,9 @@ class TestDictConfigLoader:
 
 		assert config.github.token == "gh_token"
 		assert config.github.owner == "test_owner"
-		assert config.openai.api_key == "openai_key"
-		assert config.openai.model == "gpt-4"
-		assert config.openai.max_patch_size == 5000
+		assert config.llm.api_key == "llm_key"
+		assert config.llm.model == "gpt-4"
+		assert config.llm.max_patch_size == 5000
 		assert config.database.type == "csv"
 		assert config.database.name == "custom_db"
 		assert config.database.enabled is False
@@ -263,7 +285,7 @@ class TestDictConfigLoader:
 		assert config.force_use_commits is True
 
 	def test_missing_required_raises_error(self):
-		config_dict = {"openai_api_key": "openai_key"}
+		config_dict = {"llm_api_key": "llm_key"}
 		loader = DictConfigLoader(config_dict)
 		with pytest.raises(KeyError):
 			loader.load()
@@ -272,28 +294,50 @@ class TestDictConfigLoader:
 class TestTomlConfigLoader:
 	"""Test TomlConfigLoader."""
 
-	def test_load_minimal_config(self, tmp_path):
+	def _write_config(self, tmp_path, content: str):
 		config_file = tmp_path / "config.toml"
-		config_file.write_text(
+		config_file.write_text(content)
+		return config_file
+
+	def test_load_minimal_config(self, tmp_path):
+		config_file = self._write_config(
+			tmp_path,
 			"""
 [github]
 token = "gh_token"
 
-[openai]
-api_key = "openai_key"
-"""
+[llm]
+api_key = "llm_key"
+""",
 		)
 
 		loader = TomlConfigLoader(config_file)
 		config = loader.load()
 
 		assert config.github.token == "gh_token"
-		assert config.openai.api_key == "openai_key"
+		assert config.llm.api_key == "llm_key"
 		assert config.database.type == "sqlite"
 
+	def test_load_minimal_config_with_openai_section_alias(self, tmp_path):
+		config_file = self._write_config(
+			tmp_path,
+			"""
+[github]
+token = "gh_token"
+
+[openai]
+api_key = "legacy_key"
+""",
+		)
+
+		loader = TomlConfigLoader(config_file)
+		config = loader.load()
+
+		assert config.llm.api_key == "legacy_key"
+
 	def test_load_full_config(self, tmp_path):
-		config_file = tmp_path / "config.toml"
-		config_file.write_text(
+		config_file = self._write_config(
+			tmp_path,
 			"""prompt_path = "custom.txt"
 force_use_commits = true
 
@@ -301,8 +345,8 @@ force_use_commits = true
 token = "gh_token"
 owner = "test_owner"
 
-[openai]
-api_key = "openai_key"
+[llm]
+api_key = "llm_key"
 model = "gpt-4"
 max_patch_size = 5000
 
@@ -315,7 +359,7 @@ enabled = false
 exclude_change_types = ["chore", "refactor"]
 exclude_change_labels = ["skip"]
 exclude_authors = ["bot"]
-"""
+""",
 		)
 
 		loader = TomlConfigLoader(config_file)
@@ -323,9 +367,9 @@ exclude_authors = ["bot"]
 
 		assert config.github.token == "gh_token"
 		assert config.github.owner == "test_owner"
-		assert config.openai.api_key == "openai_key"
-		assert config.openai.model == "gpt-4"
-		assert config.openai.max_patch_size == 5000
+		assert config.llm.api_key == "llm_key"
+		assert config.llm.model == "gpt-4"
+		assert config.llm.max_patch_size == 5000
 		assert config.database.type == "csv"
 		assert config.database.name == "custom_db"
 		assert config.database.enabled is False
@@ -342,33 +386,33 @@ exclude_authors = ["bot"]
 			loader.load()
 
 	def test_missing_required_github_token_raises_error(self, tmp_path):
-		config_file = tmp_path / "config.toml"
-		config_file.write_text(
+		config_file = self._write_config(
+			tmp_path,
 			"""
 [github]
 
-[openai]
-api_key = "openai_key"
-"""
+[llm]
+api_key = "llm_key"
+""",
 		)
 
 		loader = TomlConfigLoader(config_file)
 		with pytest.raises(ValueError, match="github.token is required"):
 			loader.load()
 
-	def test_missing_required_openai_key_raises_error(self, tmp_path):
-		config_file = tmp_path / "config.toml"
-		config_file.write_text(
+	def test_missing_required_llm_key_raises_error(self, tmp_path):
+		config_file = self._write_config(
+			tmp_path,
 			"""
 [github]
 token = "gh_token"
 
-[openai]
-"""
+[llm]
+""",
 		)
 
 		loader = TomlConfigLoader(config_file)
-		with pytest.raises(ValueError, match="openai.api_key is required"):
+		with pytest.raises(ValueError, match="llm.api_key is required"):
 			loader.load()
 
 	def test_default_config_path(self):

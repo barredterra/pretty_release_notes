@@ -13,14 +13,17 @@ class GitHubConfig:
 
 
 @dataclass
-class OpenAIConfig:
+class LLMConfig:
 	api_key: str
 	model: str = "gpt-4.1"
 	max_patch_size: int = 10000
 
 	def __post_init__(self):
 		if not self.api_key:
-			raise ValueError("OpenAI API key is required")
+			raise ValueError("LLM API key is required")
+
+
+OpenAIConfig = LLMConfig
 
 
 @dataclass
@@ -87,12 +90,47 @@ def _get_default_prompt_path() -> Path:
 	return package_dir / "prompt.txt"
 
 
-@dataclass
+@dataclass(init=False)
 class ReleaseNotesConfig:
 	github: GitHubConfig
-	openai: OpenAIConfig
+	llm: LLMConfig
 	database: DatabaseConfig = field(default_factory=DatabaseConfig)
 	filters: FilterConfig = field(default_factory=FilterConfig)
 	grouping: GroupingConfig = field(default_factory=GroupingConfig)
 	prompt_path: Path = field(default_factory=_get_default_prompt_path)
 	force_use_commits: bool = False
+
+	def __init__(
+		self,
+		github: GitHubConfig,
+		llm: LLMConfig | None = None,
+		openai: LLMConfig | None = None,
+		database: DatabaseConfig | None = None,
+		filters: FilterConfig | None = None,
+		grouping: GroupingConfig | None = None,
+		prompt_path: Path | None = None,
+		force_use_commits: bool = False,
+	):
+		if llm is not None and openai is not None and llm != openai:
+			raise ValueError("Pass either llm or openai configuration, not both")
+
+		resolved_llm = llm or openai
+		if resolved_llm is None:
+			raise ValueError("LLM configuration is required")
+
+		self.github = github
+		self.llm = resolved_llm
+		self.database = database if database is not None else DatabaseConfig()
+		self.filters = filters if filters is not None else FilterConfig()
+		self.grouping = grouping if grouping is not None else GroupingConfig()
+		self.prompt_path = prompt_path if prompt_path is not None else _get_default_prompt_path()
+		self.force_use_commits = force_use_commits
+
+	@property
+	def openai(self) -> LLMConfig:
+		"""Backward-compatible alias for llm configuration."""
+		return self.llm
+
+	@openai.setter
+	def openai(self, value: LLMConfig) -> None:
+		self.llm = value

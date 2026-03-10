@@ -11,7 +11,7 @@ from .core.interfaces import NullProgressReporter, ProgressEvent, ProgressReport
 from .database import get_db
 from .github_client import GitHubClient
 from .models import ReleaseNotes, ReleaseNotesLine, Repository
-from .openai_client import get_chat_response
+from .openai_client import format_model_name, get_chat_response
 
 
 class ReleaseNotesGenerator:
@@ -32,9 +32,9 @@ class ReleaseNotesGenerator:
 		self.exclude_change_labels = config.filters.exclude_change_labels
 		self.exclude_authors = config.filters.exclude_authors
 		self.grouping = config.grouping
-		self.openai_api_key = config.openai.api_key
-		self.openai_model = config.openai.model
-		self.max_patch_size = config.openai.max_patch_size
+		self.llm_api_key = config.llm.api_key
+		self.llm_model = config.llm.model
+		self.max_patch_size = config.llm.max_patch_size
 		self.prompt_path = config.prompt_path
 		self.db_type = config.database.type
 		self.db_name = config.database.name
@@ -131,7 +131,7 @@ class ReleaseNotesGenerator:
 			self.exclude_change_labels,
 			self.exclude_authors,
 			grouping=self.grouping,
-			model_name=f"OpenAI {self.openai_model}",
+			model_name=format_model_name(self.llm_model),
 		)
 
 	def _get_prs_for_lines(self, lines: list["ReleaseNotesLine"]) -> None:
@@ -233,11 +233,11 @@ class ReleaseNotesGenerator:
 		try:
 			change_summary = get_chat_response(
 				content=prompt,
-				model=self.openai_model,
-				api_key=self.openai_api_key,
+				model=self.llm_model,
+				api_key=self.llm_api_key,
 			)
 		except Exception as e:
-			error_msg = f"OpenAI API error for {line.change}: {str(e)}"
+			error_msg = f"LLM API error ({format_model_name(self.llm_model)}) for {line.change}: {str(e)}"
 			self.progress.report(ProgressEvent(type="error", message=error_msg))
 			return
 

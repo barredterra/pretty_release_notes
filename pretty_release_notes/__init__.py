@@ -6,6 +6,7 @@ from .core.config import (
 	DatabaseConfig,
 	FilterConfig,
 	GitHubConfig,
+	LLMConfig,
 	OpenAIConfig,
 	ReleaseNotesConfig,
 )
@@ -25,6 +26,7 @@ __all__ = [
 	# Configuration
 	"ReleaseNotesConfig",
 	"GitHubConfig",
+	"LLMConfig",
 	"OpenAIConfig",
 	"DatabaseConfig",
 	"FilterConfig",

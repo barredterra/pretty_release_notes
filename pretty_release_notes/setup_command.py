@@ -73,15 +73,15 @@ def setup_config(
 		default=existing_values.get("github_owner") or "frappe",
 	)
 
-	console.print("\n[bold cyan]OpenAI Configuration[/bold cyan]")
-	openai_key = Prompt.ask(
-		"OpenAI API Key",
-		default=existing_values.get("openai_key", ""),
+	console.print("\n[bold cyan]LLM Configuration[/bold cyan]")
+	llm_key = Prompt.ask(
+		"LLM API Key",
+		default=existing_values.get("llm_key", ""),
 		password=True,
 	)
-	openai_model = Prompt.ask(
-		"OpenAI Model",
-		default=existing_values.get("openai_model") or "o1",
+	llm_model = Prompt.ask(
+		"Model (use provider:model for non-OpenAI providers)",
+		default=existing_values.get("llm_model") or "gpt-4.1",
 	)
 	max_patch_size = Prompt.ask(
 		"Maximum patch size before fallback",
@@ -130,8 +130,8 @@ def setup_config(
 	toml_content = _build_toml_content(
 		github_token=github_token,
 		github_owner=github_owner,
-		openai_key=openai_key,
-		openai_model=openai_model,
+		llm_key=llm_key,
+		llm_model=llm_model,
 		max_patch_size=int(max_patch_size),
 		db_type=db_type,
 		db_name=db_name,
@@ -148,7 +148,7 @@ def setup_config(
 	console.print("[dim]" + "─" * 60 + "[/dim]")
 	# Mask sensitive values in preview
 	preview = toml_content.replace(github_token, "ghp_***" if github_token else "")
-	preview = preview.replace(openai_key, "sk-***" if openai_key else "")
+	preview = preview.replace(llm_key, "***" if llm_key else "")
 	# Escape opening square brackets for Rich markup (closing brackets are fine)
 	preview = preview.replace("[", r"\[")
 	console.print(preview)
@@ -175,16 +175,16 @@ def setup_config(
 
 def _flatten_toml(toml_config: dict) -> dict:
 	"""Flatten nested TOML config to simple dict for defaults."""
-	flat = {}
-
 	github = toml_config.get("github", {})
-	flat["github_token"] = github.get("token", "")
-	flat["github_owner"] = github.get("owner", "")
+	flat = {
+		"github_token": github.get("token", ""),
+		"github_owner": github.get("owner", ""),
+	}
 
-	openai = toml_config.get("openai", {})
-	flat["openai_key"] = openai.get("api_key", "")
-	flat["openai_model"] = openai.get("model", "")
-	flat["max_patch_size"] = openai.get("max_patch_size", 10000)
+	llm = {**toml_config.get("openai", {}), **toml_config.get("llm", {})}
+	flat["llm_key"] = llm.get("api_key", "")
+	flat["llm_model"] = llm.get("model", "")
+	flat["max_patch_size"] = llm.get("max_patch_size", 10000)
 
 	database = toml_config.get("database", {})
 	flat["db_type"] = database.get("type", "")
@@ -207,8 +207,8 @@ def _migrate_env_to_dict(env_values: dict) -> dict:
 	return {
 		"github_token": env_values.get("GH_TOKEN", ""),
 		"github_owner": env_values.get("DEFAULT_OWNER", ""),
-		"openai_key": env_values.get("OPENAI_API_KEY", ""),
-		"openai_model": env_values.get("OPENAI_MODEL", ""),
+		"llm_key": env_values.get("LLM_API_KEY") or env_values.get("OPENAI_API_KEY", ""),
+		"llm_model": env_values.get("LLM_MODEL") or env_values.get("OPENAI_MODEL", ""),
 		"max_patch_size": int(env_values.get("MAX_PATCH_SIZE", "10000")),
 		"db_type": env_values.get("DB_TYPE", ""),
 		"db_name": env_values.get("DB_NAME", ""),
@@ -222,8 +222,8 @@ def _migrate_env_to_dict(env_values: dict) -> dict:
 def _build_toml_content(
 	github_token: str,
 	github_owner: str,
-	openai_key: str,
-	openai_model: str,
+	llm_key: str,
+	llm_model: str,
 	max_patch_size: int,
 	db_type: str,
 	db_name: str,
@@ -256,9 +256,11 @@ def _build_toml_content(
 token = "{github_token}"
 owner = "{github_owner}"
 
-[openai]
-api_key = "{openai_key}"
-model = "{openai_model}"
+[llm]
+# Legacy [openai] is still accepted for backward compatibility.
+api_key = "{llm_key}"
+# Use plain model names for OpenAI or "provider:model" for other providers.
+model = "{llm_model}"
 max_patch_size = {max_patch_size}
 
 [database]

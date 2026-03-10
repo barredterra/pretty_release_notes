@@ -7,7 +7,7 @@ from .core.config import (
 	FilterConfig,
 	GitHubConfig,
 	GroupingConfig,
-	OpenAIConfig,
+	LLMConfig,
 	ReleaseNotesConfig,
 )
 from .core.interfaces import NullProgressReporter, ProgressReporter
@@ -72,8 +72,8 @@ class ReleaseNotesBuilder:
 
 	def __init__(self):
 		self._github_token = None
-		self._openai_key = None
-		self._openai_model = "gpt-4.1"
+		self._llm_key = None
+		self._llm_model = "gpt-4.1"
 		self._max_patch_size = 10000
 		self._db_type = "sqlite"
 		self._db_name = "stored_lines"
@@ -93,12 +93,16 @@ class ReleaseNotesBuilder:
 		self._github_token = token
 		return self
 
-	def with_openai(self, api_key: str, model: str = "gpt-4.1", max_patch_size: int = 10000) -> "ReleaseNotesBuilder":
-		"""Set OpenAI configuration."""
-		self._openai_key = api_key
-		self._openai_model = model
+	def with_llm(self, api_key: str, model: str = "gpt-4.1", max_patch_size: int = 10000) -> "ReleaseNotesBuilder":
+		"""Set LLM configuration."""
+		self._llm_key = api_key
+		self._llm_model = model
 		self._max_patch_size = max_patch_size
 		return self
+
+	def with_openai(self, api_key: str, model: str = "gpt-4.1", max_patch_size: int = 10000) -> "ReleaseNotesBuilder":
+		"""Backward-compatible alias for with_llm()."""
+		return self.with_llm(api_key=api_key, model=model, max_patch_size=max_patch_size)
 
 	def with_database(
 		self, db_type: str = "sqlite", db_name: str = "stored_lines", enabled: bool = True
@@ -179,14 +183,14 @@ class ReleaseNotesBuilder:
 		"""
 		if not self._github_token:
 			raise ValueError("GitHub token is required")
-		if not self._openai_key:
-			raise ValueError("OpenAI API key is required")
+		if not self._llm_key:
+			raise ValueError("LLM API key is required")
 
 		config = ReleaseNotesConfig(
 			github=GitHubConfig(token=self._github_token),
-			openai=OpenAIConfig(
-				api_key=self._openai_key,
-				model=self._openai_model,
+			llm=LLMConfig(
+				api_key=self._llm_key,
+				model=self._llm_model,
 				max_patch_size=self._max_patch_size,
 			),
 			database=DatabaseConfig(

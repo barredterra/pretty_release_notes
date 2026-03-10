@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 from ..api import ReleaseNotesBuilder
 from ..core.interfaces import ProgressEvent, ProgressReporter
@@ -18,12 +18,14 @@ jobs: dict[str, dict[str, Any]] = {}
 class GenerateRequest(BaseModel):
 	"""Request model for generating release notes."""
 
+	model_config = ConfigDict(populate_by_name=True)
+
 	owner: str
 	repo: str
 	tag: str
 	github_token: str
-	openai_key: str
-	openai_model: str = "gpt-4.1"
+	llm_key: str = Field(validation_alias=AliasChoices("llm_key", "openai_key"))
+	llm_model: str = Field(default="gpt-4.1", validation_alias=AliasChoices("llm_model", "openai_model"))
 	exclude_types: list[str] = []
 	exclude_labels: list[str] = []
 	exclude_authors: list[str] = []
@@ -110,7 +112,7 @@ async def process_generation(job_id: str, request: GenerateRequest) -> None:
 		client = (
 			ReleaseNotesBuilder()
 			.with_github_token(request.github_token)
-			.with_openai(request.openai_key, request.openai_model)
+			.with_llm(request.llm_key, request.llm_model)
 			.with_filters(
 				exclude_types=set(request.exclude_types),
 				exclude_labels=set(request.exclude_labels),

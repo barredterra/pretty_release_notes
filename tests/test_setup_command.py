@@ -14,7 +14,7 @@ class TestHelperFunctions:
 		"""Test flattening nested TOML config."""
 		toml_config = {
 			"github": {"token": "ghp_test", "owner": "frappe"},
-			"openai": {"api_key": "sk-test", "model": "gpt-4", "max_patch_size": 5000},
+			"llm": {"api_key": "sk-test", "model": "gpt-4", "max_patch_size": 5000},
 			"database": {"type": "csv", "name": "test_db", "enabled": False},
 			"filters": {
 				"exclude_change_types": ["chore", "ci"],
@@ -27,8 +27,8 @@ class TestHelperFunctions:
 
 		assert result["github_token"] == "ghp_test"
 		assert result["github_owner"] == "frappe"
-		assert result["openai_key"] == "sk-test"
-		assert result["openai_model"] == "gpt-4"
+		assert result["llm_key"] == "sk-test"
+		assert result["llm_model"] == "gpt-4"
 		assert result["max_patch_size"] == 5000
 		assert result["db_type"] == "csv"
 		assert result["db_name"] == "test_db"
@@ -41,15 +41,15 @@ class TestHelperFunctions:
 		"""Test flattening TOML with missing sections."""
 		toml_config = {
 			"github": {"token": "ghp_test"},
-			"openai": {"api_key": "sk-test"},
+			"llm": {"api_key": "sk-test"},
 		}
 
 		result = _flatten_toml(toml_config)
 
 		assert result["github_token"] == "ghp_test"
 		assert result["github_owner"] == ""
-		assert result["openai_key"] == "sk-test"
-		assert result["openai_model"] == ""
+		assert result["llm_key"] == "sk-test"
+		assert result["llm_model"] == ""
 		assert result["db_type"] == ""
 		assert result["exclude_types"] == ""
 
@@ -57,7 +57,7 @@ class TestHelperFunctions:
 		"""Test that empty strings in TOML are preserved (caller should handle with 'or' operator)."""
 		toml_config = {
 			"github": {"token": "ghp_test", "owner": ""},
-			"openai": {"api_key": "sk-test", "model": ""},
+			"llm": {"api_key": "sk-test", "model": ""},
 			"database": {"type": "", "name": "", "enabled": True},
 		}
 
@@ -65,9 +65,21 @@ class TestHelperFunctions:
 
 		# Empty strings should be preserved - it's the caller's job to handle them
 		assert result["github_owner"] == ""
-		assert result["openai_model"] == ""
+		assert result["llm_model"] == ""
 		assert result["db_type"] == ""
 		assert result["db_name"] == ""
+
+	def test_flatten_toml_supports_openai_section_alias(self):
+		"""Test that legacy openai section is still supported."""
+		toml_config = {
+			"github": {"token": "ghp_test"},
+			"openai": {"api_key": "sk-test", "model": "gpt-4"},
+		}
+
+		result = _flatten_toml(toml_config)
+
+		assert result["llm_key"] == "sk-test"
+		assert result["llm_model"] == "gpt-4"
 
 	def test_migrate_env_to_dict(self):
 		"""Test migrating .env format to dict."""
@@ -88,8 +100,8 @@ class TestHelperFunctions:
 
 		assert result["github_token"] == "ghp_test"
 		assert result["github_owner"] == "frappe"
-		assert result["openai_key"] == "sk-test"
-		assert result["openai_model"] == "gpt-4"
+		assert result["llm_key"] == "sk-test"
+		assert result["llm_model"] == "gpt-4"
 		assert result["max_patch_size"] == 5000
 		assert result["db_type"] == "sqlite"
 		assert result["db_name"] == "test_db"
@@ -109,7 +121,7 @@ class TestHelperFunctions:
 
 		assert result["github_token"] == "ghp_test"
 		assert result["github_owner"] == ""
-		assert result["openai_key"] == "sk-test"
+		assert result["llm_key"] == "sk-test"
 		assert result["max_patch_size"] == 10000  # default
 
 	def test_build_toml_content(self):
@@ -117,8 +129,8 @@ class TestHelperFunctions:
 		content = _build_toml_content(
 			github_token="ghp_test",
 			github_owner="frappe",
-			openai_key="sk-test",
-			openai_model="gpt-4",
+			llm_key="sk-test",
+			llm_model="gpt-4",
 			max_patch_size=5000,
 			db_type="sqlite",
 			db_name="test_db",
@@ -133,7 +145,7 @@ class TestHelperFunctions:
 		assert "[github]" in content
 		assert 'token = "ghp_test"' in content
 		assert 'owner = "frappe"' in content
-		assert "[openai]" in content
+		assert "[llm]" in content
 		assert 'api_key = "sk-test"' in content
 		assert 'model = "gpt-4"' in content
 		assert "max_patch_size = 5000" in content
@@ -153,8 +165,8 @@ class TestHelperFunctions:
 		content = _build_toml_content(
 			github_token="ghp_test",
 			github_owner="",
-			openai_key="sk-test",
-			openai_model="gpt-4",
+			llm_key="sk-test",
+			llm_model="gpt-4",
 			max_patch_size=10000,
 			db_type="sqlite",
 			db_name="stored_lines",
@@ -185,8 +197,8 @@ class TestSetupCommand:
 			[
 				"ghp_test",  # github token
 				"frappe",  # github owner
-				"sk-test",  # openai key
-				"gpt-4",  # openai model
+				"sk-test",  # llm key
+				"gpt-4",  # llm model
 				"10000",  # max patch size
 				"sqlite",  # db type
 				"stored_lines",  # db name
@@ -222,7 +234,7 @@ class TestSetupCommand:
 		content = config_path.read_text()
 		assert "[github]" in content
 		assert 'token = "ghp_test"' in content
-		assert "[openai]" in content
+		assert "[llm]" in content
 		assert 'api_key = "sk-test"' in content
 
 	def test_setup_migrates_from_env(self, tmp_path, monkeypatch):
@@ -246,8 +258,8 @@ DEFAULT_OWNER=test_owner
 			[
 				"",  # github token (accept default from .env)
 				"",  # github owner (accept default from .env)
-				"",  # openai key (accept default from .env)
-				"gpt-4",  # openai model
+				"",  # llm key (accept default from .env)
+				"gpt-4",  # llm model
 				"10000",  # max patch size
 				"sqlite",  # db type
 				"stored_lines",  # db name
@@ -264,7 +276,7 @@ DEFAULT_OWNER=test_owner
 		def mock_prompt(*args, **kwargs):
 			default = kwargs.get("default", "")
 			value = next(inputs)
-			return value if value else default
+			return value or default
 
 		def mock_confirm(*args, **kwargs):
 			response = next(inputs)
