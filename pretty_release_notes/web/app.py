@@ -8,6 +8,7 @@ from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 from ..api import ReleaseNotesBuilder
 from ..core.interfaces import ProgressEvent, ProgressReporter
+from ..openai_client import DEFAULT_MODEL
 
 app = FastAPI(title="Pretty Release Notes API", version="1.0.0")
 
@@ -25,7 +26,7 @@ class GenerateRequest(BaseModel):
 	tag: str
 	github_token: str
 	llm_key: str = Field(validation_alias=AliasChoices("llm_key", "openai_key"))
-	llm_model: str = Field(default="gpt-4.1", validation_alias=AliasChoices("llm_model", "openai_model"))
+	llm_model: str = Field(default=DEFAULT_MODEL, validation_alias=AliasChoices("llm_model", "openai_model"))
 	exclude_types: list[str] = []
 	exclude_labels: list[str] = []
 	exclude_authors: list[str] = []

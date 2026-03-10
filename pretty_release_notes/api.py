@@ -12,6 +12,7 @@ from .core.config import (
 )
 from .core.interfaces import NullProgressReporter, ProgressReporter
 from .generator import ReleaseNotesGenerator
+from .openai_client import DEFAULT_MODEL
 
 
 class ReleaseNotesClient:
@@ -73,7 +74,7 @@ class ReleaseNotesBuilder:
 	def __init__(self):
 		self._github_token = None
 		self._llm_key = None
-		self._llm_model = "gpt-4.1"
+		self._llm_model = DEFAULT_MODEL
 		self._max_patch_size = 10000
 		self._db_type = "sqlite"
 		self._db_name = "stored_lines"
@@ -93,14 +94,16 @@ class ReleaseNotesBuilder:
 		self._github_token = token
 		return self
 
-	def with_llm(self, api_key: str, model: str = "gpt-4.1", max_patch_size: int = 10000) -> "ReleaseNotesBuilder":
+	def with_llm(self, api_key: str, model: str = DEFAULT_MODEL, max_patch_size: int = 10000) -> "ReleaseNotesBuilder":
 		"""Set LLM configuration."""
 		self._llm_key = api_key
 		self._llm_model = model
 		self._max_patch_size = max_patch_size
 		return self
 
-	def with_openai(self, api_key: str, model: str = "gpt-4.1", max_patch_size: int = 10000) -> "ReleaseNotesBuilder":
+	def with_openai(
+		self, api_key: str, model: str = DEFAULT_MODEL, max_patch_size: int = 10000
+	) -> "ReleaseNotesBuilder":
 		"""Backward-compatible alias for with_llm()."""
 		return self.with_llm(api_key=api_key, model=model, max_patch_size=max_patch_size)
 

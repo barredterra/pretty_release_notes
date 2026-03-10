@@ -7,6 +7,8 @@ from dotenv import dotenv_values
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
 
+from .openai_client import DEFAULT_MODEL
+
 console = Console()
 
 
@@ -80,8 +82,8 @@ def setup_config(
 		password=True,
 	)
 	llm_model = Prompt.ask(
-		"Model (use provider:model for non-OpenAI providers)",
-		default=existing_values.get("llm_model") or "gpt-4.1",
+		"Model (prefer provider:model, e.g. openai:gpt-4.1)",
+		default=existing_values.get("llm_model") or DEFAULT_MODEL,
 	)
 	max_patch_size = Prompt.ask(
 		"Maximum patch size before fallback",
@@ -259,7 +261,8 @@ owner = "{github_owner}"
 [llm]
 # Legacy [openai] is still accepted for backward compatibility.
 api_key = "{llm_key}"
-# Use plain model names for OpenAI or "provider:model" for other providers.
+# Prefer "provider:model" syntax (for example: "openai:gpt-4.1" or "anthropic:claude-sonnet-4-5").
+# Unqualified names are still treated as OpenAI for backward compatibility.
 model = "{llm_model}"
 max_patch_size = {max_patch_size}
 

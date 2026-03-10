@@ -19,13 +19,13 @@ owner = "frappe"
 
 [llm]
 # LLM provider API key (required)
-# For plain OpenAI models, use an OpenAI key. For other providers, use that provider's key.
+# Use the API key for the provider referenced by `model`.
 # Legacy [openai] is still accepted for backward compatibility.
 api_key = ""
 
-# Model to use. Plain names default to OpenAI.
-# For other providers, use "provider:model" (for example: "anthropic:claude-sonnet-4-5")
-model = "gpt-4.1"
+# Model to use. Prefer fully qualified "provider:model" values.
+# Unqualified names still default to OpenAI for backward compatibility.
+model = "openai:gpt-4.1"
 
 # Maximum patch size before fallback to commit message (default: 10000)
 max_patch_size = 10000
