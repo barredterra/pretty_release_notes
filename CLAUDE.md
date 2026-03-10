@@ -2,42 +2,50 @@
 
 ## Purpose
 
-This is a multi-mode Python tool that transforms GitHub's auto-generated release notes into polished, human-readable sentences using OpenAI. It can be used as:
-1. **CLI Tool** - Traditional command-line interface
-2. **Python Library** - Programmatic API for integration
-3. **Web Backend** - REST API for web frontends
+This is a multi-mode Python tool that rewrites GitHub's auto-generated release notes into polished, human-readable sentences using an LLM. It can be used as:
 
-It's designed for ERPNext and Frappe Framework projects but can be adapted for other repositories.
+1. **CLI Tool** - Traditional command-line workflow
+2. **Python Library** - Programmatic API for integration
+3. **Web Backend** - FastAPI service for web frontends or automation
+
+It is tuned for ERPNext and the Frappe Framework by default, but can be adapted to other repositories by providing a custom prompt template.
 
 ## Core Functionality
 
-- Converts PR titles into clear, user-friendly sentences using AI
-- Filters out non-user-facing commits (chore, ci, refactor)
-- Automatically detects and excludes reverted PRs within the same release
-- Intelligently handles backport PRs by reusing summaries
-- Credits human authors and reviewers (excludes bots)
-- Caches generated summaries to avoid redundant API calls
-- Supports optional manual specification of previous tag for custom comparison ranges
+- Rewrites GitHub release-note PR lines into clearer, user-facing summaries
+- Supports provider-qualified LLM models through `any_llm` (for example `openai:o3`, `openai:gpt-5`, `anthropic:claude-sonnet-4-5`)
+- Filters non-user-facing changes by conventional commit type, label, or author
+- Detects PRs that were reverted within the same release and removes both the original PR and the revert PR from output
+- Reuses cached summaries for direct backports by using the original PR number as the summary key
+- Falls back to commit-based generation when PR metadata is unavailable or `force_use_commits` is enabled
+- Loads reviewer information and credits authors/reviewers while excluding configured bots
+- Supports optional grouping by conventional commit type, with breaking changes rendered first when present
+- Stores generated summaries in CSV or SQLite caches
+- Supports interactive TOML-based setup and one-time migration from legacy `.env` files
+- Can infer the previous tag from the GitHub compare URL in existing release notes when one is not supplied manually
 
 ## Technology Stack
 
 - **Language**: Python 3.11+
 - **Key Libraries**:
-  - `typer` - CLI framework with type hints
-  - `openai` - AI integration for summarization
-  - `requests` - GitHub API interactions
-  - `tenacity` - Retry logic with exponential backoff
-  - `rich` - Terminal UI formatting
-  - `fastapi` - Web API framework (optional)
-  - `uvicorn` - ASGI server (optional)
-- **APIs**:
-  - GitHub REST API - Repository, PR, commit, release data
-  - GitHub GraphQL API - Linked issues
-  - OpenAI Chat Completions - AI-powered summarization
+  - `typer` - CLI framework
+  - `rich` - terminal output and interactive prompts
+  - `requests` - GitHub REST and GraphQL communication
+  - `tenacity` - retry logic for LLM calls
+  - `python-dotenv` - legacy `.env` loading and migration support
+  - `any-llm-sdk[all]` - provider-agnostic LLM access
+- **Optional Web Stack**:
+  - `fastapi` - REST API
+  - `uvicorn` - ASGI server
+  - `pydantic` - request/response models
+- **External APIs**:
+  - GitHub REST API - repositories, PRs, commits, reviews, releases
+  - GitHub GraphQL API - issues closed by a PR
+  - LLM provider APIs via `any_llm`
 
 ## Architecture
 
-The project follows **Hexagonal Architecture** (Ports & Adapters pattern) to support multiple usage modes while maintaining clean separation of concerns.
+The project follows a lightweight **Hexagonal Architecture** / **Ports and Adapters** approach. The core release-note generation logic is UI-agnostic and reusable across CLI, library, and web modes.
 
 ### Architecture Layers
 
@@ -51,363 +59,438 @@ The project follows **Hexagonal Architecture** (Ports & Adapters pattern) to sup
 └───────┼─────────────┼─────────────┼───────────────────┘
         │             │             │
 ┌───────┼─────────────┼─────────────┼───────────────────┐
-│       │      Core Domain (Ports)  │                   │
+│       │          Core Domain      │                   │
 │  ┌────▼─────────────▼─────────────▼─────┐             │
 │  │     ProgressReporter Interface       │             │
-│  │   (Event-based progress reporting)   │             │
+│  │   (event-based progress reporting)   │             │
 │  └──────────────────────────────────────┘             │
 │  ┌──────────────────────────────────────┐             │
-│  │    ReleaseNotesConfig (typed)        │             │
-│  │  Configuration with validation       │             │
+│  │  ReleaseNotesConfig / LLMConfig      │             │
+│  │  typed configuration with validation │             │
 │  └──────────────────────────────────────┘             │
 │  ┌──────────────────────────────────────┐             │
 │  │      ReleaseNotesGenerator           │             │
-│  │   (Core business logic - UI free)    │             │
+│  │   core business logic, UI-free       │             │
 │  └──────────────────────────────────────┘             │
 └───────────────────────────────────────────────────────┘
 ```
 
 ## Project Structure
 
-```
-pretty_release_notes/   # Main package directory
-├── __init__.py         # Package exports (public API)
-├── __main__.py         # CLI entry via python -m
-├── main.py             # CLI implementation with subcommands
-├── setup_command.py    # Interactive setup command for configuration
-├── api.py              # Library API (ReleaseNotesClient, ReleaseNotesBuilder)
-├── generator.py        # Core business logic (UI-independent)
-├── github_client.py    # GitHub API wrapper
-├── openai_client.py    # OpenAI API wrapper
-├── database.py         # Caching layer (CSV/SQLite with thread-safety)
-├── ui.py               # Terminal UI (used via adapter)
-├── prompt.txt          # AI prompt template (packaged with app)
-├── py.typed            # PEP 561 type marker
-├── core/               # Core abstractions (Hexagonal Architecture)
-│   ├── __init__.py     # Package initialization
-│   ├── interfaces.py   # ProgressReporter protocol & events
-│   ├── config.py       # Type-safe configuration dataclasses
-│   ├── config_loader.py # Configuration loading strategies
-│   └── execution.py    # Execution strategies (ThreadPool, Sequential)
-├── adapters/           # Adapters for external interfaces
-│   ├── __init__.py     # Package initialization
-│   └── cli_progress.py # CLI adapter for ProgressReporter
-├── web/                # Web API backend
-│   ├── __init__.py     # Package initialization
-│   ├── app.py          # FastAPI application with endpoints
-│   └── server.py       # Uvicorn server runner
-└── models/             # Data models
-    ├── __init__.py     # Model re-exports
-    ├── change.py       # Protocol for PR/Commit interface
-    ├── pull_request.py # PR data model
-    ├── commit.py       # Commit data model
-    ├── issue.py        # Issue data model
-    ├── repository.py   # Repository data model
-    ├── release_notes.py # Release notes container
-    ├── release_notes_line.py # Individual line model
-    └── _utils.py       # Utility functions
-tests/                  # Test suite (77 tests, 58% coverage)
-├── __init__.py         # Test package
-├── test_core.py        # Tests for core abstractions
-├── test_api.py         # Tests for library API
-├── test_execution.py   # Tests for execution strategies
-├── test_database_threading.py # Thread-safety tests
-├── test_web_api.py     # Tests for web endpoints
-└── pull_request.py     # Pull request test fixtures
-examples/               # Usage examples
-└── library_usage.py    # Library API examples
-docs/adr/               # Architecture Decision Records
-└── 001-multi-mode-architecture.md # Hexagonal architecture decisions
-prompt.txt              # AI prompt template (project root, for reference)
-pyproject.toml          # Package configuration and dependencies
-.pre-commit-config.yaml # Pre-commit hooks (ruff, mypy)
-config.toml.example     # Example TOML configuration
+```text
+pretty_release_notes/                 # Main package
+├── __init__.py                       # Public package exports
+├── __main__.py                       # `python -m pretty_release_notes`
+├── main.py                           # Typer CLI entrypoint
+├── setup_command.py                  # Interactive setup / migration helpers
+├── api.py                            # Library client and builder
+├── generator.py                      # Core release note generation workflow
+├── github_client.py                  # GitHub API wrapper
+├── openai_client.py                  # LLM adapter (legacy module name)
+├── database.py                       # CSV / SQLite cache backends
+├── ui.py                             # Rich-based CLI UI
+├── prompt.txt                        # Packaged default prompt
+├── py.typed                          # PEP 561 marker
+├── core/
+│   ├── __init__.py
+│   ├── config.py                     # Typed configuration models
+│   ├── config_loader.py              # TOML, dict, and .env loaders
+│   ├── execution.py                  # Parallel execution strategies
+│   └── interfaces.py                 # Progress interfaces and events
+├── adapters/
+│   ├── __init__.py
+│   └── cli_progress.py               # CLI ProgressReporter adapter
+├── web/
+│   ├── __init__.py
+│   ├── app.py                        # FastAPI app and background jobs
+│   └── server.py                     # Uvicorn runner
+└── models/
+    ├── __init__.py
+    ├── _utils.py                     # Conventional commit helpers
+    ├── change.py                     # Change protocol
+    ├── commit.py                     # Commit model
+    ├── issue.py                      # Linked issue model
+    ├── pull_request.py               # Pull request model
+    ├── release_notes.py              # Release notes container / serializer
+    ├── release_notes_line.py         # Parsed line model
+    └── repository.py                 # Repository model
+
+tests/                                # Pytest suite
+├── __init__.py
+├── pull_request.py                   # PR fixtures
+├── test_api.py
+├── test_core.py
+├── test_database_threading.py
+├── test_execution.py
+├── test_models_utils.py
+├── test_openai_client.py
+├── test_pull_request.py
+├── test_release_notes.py
+├── test_setup_command.py
+└── test_web_api.py
+
+docs/adr/                             # Architecture Decision Records
+├── 001-multi-mode-architecture.md
+├── 002-user-directory-database-storage.md
+└── 003-toml-configuration.md
+
+examples/
+└── library_usage.py
+
+.github/workflows/                    # CI workflows
+├── lint.yml
+└── tests.yml
+
+CHANGELOG.md
+CLAUDE.md
+CONTRIBUTING.md
+README.md
+config.toml.example                   # Example user config
+prompt.txt                            # Root prompt file for development/reference
+pyproject.toml                        # Packaging, dependencies, tool config
+.pre-commit-config.yaml               # Pre-commit hooks
 ```
 
 ## Key Components
 
 ### Core Abstractions: `pretty_release_notes/core/`
 
-**`pretty_release_notes/core/interfaces.py`** - Progress Reporting Protocol:
-- `ProgressEvent`: Dataclass for progress events (type, message, metadata)
-- `ProgressReporter`: Abstract interface for progress reporting
-- `NullProgressReporter`: No-op implementation for library usage
-- `CompositeProgressReporter`: Combine multiple reporters
+**`pretty_release_notes/core/interfaces.py`** - Progress reporting protocol:
+- `ProgressEvent`: Dataclass with `type`, `message`, and optional `metadata`
+- `ProgressReporter`: Protocol used by the generator and adapters
+- `NullProgressReporter`: No-op reporter for silent operation
+- `CompositeProgressReporter`: Broadcasts progress to multiple reporters
 
-**`pretty_release_notes/core/config.py`** - Type-Safe Configuration:
-- `GitHubConfig`: GitHub token and owner
-- `OpenAIConfig`: OpenAI API key, model, max patch size
-- `DatabaseConfig`: Database type, name, enabled state
-- `FilterConfig`: Exclusion filters for types, labels, authors
-- `ReleaseNotesConfig`: Main configuration container
-- All configs include validation in `__post_init__`
+**`pretty_release_notes/core/config.py`** - Typed configuration:
+- `GitHubConfig`: GitHub token and optional default owner
+- `LLMConfig`: Provider API key, model name, and max patch size
+- `OpenAIConfig`: Backward-compatible alias for `LLMConfig`
+- `DatabaseConfig`: Cache backend type, name, and enabled state
+- `FilterConfig`: Excluded change types, labels, and authors
+- `GroupingConfig`: Grouping toggle, default type headings, `other_heading`, and `breaking_changes_heading`
+- `ReleaseNotesConfig`: Main config object; accepts `llm=` or legacy `openai=` inputs and validates required config on creation
 
-**`pretty_release_notes/core/config_loader.py`** - Configuration Loading Strategies:
-- `ConfigLoader`: Abstract base class
-- `TomlConfigLoader`: Load from TOML file (default for CLI)
-- `DictConfigLoader`: Load from dictionary (for programmatic usage)
-- `EnvConfigLoader`: Legacy loader for .env files (deprecated)
+**`pretty_release_notes/core/config_loader.py`** - Configuration loaders:
+- `ConfigLoader`: Abstract base loader
+- `TomlConfigLoader`: Primary CLI loader; reads `~/.pretty-release-notes/config.toml` by default
+- `TomlConfigLoader` merges `[llm]` with legacy `[openai]`, with `[llm]` taking precedence
+- `DictConfigLoader`: Programmatic loader; supports `llm_*` keys and legacy `openai_*` fallbacks
+- `EnvConfigLoader`: Legacy `.env` loader kept for backward compatibility and migration workflows
 
-**`pretty_release_notes/core/execution.py`** - Execution Strategies:
-- `ExecutionStrategy`: Abstract interface for parallel execution
-- `ThreadPoolStrategy`: Managed thread pool (default, max_workers=10)
-- `ThreadingStrategy`: Original direct threading implementation
-- `SequentialStrategy`: For debugging or constrained environments
+**`pretty_release_notes/core/execution.py`** - Execution strategies:
+- `ExecutionStrategy`: Abstract interface for parallel work
+- `ThreadPoolStrategy`: Default strategy used by `ReleaseNotesGenerator`
+- `ThreadingStrategy`: Older direct-threading implementation kept for compatibility
+- `SequentialStrategy`: Useful for debugging or constrained environments
 
 ### Adapters: `pretty_release_notes/adapters/`
 
-**`pretty_release_notes/adapters/cli_progress.py`** - CLI Progress Adapter:
-- `CLIProgressReporter`: Bridges `ProgressReporter` interface to `CLI` class
-- Routes events to appropriate CLI methods (markdown, success, error, release_notes)
+**`pretty_release_notes/adapters/cli_progress.py`** - CLI adapter:
+- `CLIProgressReporter` translates `ProgressEvent` objects into `CLI` output calls
+- Keeps the generator independent from Rich/terminal concerns
 
 ### Library API: `pretty_release_notes/api.py`
 
-**`ReleaseNotesClient`** - High-level client for library usage:
-- `generate_release_notes()`: Generate notes for a repository and tag
-- `update_github_release()`: Update release notes on GitHub
-- Accepts `ReleaseNotesConfig` and optional `ProgressReporter`
+**`ReleaseNotesClient`** - High-level library interface:
+- `generate_release_notes()`: Generate release notes for a repo and tag
+- `update_github_release()`: Write generated notes back to GitHub
+- Accepts a `ReleaseNotesConfig` plus an optional `ProgressReporter`
 
-**`ReleaseNotesBuilder`** - Fluent builder pattern:
-- `with_github_token()`: Configure GitHub authentication
-- `with_openai()`: Configure OpenAI API
-- `with_database()`: Configure caching
-- `with_filters()`: Configure PR/commit filtering
-- `with_progress_reporter()`: Add custom progress reporting
-- `build()`: Construct configured client
+**`ReleaseNotesBuilder`** - Fluent builder for library usage:
+- `with_github_token()`: Set GitHub authentication
+- `with_llm()`: Primary LLM configuration method
+- `with_openai()`: Backward-compatible alias for `with_llm()`
+- `with_database()`: Configure CSV/SQLite caching
+- `with_filters()`: Configure excluded types, labels, and authors
+- `with_grouping()`: Enable and customize grouped output headings
+- `with_prompt_file()`: Override the prompt template file
+- `with_force_commits()`: Force commit-based processing even when PR data exists
+- `with_progress_reporter()`: Attach custom progress reporting
+- `build()`: Construct a configured `ReleaseNotesClient`
 
 ### Web Backend: `pretty_release_notes/web/`
 
-**`pretty_release_notes/web/app.py`** - FastAPI REST API:
-- `POST /generate`: Create release notes generation job (background task)
-- `GET /jobs/{job_id}`: Get job status and result
+**`pretty_release_notes/web/app.py`** - FastAPI API:
+- `POST /generate`: Start a background generation job
+- `GET /jobs/{job_id}`: Poll job status, progress, result, or error
 - `GET /health`: Health check endpoint
-- `WebProgressReporter`: Captures progress events for job tracking
-- In-memory job storage (use Redis for production)
+- `GenerateRequest` uses `llm_key` / `llm_model` as primary fields and still accepts `openai_key` / `openai_model`
+- Request payload also supports `exclude_types`, `exclude_labels`, and `exclude_authors`
+- `WebProgressReporter` stores structured progress events in memory
+- Job storage is in-process and in-memory; a persistent store such as Redis would be needed for production
 
 ### Entry Points
 
-**`pretty_release_notes/__init__.py`** - Package API:
-- Public API exports: `ReleaseNotesBuilder`, `ReleaseNotesClient`, config classes, interfaces
-- Enables: `from pretty_release_notes import ReleaseNotesBuilder`
+**`pretty_release_notes/__init__.py`** - Public package API:
+- Re-exports `ReleaseNotesBuilder`, `ReleaseNotesClient`, config classes, and progress interfaces
+- Exports both `LLMConfig` and the alias `OpenAIConfig`
 
-**`pretty_release_notes/__main__.py`** - Module Entry:
-- Enables: `python -m pretty_release_notes`
+**`pretty_release_notes/__main__.py`** - Module entrypoint:
+- Enables `python -m pretty_release_notes`
 - Delegates to `main.app()`
 
-**`pretty_release_notes/main.py`** - CLI Implementation:
-- CLI with subcommands using Typer
-- Two main commands:
-  - `generate`: Generate release notes for a repository
-  - `setup`: Interactive configuration setup
-- Loads configuration from `~/.pretty-release-notes/config.toml` using `TomlConfigLoader`
-- Creates `CLIProgressReporter` adapter
-- Orchestrates: initialize → generate → display → optionally update
-- Console script entry point: `pretty-release-notes = "pretty_release_notes.main:app"`
-- Supports `--config-path` flag for custom config location
+**`pretty_release_notes/main.py`** - CLI:
+- Typer app with `generate` and `setup` commands
+- Loads TOML config from `~/.pretty-release-notes/config.toml` by default
+- Allows CLI overrides for owner, prompt path, database toggle, commit fallback, grouping, and config path
+- Uses `CLIProgressReporter` to display progress and results
+- Prompts the user before writing updated release notes back to GitHub
 
-**`pretty_release_notes/setup_command.py`** - Interactive Setup Command:
-- Walks user through configuration with interactive prompts
-- Reads existing TOML config to show current values as defaults
-- Can migrate from `.env` files automatically
-- Validates inputs and builds properly formatted TOML
-- Helper functions:
-  - `_flatten_toml()`: Convert nested TOML to flat dict for defaults
-  - `_migrate_env_to_dict()`: Convert .env format to dict
-  - `_build_toml_content()`: Build formatted TOML file content
-- Offers to delete old .env file after successful migration
+**`pretty_release_notes/setup_command.py`** - Interactive setup:
+- Creates or updates user config interactively
+- Reads existing TOML values to prefill prompts
+- Can import legacy values from a project `.env`
+- Writes a `[llm]`-based TOML config file
+- Contains helper functions for flattening TOML, migrating `.env` values, and rendering TOML output
 
 ### Core Logic: `pretty_release_notes/generator.py` - `ReleaseNotesGenerator`
-- **Constructor**: Accepts `ReleaseNotesConfig`, optional `ProgressReporter`, and optional `ExecutionStrategy`
-- **UI-independent**: No direct UI dependencies, uses progress events
-- `initialize_repository()`: Fetches repository metadata
-- `generate()`: Main workflow for release note generation
-  - Retrieves current release
-  - Regenerates release notes via GitHub API
-  - Parses into structured data
-  - Downloads PR information in parallel (using execution strategy)
-  - Falls back to commits if no PRs found
-  - Processes lines to generate AI summaries in parallel
-  - Loads reviewer information in parallel
-  - Reports progress via `ProgressEvent` emissions (11 locations)
-- `_process_line()`: Core processing with cache checking and OpenAI calls
+
+- Constructor accepts `ReleaseNotesConfig`, optional `ProgressReporter`, and optional `ExecutionStrategy`
+- Initializes a `GitHubClient` and normalizes commonly used config fields
+- `initialize_repository()`: Loads repository metadata before generation/update operations
+- `generate()` workflow:
+  - Loads the current GitHub release body
+  - Infers `previous_tag_name` from the compare URL when needed
+  - Tries to regenerate release notes via GitHub
+  - Falls back to the existing release body on 403/404 errors
+  - Parses lines into `ReleaseNotes`
+  - Downloads PR details in parallel
+  - Falls back to commit lines when forced or when PR parsing produced no usable changes
+  - Processes lines in parallel with cache lookup + LLM summarization
+  - Loads reviewers
+  - Serializes final markdown with filters, attribution, grouping, and LLM disclosure
+- `update_on_github()` updates the release body and gracefully skips 403 errors
 
 ### GitHub Integration: `pretty_release_notes/github_client.py` - `GitHubClient`
-- Authenticated session with Bearer token
-- Methods for: repositories, PRs, commits, reviewers, issues, diffs
-- Uses REST API and GraphQL API
 
-### AI Integration: `pretty_release_notes/openai_client.py`
-- `get_chat_response()`: Wrapped with retry logic
-- Exponential backoff: 1-60s, max 6 attempts
-- Flex service tier for o3/o4-mini models
+- Wraps a `requests.Session` with retry-enabled HTTP adapter
+- Uses GitHub REST APIs for repositories, releases, PRs, commits, patches, reviews, and diffs
+- Uses GitHub GraphQL to load issues closed by a PR
+- Returns typed model objects such as `Repository`, `PullRequest`, `Commit`, and `Issue`
+
+### LLM Integration: `pretty_release_notes/openai_client.py` - LLM adapter
+
+Despite the legacy module name, this file is now a generic LLM adapter.
+
+- Uses `any_llm` / `any-llm-sdk[all]` rather than the `openai` SDK directly
+- Default model is `openai:o3`
+- Supports provider-qualified models such as `openai:gpt-5` or `anthropic:claude-sonnet-4-5`
+- Unqualified model names still default to OpenAI for backward compatibility
+- Applies OpenAI `service_tier="flex"` for supported `o3`, `o4-mini`, and selected `gpt-5*` models, and `auto` otherwise
+- `format_model_name()` produces user-facing model labels for generated notes
+- `get_chat_response()` is wrapped in retry logic with random exponential backoff and up to six attempts
 
 ### Data Persistence: `pretty_release_notes/database.py`
-- Abstract `Database` base class
-- `CSVDatabase`: File-based storage
-- `SQLiteDatabase`: Thread-safe with thread-local connections
-  - Uses `threading.local()` for connection pooling
-  - Lock-based transactions for safe concurrent access
-- Factory pattern: `get_db()` returns appropriate backend
-- **Storage location**: Relative paths (default) stored in `~/.pretty-release-notes/`, absolute paths stored at exact location
+
+- `Database`: Base interface for cached sentence storage
+- `CSVDatabase`: CSV-backed cache
+- `SQLiteDatabase`: Thread-safe SQLite cache
+  - Uses thread-local connections/cursors
+  - Protects write transactions with a lock
+  - Creates the table and index lazily
+- `get_db()`: Factory that resolves relative database names into `~/.pretty-release-notes/`
+- Absolute database paths are honored as-is
 
 ### UI: `pretty_release_notes/ui.py` - `CLI`
-- Uses Rich library for formatted terminal output
-- Methods for: markdown display, release notes, confirmations, errors, success
+
+- Rich-based terminal UI used by the CLI adapter
+- Displays markdown, release notes, errors, success messages, and update confirmations
 
 ### Models: `pretty_release_notes/models/`
 
-**`PullRequest` class** (`pretty_release_notes/models/pull_request.py`):
-- Extracts backport PR number from title
-- Determines conventional commit type
-- Constructs AI prompts with issue context and PR patch
-- Resolves reviewers (excluding self-reviews and bots)
-- Recursively fetches original PR for backports
+**`Change` protocol** (`pretty_release_notes/models/change.py`):
+- Shared contract for `PullRequest` and `Commit`
+- Defines summary, author, reviewer, and prompt-generation behavior
 
-**`Commit` class** (`pretty_release_notes/models/commit.py`):
-- Simpler than PullRequest
-- Uses commit diff instead of PR patch
-- Truncates large diffs with "[TRUNCATED]" marker
+**`PullRequest`** (`pretty_release_notes/models/pull_request.py`):
+- Detects direct backports from title suffixes like `(backport #12345)`
+- Detects revert PRs from PR body patterns such as `Reverts owner/repo#12345`
+- Extracts conventional commit type and breaking-change markers from title
+- Builds prompts from the template, linked issues, and either the PR patch or commit messages
+- Resolves reviewers, merged-by users, and backport/original PR relationships
 
-**`ReleaseNotes` class** (`pretty_release_notes/models/release_notes.py`):
-- Container for all release note lines
-- Parallel reviewer fetching
-- Serializes to markdown with exclusion filters
-- Generates author and reviewer lists
-- Adds AI disclosure
+**`Commit`** (`pretty_release_notes/models/commit.py`):
+- Uses commit message as the source text for conventional commit / breaking-change parsing
+- Builds prompts from the template plus commit diff
+- Truncates very large diffs with a `[TRUNCATED]` marker
+
+**`ReleaseNotesLine`** (`pretty_release_notes/models/release_notes_line.py`):
+- Parses PR URLs out of GitHub-generated note lines
+- Preserves "new contributor" lines without sending them to the LLM
+- Renders summarized changes as markdown bullets with GitHub links
+
+**`ReleaseNotes`** (`pretty_release_notes/models/release_notes.py`):
+- Stores parsed lines
+- Loads PR reviewers concurrently
+- Filters excluded change types, labels, and reverted PRs
+- Supports grouped or flat serialization
+- Emits author and reviewer sections
+- Appends an AI disclosure section that includes the model name
+
+**Utilities** (`pretty_release_notes/models/_utils.py`):
+- `get_conventional_type()`: Extracts conventional commit type
+- `is_breaking_change()`: Detects `!`-style breaking changes from commit/PR titles
 
 ## Configuration
 
-The tool supports multiple configuration methods:
+The tool supports several configuration paths, with TOML as the primary CLI format.
 
-### Method 1: Interactive Setup (Recommended for CLI)
+### Method 1: Interactive Setup
 
-Use the interactive setup command to create or update your configuration:
+Use the setup command to create or update the default config:
 
 ```bash
 pretty-release-notes setup
 ```
 
 This command:
-- Guides you through all configuration options with interactive prompts
-- Shows existing values as defaults (from existing TOML config)
-- Creates the config file at `~/.pretty-release-notes/config.toml`
-- Validates inputs and provides helpful error messages
+- Walks through GitHub, LLM, database, filter, and grouping settings
+- Reads existing TOML values when present and uses them as defaults
+- Writes the config file to `~/.pretty-release-notes/config.toml`
+- Can migrate legacy values from a project `.env`
 
-**Migration from .env**: Use `--migrate-env` flag to read values from existing `.env` file:
+To seed the prompts from a legacy `.env` file:
+
 ```bash
 pretty-release-notes setup --migrate-env
 ```
 
 ### Method 2: TOML File (CLI Default)
 
-Primary config file for CLI usage: `~/.pretty-release-notes/config.toml`
+Primary config location:
 
-The configuration file uses TOML format with nested sections:
+```text
+~/.pretty-release-notes/config.toml
+```
+
+The canonical LLM section is `[llm]`. The legacy `[openai]` section is still accepted for backward compatibility.
 
 ```toml
-[github]
-token = "ghp_xxxxx"      # GitHub API token (required)
-owner = "frappe"         # Default repository owner (optional)
+# Optional top-level settings
+# prompt_path = "/absolute/path/to/custom_prompt.txt"
+# force_use_commits = false
 
-[openai]
-api_key = "sk-xxxxx"     # OpenAI API key (required)
-model = "openai:gpt-4.1" # Model to use (default: "openai:gpt-4.1")
-max_patch_size = 10000   # Max patch size before fallback (default: 10000)
+[github]
+token = "ghp_xxxxx"
+owner = "frappe"
+
+[llm]
+api_key = "sk-xxxxx"
+model = "openai:o3"
+max_patch_size = 10000
 
 [database]
-type = "sqlite"          # Database backend: "csv" or "sqlite" (default: "sqlite")
-name = "stored_lines"    # Database filename without extension (default: "stored_lines")
-enabled = true           # Enable caching (default: true)
+type = "sqlite"
+name = "stored_lines"
+enabled = true
 
 [filters]
 exclude_change_types = ["chore", "refactor", "ci", "style", "test"]
 exclude_change_labels = ["skip-release-notes"]
-exclude_authors = ["mergify[bot]", "dependabot[bot]"]
+exclude_authors = [
+    "mergify[bot]",
+    "copilot-pull-request-reviewer[bot]",
+    "coderabbitai[bot]",
+    "dependabot[bot]",
+    "cursor[bot]",
+]
 
 [grouping]
-group_by_type = false  # Enable grouping by conventional commit type (default: false)
-# Customize section headings (optional)
-# type_headings = { feat = "Features", fix = "Bug Fixes", perf = "Performance" }
+group_by_type = false
+# type_headings = { feat = "Features", fix = "Bug Fixes" }
 # other_heading = "Other Changes"
-
-# Optional settings
-# prompt_path = "prompt.txt"
-# force_use_commits = false
 ```
 
-**Setup**:
-- Recommended: Run `pretty-release-notes setup` for interactive configuration
-- Alternative: Copy `config.toml.example` to `~/.pretty-release-notes/config.toml` and edit manually
+Notes:
+- The CLI loads this file through `TomlConfigLoader`
+- If `prompt_path` is omitted in TOML, the packaged default prompt is used
+- Relative database names are stored under `~/.pretty-release-notes/`
+- The example config is in `config.toml.example`
 
-### Method 3: Programmatic Configuration (Library Usage)
+### Method 3: Programmatic Configuration
 
 ```python
-from pretty_release_notes import ReleaseNotesConfig, GitHubConfig, OpenAIConfig
+from pretty_release_notes import GitHubConfig, LLMConfig, ReleaseNotesConfig
 
 config = ReleaseNotesConfig(
     github=GitHubConfig(token="ghp_xxxxx", owner="frappe"),
-    openai=OpenAIConfig(api_key="sk-xxxxx", model="gpt-4"),
+    llm=LLMConfig(api_key="sk-xxxxx", model="openai:o3"),
 )
 ```
 
-### Method 4: Dictionary Configuration (Library Usage)
+Backward compatibility:
+- `OpenAIConfig` is an alias for `LLMConfig`
+- `ReleaseNotesConfig(openai=...)` still works, but `llm=` is the primary API
+
+### Method 4: Dictionary Configuration
 
 ```python
 from pretty_release_notes.core.config_loader import DictConfigLoader
 
-loader = DictConfigLoader({
-    "github_token": "ghp_xxxxx",
-    "openai_api_key": "sk-xxxxx",
-    "openai_model": "gpt-4",
-    "exclude_types": ["chore", "ci"],
-})
+loader = DictConfigLoader(
+    {
+        "github_token": "ghp_xxxxx",
+        "github_owner": "frappe",
+        "llm_api_key": "sk-xxxxx",
+        "llm_model": "openai:o3",
+        "exclude_types": ["chore", "ci"],
+    }
+)
 config = loader.load()
 ```
 
-All configurations undergo validation at creation time, raising `ValueError` for invalid values.
+Notes:
+- `llm_api_key` and `llm_model` are the primary keys
+- `openai_api_key` and `openai_model` are still accepted as fallbacks
+
+All configuration paths validate required fields and raise clear errors for missing/invalid values.
 
 ## Usage
 
 ### CLI Usage
 
 ```bash
-# Interactive setup (first-time or to update config)
+# Interactive setup
 pretty-release-notes setup
 
 # Generate release notes
 pretty-release-notes generate [OPTIONS] REPO TAG
 
-# Using python -m (alternative)
+# Using python -m
 python -m pretty_release_notes setup
 python -m pretty_release_notes generate [OPTIONS] REPO TAG
 
-# Examples:
+# Examples
 pretty-release-notes generate erpnext v15.38.4
 pretty-release-notes generate --owner alyf-de banking v0.0.1
-python -m pretty_release_notes generate --owner frappe erpnext v15.38.4
+pretty-release-notes generate erpnext v15.38.4 --previous-tag v15.38.0
+pretty-release-notes generate --config-path /path/to/config.toml erpnext v15.38.4
+pretty-release-notes generate --group-by-type erpnext v15.38.4
+pretty-release-notes generate --no-database erpnext v15.38.4
 ```
 
-**CLI Parameters**:
-- `repo` (required): Repository name
-- `tag` (required): Git tag for release
-- `--owner`: Repository owner (overrides config file)
-- `--previous-tag`: Previous tag for custom comparison range (optional)
-- `--database/--no-database`: Enable/disable caching (overrides config file)
-- `--prompt-path`: Path to custom prompt file (overrides config file)
-- `--force-use-commits`: Force using commits even when PRs available (overrides config file)
-- `--group-by-type`: Group release notes by conventional commit type (overrides config file)
-- `--config-path`: Path to custom config file (default: `~/.pretty-release-notes/config.toml`)
+CLI parameters:
+- `repo`: Repository name
+- `tag`: Git tag for the release
+- `--owner`: Override the configured repository owner
+- `--previous-tag`: Specify the previous tag manually
+- `--database/--no-database`: Enable or disable caching for this run
+- `--prompt-path`: Use a custom prompt file
+- `--force-use-commits`: Force commit-based generation
+- `--group-by-type`: Enable grouped output
+- `--config-path`: Use a non-default TOML config file
 
 ### Library Usage
 
 ```python
+from pathlib import Path
+
 from pretty_release_notes import ReleaseNotesBuilder
 
-# Build client with fluent API
 client = (
     ReleaseNotesBuilder()
     .with_github_token("ghp_xxxxx")
-    .with_openai("sk-xxxxx", model="gpt-4")
+    .with_llm("sk-xxxxx", model="openai:o3")
     .with_database("sqlite", enabled=True)
     .with_filters(
         exclude_types={"chore", "ci", "refactor"},
@@ -416,76 +499,66 @@ client = (
     .with_grouping(
         group_by_type=True,
         type_headings={"feat": "New Features", "fix": "Fixes"},
-        other_heading="Other"
+        other_heading="Other",
     )
+    .with_prompt_file(Path("prompt.txt"))
     .build()
 )
 
-# Generate release notes
-notes = client.generate_release_notes("frappe", "erpnext", "v15.38.4", previous_tag_name="v15.38.0")
-print(notes)
+notes = client.generate_release_notes(
+    owner="frappe",
+    repo="erpnext",
+    tag="v15.38.4",
+    previous_tag_name="v15.38.0",
+)
 
-# Optionally update on GitHub
 client.update_github_release("frappe", "erpnext", "v15.38.4", notes)
 ```
 
+Notes:
+- `with_llm()` is the primary builder API
+- `with_openai()` remains available as an alias
+- `with_force_commits()` and `with_progress_reporter()` are also available
+
 #### Grouping Release Notes by Type
 
-The tool supports grouping release notes by conventional commit type for better organization:
+When grouping is enabled, output is serialized in a consistent order:
+- Breaking Changes
+- Features
+- Bug Fixes
+- Performance Improvements
+- Documentation
+- Code Refactoring
+- Tests
+- Build System
+- CI/CD
+- Chores
+- Style
+- Reverts
+- Other Changes
+- New Contributors
 
-**CLI Usage:**
-```bash
-# Enable grouping via CLI flag
-pretty-release-notes generate --group-by-type erpnext v15.38.4
-```
-
-**TOML Configuration:**
-```toml
-[grouping]
-group_by_type = true  # Enable grouping by type
-
-# Optional: Customize section headings
-type_headings = { feat = "New Features", fix = "Fixes", perf = "Performance" }
-other_heading = "Miscellaneous"
-```
-
-**Library Usage:**
-```python
-client = (
-    ReleaseNotesBuilder()
-    .with_github_token("ghp_xxx")
-    .with_openai("sk_xxx")
-    .with_grouping(
-        group_by_type=True,
-        type_headings={"feat": "New Features"},
-        other_heading="Other"
-    )
-    .build()
-)
-```
-
-When enabled, release notes will be organized into sections:
-- **Features** - feat commits
-- **Bug Fixes** - fix commits
-- **Performance Improvements** - perf commits
-- **Documentation** - docs commits
-- **Other Changes** - uncategorized changes
+Only sections with matching content are emitted.
 
 ### Web API Usage
 
-Start the server:
-```bash
-# Install web dependencies
-pip install -e .[web]
+Install the web dependencies:
 
-# Run server
+```bash
+pip install -e .[web]
+```
+
+Start the server:
+
+```bash
 python -m uvicorn pretty_release_notes.web.app:app --host 0.0.0.0 --port 8000
 
-# Or using the provided server script
+# Or use the wrapper module
 python -m pretty_release_notes.web.server
 ```
 
 Create a generation job:
+
 ```bash
 curl -X POST http://localhost:8000/generate \
   -H "Content-Type: application/json" \
@@ -495,13 +568,28 @@ curl -X POST http://localhost:8000/generate \
     "tag": "v15.38.4",
     "previous_tag_name": "v15.38.0",
     "github_token": "ghp_xxx",
-    "openai_key": "sk-xxx"
+    "llm_key": "sk-xxx",
+    "llm_model": "openai:o3",
+    "exclude_types": ["chore", "ci", "refactor"],
+    "exclude_labels": ["skip-release-notes"],
+    "exclude_authors": ["dependabot[bot]"]
   }'
 ```
 
+Notes:
+- `openai_key` and `openai_model` are still accepted as request aliases
+- The API serves interactive docs at `http://localhost:8000/docs`
+
 Check job status:
+
 ```bash
 curl http://localhost:8000/jobs/{job_id}
+```
+
+Health check:
+
+```bash
+curl http://localhost:8000/health
 ```
 
 ## Development Tools
@@ -509,233 +597,158 @@ curl http://localhost:8000/jobs/{job_id}
 ### Package Installation
 
 ```bash
-# Install in editable mode
+# Install core package
 pip install -e .
 
-# Install with web dependencies
+# Install web extras
 pip install -e .[web]
 
-# Install with dev dependencies
+# Install dev tools
 pip install -e .[dev]
 ```
 
 ### Pre-commit Hooks
 
-Pre-commit hooks automatically run quality checks on commit:
+Pre-commit is configured in `.pre-commit-config.yaml`.
 
 ```bash
-# Install hooks (run once)
+# Install hooks
 pre-commit install
 
-# Run manually on all files
+# Run on all files
 pre-commit run --all-files
 ```
 
-Hooks include:
-- Ruff linter and formatter
-- Mypy type checker
-- Standard checks (trailing whitespace, merge conflicts, etc.)
-- Commitlint for conventional commit messages
+Configured hooks include:
+- Standard repository checks (trailing whitespace, merge conflicts, JSON/TOML/YAML, debug statements)
+- Ruff import sorting
+- Ruff linting
+- Ruff formatting
+- Mypy
+- Commitlint on `commit-msg` using the conventional commits preset
 
-### Code Quality with Ruff
-
-Ruff is used for both linting and formatting (replaces Black, Flake8, isort, and more):
+### Ruff
 
 ```bash
 # Format code
 ruff format .
 
-# Check formatting without changes
+# Check formatting
 ruff format --check .
 
 # Lint code
 ruff check .
 
-# Auto-fix linting issues
+# Auto-fix lint issues
 ruff check --fix .
-
-# Run both linting and formatting
-ruff check . && ruff format .
 ```
 
-**Configuration**: See `[tool.ruff]` section in `pyproject.toml`
+Ruff is used for formatting, import sorting, and linting.
 
-### Type Checking with Mypy
+### Mypy
 
 ```bash
-# Check types
+# Check the whole project
 mypy .
 
-# Check specific file
-mypy generator.py
+# Check a specific file
+mypy pretty_release_notes/generator.py
 ```
 
-**Configuration**: See `[tool.mypy]` section in `pyproject.toml`
-
-### Testing with Pytest
+### Pytest
 
 ```bash
-# Run all tests
+# Run the full test suite
 pytest
 
 # Run with coverage
-pytest --cov=. --cov-report=html
+pytest --cov=pretty_release_notes --cov-report=html --cov-report=term-missing
 
-# Run specific test file
+# Run a specific test file
 pytest tests/test_web_api.py
 ```
 
-**Test Suite**: 77 tests with 75% code coverage
-**Configuration**: See `[tool.pytest.ini_options]` section in `pyproject.toml`
+The test suite covers configuration loaders, core abstractions, builder/API behavior, setup migration, release note serialization, revert/backport logic, web endpoints, threading, and the LLM adapter.
 
 ## Notable Design Patterns
 
-### 1. Hexagonal Architecture (Ports & Adapters)
-Core business logic is completely isolated from external concerns:
-- **Ports**: `ProgressReporter` interface, `ReleaseNotesConfig` dataclasses
-- **Adapters**: `CLIProgressReporter`, `EnvConfigLoader`, `DictConfigLoader`
-- **Core Domain**: `ReleaseNotesGenerator` has zero UI dependencies
-- Enables multiple usage modes (CLI, Library, Web) without touching core logic
+### 1. Hexagonal Architecture
+Core generation logic is kept separate from CLI, library, and web adapters.
 
 ### 2. Event-Based Progress Reporting
-Observer pattern implementation for progress updates:
-- `ProgressEvent` carries type, message, and optional metadata
-- `ProgressReporter` interface allows multiple implementations
-- `NullProgressReporter` for silent operation (library usage)
-- `CompositeProgressReporter` for multiple simultaneous reporters
-- 11 progress events emitted during generation workflow
+`ProgressReporter` implementations receive `ProgressEvent` objects from the generator, allowing different frontends to display progress differently.
 
-### 3. Strategy Pattern for Configuration
-Multiple strategies for loading configuration:
-- `TomlConfigLoader` for TOML files (CLI default)
-- `DictConfigLoader` for programmatic usage (library mode)
-- `EnvConfigLoader` for .env files (legacy/deprecated)
-- All produce the same `ReleaseNotesConfig` output
-- Easy to add new loaders (YAML, JSON, etc.)
+### 3. Strategy Pattern for Configuration Loading
+`TomlConfigLoader`, `DictConfigLoader`, and `EnvConfigLoader` all produce the same `ReleaseNotesConfig` shape.
 
-### 4. Strategy Pattern for Execution
-Abstracts parallel execution for flexibility:
-- `ThreadPoolStrategy` - Managed thread pool (default, 10 workers)
-- `ThreadingStrategy` - Original direct threading
-- `SequentialStrategy` - For debugging or testing
-- Enables testing without actual parallelism
-- Better resource management than direct threading
+### 4. Strategy Pattern for Parallel Execution
+`ReleaseNotesGenerator` delegates parallel work to an `ExecutionStrategy`, making threading behavior swappable and testable.
 
-### 5. Parallel Processing with Threading
-Used extensively for performance:
-- PR fetching & Line processing (`generator.py`)
-- Reviewer loading (`release_notes.py`)
-- Reviewer determination (`pull_request.py`)
-- Uses execution strategy for controlled parallelism
+### 5. Protocol-Based Change Abstraction
+The `Change` protocol lets `PullRequest` and `Commit` participate in the same summarization pipeline.
 
-### 6. Protocol-Based Polymorphism
-`Change` protocol allows treating `PullRequest` and `Commit` uniformly:
-- Both implement: `get_prompt()`, `set_reviewers()`, `get_author()`, `get_summary_key()`
-- Enables consistent processing throughout the codebase
+### 6. Factory Pattern for Cache Backends
+`get_db()` returns either a CSV or SQLite backend based on configuration.
 
-### 7. Factory Pattern
-Database creation uses factory pattern:
-- `get_db()` returns appropriate concrete class based on `db_type`
-- Abstract interface with two implementations
+### 7. Intelligent Caching and Backport Reuse
+Summaries are cached by `get_summary_key()`, allowing direct backports to reuse the original PR summary.
 
-### 8. Intelligent Caching Strategy
-- Uses `get_summary_key()` for cache lookups
-- Reuses summaries for backport PRs by returning original PR number
-- Skips OpenAI API call if cached entry found
+### 8. Provider-Agnostic LLM Integration
+The code uses `any_llm` with provider-qualified model names while preserving OpenAI-oriented backward compatibility in config and request fields.
 
-### 9. Type-Safe Configuration with Validation
-All configuration uses dataclasses with validation:
-- `__post_init__` methods validate required fields and value ranges
-- Type hints throughout for IDE support and mypy checking
-- Fails fast with clear error messages
-- Immutable once created (dataclass frozen in future versions)
+### 9. Conventional Commit and Breaking-Change Grouping
+Commit/PR titles are parsed for conventional commit types and `!` breaking-change markers, which drive filtering and grouped output.
 
-### 10. Backport Intelligence
-Sophisticated backport handling:
-- Extracts backport number using regex
-- Recursively fetches original PR
-- Reuses original PR's closed issues
-- Combines reviewers from both PRs
-- Credits original author
+### 10. Automatic Revert Detection and Filtering
+Revert PRs are detected from PR body text. When both the original PR and its revert are in the same release, both are excluded from the final notes.
 
-### 11. Retry Logic with Exponential Backoff
-OpenAI API calls use `@retry` decorator:
-- Exponential backoff: 1-60 seconds
-- Maximum 6 attempts
-- Handles transient API failures gracefully
+### 11. Graceful Degradation
+The generator can fall back from GitHub regeneration to existing notes, from PR patches to commit messages, and from PR-based notes to raw commits when necessary.
 
-### 12. Graceful Degradation
-Multiple fallback mechanisms:
-- If release notes generation fails (403), uses existing notes
-- If PR patch too large, falls back to commit messages
-- If commit diff too large, truncates with marker
-- If no PRs found, falls back to commits
-- If GitHub update fails (403), continues without error
+### 12. Thread-Safe SQLite Access
+SQLite writes are synchronized with a lock while each thread gets its own connection/cursor pair.
 
-### 13. Dataclass-Based Models
-All models use `@dataclass`:
-- Automatic `__init__()`, `__repr__()`, `__eq__()`
-- Type hints throughout
-- `from_dict()` class methods for API response parsing
+### 13. Retry Logic with Exponential Backoff
+LLM calls are retried with randomized exponential backoff up to six attempts.
 
-### 14. Conventional Commits Support
-Extracts commit types using regex:
-- Matches format: `type(scope): message`
-- Used for filtering non-user-facing changes
-
-### 15. Automatic Revert Detection and Filtering
-The tool automatically detects and filters out reverted PRs from release notes:
-
-- **Detection**: PRs are identified as reverts by scanning the PR body for patterns like:
-  - `Reverts frappe/frappe#12345`
-  - `Reverts https://github.com/frappe/frappe/pull/12345`
-  - `Reverts #12345`
-- **Filtering**: When a PR is reverted within the same release:
-  - Both the original PR and the revert PR are excluded from output
-  - This prevents confusing users with changes that were ultimately not included
-  - Reverts of PRs from previous releases still appear in the notes
-- **Implementation**:
-  - Detection logic in `PullRequest.is_revert` and `PullRequest.reverted_pr_number` properties: `pretty_release_notes/models/pull_request.py:49-70`
-  - Filtering applied during `ReleaseNotes.serialize()`: `pretty_release_notes/models/release_notes.py:41-67`
-  - Helper method `_get_reverted_pr_numbers()` collects reverted PR numbers: `pretty_release_notes/models/release_notes.py:41-67`
+### 14. Dataclass-Driven Models and Config
+Most configuration and model objects are dataclasses, which keeps construction, validation, and typing straightforward.
 
 ## Workflow
 
-1. **Initialize**: Fetch repository metadata from GitHub
-2. **Generate Release Notes**: Use GitHub's auto-generator
-3. **Parse**: Convert to structured data model
-4. **Fetch Details**: Download PR/commit information in parallel
-5. **Process**: For each line:
-   - Check cache for existing summary
-   - If not cached, construct AI prompt with context
-   - Call OpenAI API to generate summary
-   - Store in cache
-6. **Load Reviewers**: Fetch reviewer information in parallel
-7. **Serialize**: Format as markdown with exclusions and credits
-8. **Display**: Show in terminal with rich formatting
-9. **Update** (optional): Write back to GitHub release
+1. Initialize repository metadata from GitHub.
+2. Load the current GitHub release.
+3. Infer the previous tag from the compare URL when it is not provided explicitly.
+4. Ask GitHub to regenerate release notes for the requested range.
+5. Fall back to the existing release body if regeneration is unavailable.
+6. Parse the release notes into structured lines.
+7. Download PR details in parallel for lines that reference PR URLs.
+8. Fall back to commit-based lines when forced or when GitHub-generated PR parsing did not produce usable changes.
+9. Build prompts, consult the cache, and summarize remaining changes with the configured LLM.
+10. Load reviewers.
+11. Serialize the final markdown with filters, attribution, grouping, and AI disclosure.
+12. Display the result and optionally write it back to GitHub.
 
 ## Summary
 
-This codebase demonstrates a well-structured approach to:
-- **Hexagonal Architecture** for multi-mode support (CLI, Library, Web)
-- **Clean separation of concerns** with zero UI dependencies in core logic
-- **Event-based progress reporting** for flexible output handling
-- **Type-safe configuration** with validation and multiple loading strategies
-- **Execution strategies** for controlled parallelism and testability
-- **Thread-safe database** operations for concurrent access
-- **API integration** (GitHub + OpenAI) with retry logic
-- **Parallel processing** for performance optimization
-- **Intelligent caching** for cost optimization
-- **Protocol-based design** for flexibility
-- **Graceful error handling** with multiple fallback mechanisms
+This codebase combines:
+- A reusable release-note generation core
+- Multiple delivery modes (CLI, library, web)
+- Typed config with backward-compatible migration paths
+- Provider-agnostic LLM integration
+- Cache-backed summarization
+- Parallel GitHub data collection
+- Filtering, grouping, backport reuse, and revert suppression
 
-The tool significantly improves release note quality by transforming technical PR titles into user-friendly descriptions while maintaining proper attribution, filtering out non-relevant changes, and automatically excluding reverted PRs to avoid user confusion.
+It is structured for extension: new loaders, adapters, execution strategies, or storage backends can be added without reworking the core generator.
 
 ## Architecture Decisions
 
-Key architectural decisions are documented in Architecture Decision Records (ADRs):
-- **ADR 001**: Multi-Mode Architecture with Hexagonal Design (`docs/adr/001-multi-mode-architecture.md`)
-  - Documents the transition from monolithic CLI to multi-mode architecture
-  - Explains all design patterns and their rationale
-  - Covers consequences and trade-offs
+Key architecture decisions are documented in ADRs:
+
+- **ADR 001**: Multi-Mode Architecture with Hexagonal Design
+  - Documents the move from a CLI-only workflow to reusable core logic with adapters
+- **ADR 002**: User Directory Database Storage
+  - Documents storing cache files in `~/.pretty-release-notes/` instead of the project directory
+- **ADR 003**: TOML Configuration in User Home Directory
+  - Documents the move from project-local `.env` files to `~/.pretty-release-notes/config.toml`
