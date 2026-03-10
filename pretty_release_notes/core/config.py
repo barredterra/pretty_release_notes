@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from ..openai_client import DEFAULT_MODEL
+
 
 @dataclass
 class GitHubConfig:
@@ -15,7 +17,7 @@ class GitHubConfig:
 @dataclass
 class LLMConfig:
 	api_key: str
-	model: str = "gpt-4.1"
+	model: str = DEFAULT_MODEL
 	max_patch_size: int = 10000
 
 	def __post_init__(self):

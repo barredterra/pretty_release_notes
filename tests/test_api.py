@@ -13,6 +13,7 @@ from pretty_release_notes.core.config import (
 	ReleaseNotesConfig,
 )
 from pretty_release_notes.core.interfaces import ProgressEvent, ProgressReporter
+from pretty_release_notes.openai_client import DEFAULT_MODEL
 
 
 class TestProgressReporting:
@@ -222,7 +223,7 @@ class TestConfigurationValidation:
 		client = ReleaseNotesBuilder().with_github_token("test_token").with_llm("test_key").build()
 
 		# Check defaults
-		assert client.config.llm.model == "gpt-4.1"
+		assert client.config.llm.model == DEFAULT_MODEL
 		assert client.config.llm.max_patch_size == 10000
 
 

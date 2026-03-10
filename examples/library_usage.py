@@ -37,7 +37,7 @@ def advanced_usage():
 	client = (
 		ReleaseNotesBuilder()
 		.with_github_token("ghp_xxxxx")  # Replace with your token
-		.with_llm("sk-xxxxx", model="gpt-4", max_patch_size=15000)
+		.with_llm("sk-xxxxx", model="openai:gpt-4.1", max_patch_size=15000)
 		.with_database("sqlite", enabled=True)
 		.with_filters(
 			exclude_types={"chore", "refactor", "ci", "style", "test"},
@@ -76,7 +76,7 @@ def direct_config_usage():
 
 	config = ReleaseNotesConfig(
 		github=GitHubConfig(token="ghp_xxxxx"),  # Replace with your token
-		llm=LLMConfig(api_key="sk-xxxxx", model="gpt-4.1"),  # Replace with your key
+		llm=LLMConfig(api_key="sk-xxxxx", model="openai:gpt-4.1"),  # Replace with your key
 		database=DatabaseConfig(type="sqlite", enabled=True),
 		filters=FilterConfig(
 			exclude_change_types={"chore", "refactor"},

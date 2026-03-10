@@ -5,6 +5,7 @@ from typing import Any
 
 from dotenv import dotenv_values
 
+from ..openai_client import DEFAULT_MODEL
 from .config import (
 	DatabaseConfig,
 	FilterConfig,
@@ -41,7 +42,7 @@ class DictConfigLoader(ConfigLoader):
 			),
 			llm=LLMConfig(
 				api_key=llm_api_key,
-				model=self.config_dict.get("llm_model", self.config_dict.get("openai_model", "gpt-4.1")),
+				model=self.config_dict.get("llm_model", self.config_dict.get("openai_model", DEFAULT_MODEL)),
 				max_patch_size=self.config_dict.get("max_patch_size", 10000),
 			),
 			database=DatabaseConfig(
@@ -97,7 +98,7 @@ class EnvConfigLoader(ConfigLoader):
 			github=GitHubConfig(token=github_token, owner=config.get("DEFAULT_OWNER")),
 			llm=LLMConfig(
 				api_key=llm_key,
-				model=config.get("LLM_MODEL") or config.get("OPENAI_MODEL") or "gpt-4.1",
+				model=config.get("LLM_MODEL") or config.get("OPENAI_MODEL") or DEFAULT_MODEL,
 				max_patch_size=int(config.get("MAX_PATCH_SIZE") or "10000"),
 			),
 			database=DatabaseConfig(
@@ -180,7 +181,7 @@ class TomlConfigLoader(ConfigLoader):
 			),
 			llm=LLMConfig(
 				api_key=llm_key,
-				model=llm_config.get("model", "gpt-4.1"),
+				model=llm_config.get("model", DEFAULT_MODEL),
 				max_patch_size=llm_config.get("max_patch_size", 10000),
 			),
 			database=DatabaseConfig(

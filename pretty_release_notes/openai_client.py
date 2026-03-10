@@ -8,6 +8,7 @@ from tenacity import (
 )
 
 DEFAULT_PROVIDER = "openai"
+DEFAULT_MODEL = "openai:gpt-4.1"
 OPENAI_MODELS_WITH_FLEX = {
 	"o3",
 	"o4-mini",

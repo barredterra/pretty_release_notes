@@ -311,7 +311,7 @@ owner = "frappe"         # Default repository owner (optional)
 
 [openai]
 api_key = "sk-xxxxx"     # OpenAI API key (required)
-model = "gpt-4.1"        # Model to use (default: "gpt-4.1")
+model = "openai:gpt-4.1" # Model to use (default: "openai:gpt-4.1")
 max_patch_size = 10000   # Max patch size before fallback (default: 10000)
 
 [database]

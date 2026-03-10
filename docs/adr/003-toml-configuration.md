@@ -40,9 +40,9 @@ EXCLUDE_PR_TYPES=chore,refactor,ci
 token = "ghp_xxxxx"
 owner = "frappe"
 
-[openai]
+[llm]
 api_key = "sk-xxxxx"
-model = "gpt-4.1"
+model = "openai:gpt-4.1"
 
 [filters]
 exclude_change_types = ["chore", "refactor", "ci"]
@@ -100,9 +100,9 @@ force_use_commits = false # Force using commits over PRs
 token = ""        # Required
 owner = ""        # Optional default owner
 
-[openai]          # OpenAI API settings
+[llm]          # LLM API settings
 api_key = ""      # Required
-model = ""        # Optional, default: "gpt-4.1"
+model = ""        # Optional, default: "openai:gpt-4.1"
 max_patch_size    # Optional, default: 10000
 
 [database]        # Cache configuration

@@ -62,7 +62,7 @@ nano ~/.pretty-release-notes/config.toml
 
 ### Configuration Format
 
-The configuration file uses TOML format with sections for GitHub credentials, LLM settings, database caching, and filters. The canonical section name is `[llm]`, while the legacy `[openai]` section is still accepted for backward compatibility. Plain model names still default to OpenAI, and `provider:model` targets other `any-llm` providers. See [`config.toml.example`](config.toml.example) for the complete structure and all available options.
+The configuration file uses TOML format with sections for GitHub credentials, LLM settings, database caching, and filters. The canonical section name is `[llm]`, while the legacy `[openai]` section is still accepted for backward compatibility. Prefer fully qualified `provider:model` values such as `openai:gpt-4.1`; unqualified model names are still accepted and default to OpenAI for backward compatibility. See [`config.toml.example`](config.toml.example) for the complete structure and all available options.
 
 You can override the config location using the `--config-path` flag.
 
@@ -130,7 +130,7 @@ from pretty_release_notes import ReleaseNotesBuilder
 client = (
     ReleaseNotesBuilder()
     .with_github_token("ghp_your_token")
-    .with_llm("sk_your_key", model="gpt-4")  # or model="anthropic:claude-sonnet-4-5"
+    .with_llm("sk_your_key", model="openai:gpt-4.1")  # or model="anthropic:claude-sonnet-4-5"
     .with_database("sqlite", enabled=True)
     .with_filters(
         exclude_types={"chore", "ci", "refactor"},
@@ -197,7 +197,7 @@ curl -X POST http://localhost:8000/generate \
     "previous_tag_name": "v15.38.0",
     "github_token": "ghp_your_token_here",
     "llm_key": "sk-your_key_here",
-    "llm_model": "gpt-4",
+    "llm_model": "openai:gpt-4.1",
     "exclude_types": ["chore", "ci", "refactor"],
     "exclude_labels": ["skip-release-notes"],
     "exclude_authors": ["dependabot[bot]"]

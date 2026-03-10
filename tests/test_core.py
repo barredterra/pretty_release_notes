@@ -20,6 +20,7 @@ from pretty_release_notes.core.interfaces import (
 	ProgressEvent,
 	ProgressReporter,
 )
+from pretty_release_notes.openai_client import DEFAULT_MODEL
 
 
 class TestProgressEvent:
@@ -95,7 +96,7 @@ class TestLLMConfig:
 	def test_valid_config_with_defaults(self):
 		config = LLMConfig(api_key="test_key")
 		assert config.api_key == "test_key"
-		assert config.model == "gpt-4.1"
+		assert config.model == DEFAULT_MODEL
 		assert config.max_patch_size == 10000
 
 	def test_valid_config_with_custom_values(self):
