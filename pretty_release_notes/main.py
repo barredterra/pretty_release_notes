@@ -9,6 +9,7 @@ import typer
 from .adapters.cli_progress import CLIProgressReporter
 from .core.config_loader import TomlConfigLoader
 from .generator import ReleaseNotesGenerator
+from .openai_client import SUPPORTED_REASONING_EFFORTS, normalize_reasoning_effort
 from .setup_command import setup_config
 from .ui import CLI
 
@@ -36,6 +37,11 @@ def generate(
 	force_use_commits: bool = False,
 	group_by_type: bool = False,
 	config_path: Path | None = None,
+	reasoning_effort: str | None = typer.Option(
+		None,
+		"--reasoning-effort",
+		help=(f"Override reasoning effort for this run. Supported values: {', '.join(SUPPORTED_REASONING_EFFORTS)}"),
+	),
 ):
 	"""Generate pretty release notes for a GitHub repository.
 
@@ -55,6 +61,8 @@ def generate(
 		config.prompt_path = prompt_path
 	config.database.enabled = database
 	config.force_use_commits = force_use_commits
+	if reasoning_effort is not None:
+		config.llm.reasoning_effort = normalize_reasoning_effort(reasoning_effort)
 	if group_by_type:
 		config.grouping.group_by_type = True
 

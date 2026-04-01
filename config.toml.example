@@ -27,6 +27,10 @@ api_key = ""
 # Unqualified names still default to OpenAI for backward compatibility.
 model = "openai:gpt-4.1"
 
+# Optional reasoning effort override for supported models/providers.
+# Supported values: "none", "low", "medium", "high", "xhigh"
+# reasoning_effort = "medium"
+
 # Maximum patch size before fallback to commit message (default: 10000)
 max_patch_size = 10000
 

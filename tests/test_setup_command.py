@@ -14,7 +14,12 @@ class TestHelperFunctions:
 		"""Test flattening nested TOML config."""
 		toml_config = {
 			"github": {"token": "ghp_test", "owner": "frappe"},
-			"llm": {"api_key": "sk-test", "model": "gpt-4", "max_patch_size": 5000},
+			"llm": {
+				"api_key": "sk-test",
+				"model": "gpt-4",
+				"reasoning_effort": "high",
+				"max_patch_size": 5000,
+			},
 			"database": {"type": "csv", "name": "test_db", "enabled": False},
 			"filters": {
 				"exclude_change_types": ["chore", "ci"],
@@ -29,6 +34,7 @@ class TestHelperFunctions:
 		assert result["github_owner"] == "frappe"
 		assert result["llm_key"] == "sk-test"
 		assert result["llm_model"] == "gpt-4"
+		assert result["reasoning_effort"] == "high"
 		assert result["max_patch_size"] == 5000
 		assert result["db_type"] == "csv"
 		assert result["db_name"] == "test_db"
@@ -50,6 +56,7 @@ class TestHelperFunctions:
 		assert result["github_owner"] == ""
 		assert result["llm_key"] == "sk-test"
 		assert result["llm_model"] == ""
+		assert result["reasoning_effort"] == ""
 		assert result["db_type"] == ""
 		assert result["exclude_types"] == ""
 
@@ -57,7 +64,7 @@ class TestHelperFunctions:
 		"""Test that empty strings in TOML are preserved (caller should handle with 'or' operator)."""
 		toml_config = {
 			"github": {"token": "ghp_test", "owner": ""},
-			"llm": {"api_key": "sk-test", "model": ""},
+			"llm": {"api_key": "sk-test", "model": "", "reasoning_effort": ""},
 			"database": {"type": "", "name": "", "enabled": True},
 		}
 
@@ -66,6 +73,7 @@ class TestHelperFunctions:
 		# Empty strings should be preserved - it's the caller's job to handle them
 		assert result["github_owner"] == ""
 		assert result["llm_model"] == ""
+		assert result["reasoning_effort"] == ""
 		assert result["db_type"] == ""
 		assert result["db_name"] == ""
 
@@ -73,13 +81,14 @@ class TestHelperFunctions:
 		"""Test that legacy openai section is still supported."""
 		toml_config = {
 			"github": {"token": "ghp_test"},
-			"openai": {"api_key": "sk-test", "model": "gpt-4"},
+			"openai": {"api_key": "sk-test", "model": "gpt-4", "reasoning_effort": "medium"},
 		}
 
 		result = _flatten_toml(toml_config)
 
 		assert result["llm_key"] == "sk-test"
 		assert result["llm_model"] == "gpt-4"
+		assert result["reasoning_effort"] == "medium"
 
 	def test_migrate_env_to_dict(self):
 		"""Test migrating .env format to dict."""
@@ -88,6 +97,7 @@ class TestHelperFunctions:
 			"DEFAULT_OWNER": "frappe",
 			"OPENAI_API_KEY": "sk-test",
 			"OPENAI_MODEL": "gpt-4",
+			"OPENAI_REASONING_EFFORT": "low",
 			"MAX_PATCH_SIZE": "5000",
 			"DB_TYPE": "sqlite",
 			"DB_NAME": "test_db",
@@ -102,6 +112,7 @@ class TestHelperFunctions:
 		assert result["github_owner"] == "frappe"
 		assert result["llm_key"] == "sk-test"
 		assert result["llm_model"] == "gpt-4"
+		assert result["reasoning_effort"] == "low"
 		assert result["max_patch_size"] == 5000
 		assert result["db_type"] == "sqlite"
 		assert result["db_name"] == "test_db"
@@ -122,6 +133,7 @@ class TestHelperFunctions:
 		assert result["github_token"] == "ghp_test"
 		assert result["github_owner"] == ""
 		assert result["llm_key"] == "sk-test"
+		assert result["reasoning_effort"] == ""
 		assert result["max_patch_size"] == 10000  # default
 
 	def test_build_toml_content(self):
@@ -131,6 +143,7 @@ class TestHelperFunctions:
 			github_owner="frappe",
 			llm_key="sk-test",
 			llm_model="gpt-4",
+			reasoning_effort="medium",
 			max_patch_size=5000,
 			db_type="sqlite",
 			db_name="test_db",
@@ -148,6 +161,7 @@ class TestHelperFunctions:
 		assert "[llm]" in content
 		assert 'api_key = "sk-test"' in content
 		assert 'model = "gpt-4"' in content
+		assert 'reasoning_effort = "medium"' in content
 		assert "max_patch_size = 5000" in content
 		assert "[database]" in content
 		assert 'type = "sqlite"' in content
@@ -167,6 +181,7 @@ class TestHelperFunctions:
 			github_owner="",
 			llm_key="sk-test",
 			llm_model="gpt-4",
+			reasoning_effort=None,
 			max_patch_size=10000,
 			db_type="sqlite",
 			db_name="stored_lines",
@@ -183,6 +198,7 @@ class TestHelperFunctions:
 		assert "exclude_authors = []" in content
 		assert "enabled = false" in content
 		assert "group_by_type = true" in content
+		assert '# reasoning_effort = "medium"' in content
 
 
 class TestSetupCommand:
@@ -199,6 +215,7 @@ class TestSetupCommand:
 				"frappe",  # github owner
 				"sk-test",  # llm key
 				"gpt-4",  # llm model
+				"high",  # reasoning effort
 				"10000",  # max patch size
 				"sqlite",  # db type
 				"stored_lines",  # db name
@@ -236,6 +253,7 @@ class TestSetupCommand:
 		assert 'token = "ghp_test"' in content
 		assert "[llm]" in content
 		assert 'api_key = "sk-test"' in content
+		assert 'reasoning_effort = "high"' in content
 
 	def test_setup_migrates_from_env(self, tmp_path, monkeypatch):
 		"""Test that setup command migrates from .env file."""
@@ -260,6 +278,7 @@ DEFAULT_OWNER=test_owner
 				"",  # github owner (accept default from .env)
 				"",  # llm key (accept default from .env)
 				"gpt-4",  # llm model
+				"",  # reasoning effort (blank = provider default)
 				"10000",  # max patch size
 				"sqlite",  # db type
 				"stored_lines",  # db name

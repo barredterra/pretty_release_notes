@@ -44,6 +44,13 @@ class DictConfigLoader(ConfigLoader):
 				api_key=llm_api_key,
 				model=self.config_dict.get("llm_model", self.config_dict.get("openai_model", DEFAULT_MODEL)),
 				max_patch_size=self.config_dict.get("max_patch_size", 10000),
+				reasoning_effort=self.config_dict.get(
+					"llm_reasoning_effort",
+					self.config_dict.get(
+						"openai_reasoning_effort",
+						self.config_dict.get("reasoning_effort"),
+					),
+				),
 			),
 			database=DatabaseConfig(
 				type=self.config_dict.get("db_type", "sqlite"),
@@ -100,6 +107,7 @@ class EnvConfigLoader(ConfigLoader):
 				api_key=llm_key,
 				model=config.get("LLM_MODEL") or config.get("OPENAI_MODEL") or DEFAULT_MODEL,
 				max_patch_size=int(config.get("MAX_PATCH_SIZE") or "10000"),
+				reasoning_effort=config.get("LLM_REASONING_EFFORT") or config.get("OPENAI_REASONING_EFFORT"),
 			),
 			database=DatabaseConfig(
 				type=config.get("DB_TYPE") or "sqlite",
@@ -183,6 +191,7 @@ class TomlConfigLoader(ConfigLoader):
 				api_key=llm_key,
 				model=llm_config.get("model", DEFAULT_MODEL),
 				max_patch_size=llm_config.get("max_patch_size", 10000),
+				reasoning_effort=llm_config.get("reasoning_effort"),
 			),
 			database=DatabaseConfig(
 				type=database_config.get("type", "sqlite"),

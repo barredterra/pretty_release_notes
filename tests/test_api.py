@@ -151,7 +151,7 @@ class TestConfigurationValidation:
 		client = (
 			ReleaseNotesBuilder()
 			.with_github_token("test_token")
-			.with_llm("test_key", model="gpt-4", max_patch_size=15000)
+			.with_llm("test_key", model="gpt-4", max_patch_size=15000, reasoning_effort="medium")
 			.with_database("sqlite", db_name="test_db", enabled=True)
 			.with_filters(
 				exclude_types={"chore", "ci"},
@@ -166,6 +166,7 @@ class TestConfigurationValidation:
 		assert client.config.github.token == "test_token"
 		assert client.config.llm.api_key == "test_key"
 		assert client.config.llm.model == "gpt-4"
+		assert client.config.llm.reasoning_effort == "medium"
 		assert client.config.llm.max_patch_size == 15000
 		assert client.config.database.type == "sqlite"
 		assert client.config.database.name == "test_db"
@@ -190,10 +191,16 @@ class TestConfigurationValidation:
 
 	def test_with_openai_alias_populates_llm_config(self):
 		"""Test that with_openai remains a working alias."""
-		client = ReleaseNotesBuilder().with_github_token("test_token").with_openai("test_key").build()
+		client = (
+			ReleaseNotesBuilder()
+			.with_github_token("test_token")
+			.with_openai("test_key", reasoning_effort="high")
+			.build()
+		)
 
 		assert client.config.llm.api_key == "test_key"
 		assert client.config.openai.api_key == "test_key"
+		assert client.config.llm.reasoning_effort == "high"
 
 	def test_partial_filters_work(self):
 		"""Test that filters can be set partially (not all at once)."""
@@ -225,6 +232,7 @@ class TestConfigurationValidation:
 		# Check defaults
 		assert client.config.llm.model == DEFAULT_MODEL
 		assert client.config.llm.max_patch_size == 10000
+		assert client.config.llm.reasoning_effort is None
 
 
 class TestClientAPI:

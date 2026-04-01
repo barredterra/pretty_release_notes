@@ -1,6 +1,7 @@
 """Unit tests for core configuration and interfaces."""
 
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 
@@ -98,16 +99,27 @@ class TestLLMConfig:
 		assert config.api_key == "test_key"
 		assert config.model == DEFAULT_MODEL
 		assert config.max_patch_size == 10000
+		assert config.reasoning_effort is None
 
 	def test_valid_config_with_custom_values(self):
-		config = LLMConfig(api_key="test_key", model="gpt-4", max_patch_size=5000)
+		config = LLMConfig(
+			api_key="test_key",
+			model="gpt-4",
+			max_patch_size=5000,
+			reasoning_effort="high",
+		)
 		assert config.api_key == "test_key"
 		assert config.model == "gpt-4"
 		assert config.max_patch_size == 5000
+		assert config.reasoning_effort == "high"
 
 	def test_empty_api_key_raises_error(self):
 		with pytest.raises(ValueError, match="LLM API key is required"):
 			LLMConfig(api_key="")
+
+	def test_invalid_reasoning_effort_raises_error(self):
+		with pytest.raises(ValueError, match="Invalid reasoning effort"):
+			LLMConfig(api_key="test_key", reasoning_effort=cast(Any, "maximum"))
 
 	def test_openai_config_alias_still_works(self):
 		config = OpenAIConfig(api_key="test_key")
@@ -205,6 +217,7 @@ class TestReleaseNotesConfig:
 		assert config.prompt_path.name == "prompt.txt"
 		assert config.prompt_path.exists()
 		assert config.force_use_commits is False
+		assert config.llm.reasoning_effort is None
 
 	def test_full_config(self):
 		config = ReleaseNotesConfig(
@@ -258,6 +271,7 @@ class TestDictConfigLoader:
 			"github_owner": "test_owner",
 			"llm_api_key": "llm_key",
 			"llm_model": "gpt-4",
+			"llm_reasoning_effort": "low",
 			"max_patch_size": 5000,
 			"db_type": "csv",
 			"db_name": "custom_db",
@@ -275,6 +289,7 @@ class TestDictConfigLoader:
 		assert config.github.owner == "test_owner"
 		assert config.llm.api_key == "llm_key"
 		assert config.llm.model == "gpt-4"
+		assert config.llm.reasoning_effort == "low"
 		assert config.llm.max_patch_size == 5000
 		assert config.database.type == "csv"
 		assert config.database.name == "custom_db"
@@ -349,6 +364,7 @@ owner = "test_owner"
 [llm]
 api_key = "llm_key"
 model = "gpt-4"
+reasoning_effort = "xhigh"
 max_patch_size = 5000
 
 [database]
@@ -370,6 +386,7 @@ exclude_authors = ["bot"]
 		assert config.github.owner == "test_owner"
 		assert config.llm.api_key == "llm_key"
 		assert config.llm.model == "gpt-4"
+		assert config.llm.reasoning_effort == "xhigh"
 		assert config.llm.max_patch_size == 5000
 		assert config.database.type == "csv"
 		assert config.database.name == "custom_db"

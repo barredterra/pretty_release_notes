@@ -12,7 +12,7 @@ from .core.config import (
 )
 from .core.interfaces import NullProgressReporter, ProgressReporter
 from .generator import ReleaseNotesGenerator
-from .openai_client import DEFAULT_MODEL
+from .openai_client import DEFAULT_MODEL, ReasoningEffort
 
 
 class ReleaseNotesClient:
@@ -76,6 +76,7 @@ class ReleaseNotesBuilder:
 		self._llm_key = None
 		self._llm_model = DEFAULT_MODEL
 		self._max_patch_size = 10000
+		self._reasoning_effort = None
 		self._db_type = "sqlite"
 		self._db_name = "stored_lines"
 		self._db_enabled = True
@@ -94,18 +95,34 @@ class ReleaseNotesBuilder:
 		self._github_token = token
 		return self
 
-	def with_llm(self, api_key: str, model: str = DEFAULT_MODEL, max_patch_size: int = 10000) -> "ReleaseNotesBuilder":
+	def with_llm(
+		self,
+		api_key: str,
+		model: str = DEFAULT_MODEL,
+		max_patch_size: int = 10000,
+		reasoning_effort: ReasoningEffort | None = None,
+	) -> "ReleaseNotesBuilder":
 		"""Set LLM configuration."""
 		self._llm_key = api_key
 		self._llm_model = model
 		self._max_patch_size = max_patch_size
+		self._reasoning_effort = reasoning_effort
 		return self
 
 	def with_openai(
-		self, api_key: str, model: str = DEFAULT_MODEL, max_patch_size: int = 10000
+		self,
+		api_key: str,
+		model: str = DEFAULT_MODEL,
+		max_patch_size: int = 10000,
+		reasoning_effort: ReasoningEffort | None = None,
 	) -> "ReleaseNotesBuilder":
 		"""Backward-compatible alias for with_llm()."""
-		return self.with_llm(api_key=api_key, model=model, max_patch_size=max_patch_size)
+		return self.with_llm(
+			api_key=api_key,
+			model=model,
+			max_patch_size=max_patch_size,
+			reasoning_effort=reasoning_effort,
+		)
 
 	def with_database(
 		self, db_type: str = "sqlite", db_name: str = "stored_lines", enabled: bool = True
@@ -195,6 +212,7 @@ class ReleaseNotesBuilder:
 				api_key=self._llm_key,
 				model=self._llm_model,
 				max_patch_size=self._max_patch_size,
+				reasoning_effort=self._reasoning_effort,
 			),
 			database=DatabaseConfig(
 				type=self._db_type,

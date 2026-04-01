@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ..openai_client import DEFAULT_MODEL
+from ..openai_client import DEFAULT_MODEL, ReasoningEffort, normalize_reasoning_effort
 
 
 @dataclass
@@ -19,10 +19,12 @@ class LLMConfig:
 	api_key: str
 	model: str = DEFAULT_MODEL
 	max_patch_size: int = 10000
+	reasoning_effort: ReasoningEffort | None = None
 
 	def __post_init__(self):
 		if not self.api_key:
 			raise ValueError("LLM API key is required")
+		self.reasoning_effort = normalize_reasoning_effort(self.reasoning_effort)
 
 
 OpenAIConfig = LLMConfig

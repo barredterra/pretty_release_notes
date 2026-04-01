@@ -170,6 +170,7 @@ class TestGenerateEndpoint:
 				"github_token": "test-token",
 				"llm_key": "test-key",
 				"llm_model": "gpt-4",
+				"reasoning_effort": "high",
 				"exclude_types": ["chore", "ci"],
 				"exclude_labels": ["skip-release-notes"],
 				"exclude_authors": ["bot[bot]"],
@@ -179,6 +180,11 @@ class TestGenerateEndpoint:
 		assert response.status_code == 200
 		data = response.json()
 		assert data["status"] == "pending"
+		mock_generator.return_value.with_llm.assert_called_with(
+			"test-key",
+			"gpt-4",
+			reasoning_effort="high",
+		)
 
 
 class TestJobsEndpoint:

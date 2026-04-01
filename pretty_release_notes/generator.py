@@ -35,6 +35,7 @@ class ReleaseNotesGenerator:
 		self.llm_api_key = config.llm.api_key
 		self.llm_model = config.llm.model
 		self.max_patch_size = config.llm.max_patch_size
+		self.reasoning_effort = config.llm.reasoning_effort
 		self.prompt_path = config.prompt_path
 		self.db_type = config.database.type
 		self.db_name = config.database.name
@@ -235,6 +236,7 @@ class ReleaseNotesGenerator:
 				content=prompt,
 				model=self.llm_model,
 				api_key=self.llm_api_key,
+				reasoning_effort=self.reasoning_effort,
 			)
 		except Exception as e:
 			error_msg = f"LLM API error ({format_model_name(self.llm_model)}) for {line.change}: {str(e)}"

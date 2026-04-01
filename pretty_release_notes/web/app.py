@@ -1,7 +1,7 @@
 """FastAPI application for Pretty Release Notes."""
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
@@ -27,6 +27,14 @@ class GenerateRequest(BaseModel):
 	github_token: str
 	llm_key: str = Field(validation_alias=AliasChoices("llm_key", "openai_key"))
 	llm_model: str = Field(default=DEFAULT_MODEL, validation_alias=AliasChoices("llm_model", "openai_model"))
+	llm_reasoning_effort: Literal["none", "low", "medium", "high", "xhigh"] | None = Field(
+		default=None,
+		validation_alias=AliasChoices(
+			"llm_reasoning_effort",
+			"openai_reasoning_effort",
+			"reasoning_effort",
+		),
+	)
 	exclude_types: list[str] = []
 	exclude_labels: list[str] = []
 	exclude_authors: list[str] = []
@@ -113,7 +121,11 @@ async def process_generation(job_id: str, request: GenerateRequest) -> None:
 		client = (
 			ReleaseNotesBuilder()
 			.with_github_token(request.github_token)
-			.with_llm(request.llm_key, request.llm_model)
+			.with_llm(
+				request.llm_key,
+				request.llm_model,
+				reasoning_effort=request.llm_reasoning_effort,
+			)
 			.with_filters(
 				exclude_types=set(request.exclude_types),
 				exclude_labels=set(request.exclude_labels),

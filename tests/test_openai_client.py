@@ -55,6 +55,26 @@ class TestOpenAIClient:
 		)
 
 	@patch("pretty_release_notes.openai_client.completion")
+	def test_reasoning_effort_is_passed_when_configured(self, mock_completion):
+		mock_completion.return_value = _mock_completion_response("summary")
+
+		get_chat_response(
+			content="Write a summary",
+			model="openai:gpt-5",
+			api_key="test-key",
+			reasoning_effort="high",
+		)
+
+		mock_completion.assert_called_once_with(
+			messages=[{"role": "user", "content": "Write a summary"}],
+			model="openai:gpt-5",
+			api_key="test-key",
+			client_args={"timeout": 900.0},
+			service_tier="flex",
+			reasoning_effort="high",
+		)
+
+	@patch("pretty_release_notes.openai_client.completion")
 	def test_provider_prefixed_model_is_passed_through_to_any_llm(self, mock_completion):
 		mock_completion.return_value = _mock_completion_response("summary")
 

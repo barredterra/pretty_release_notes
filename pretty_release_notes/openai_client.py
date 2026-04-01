@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal, cast
 
 from any_llm import AnyLLM, completion
 from tenacity import (
@@ -9,6 +9,8 @@ from tenacity import (
 
 DEFAULT_PROVIDER = "openai"
 DEFAULT_MODEL = "openai:o3"
+ReasoningEffort = Literal["none", "low", "medium", "high", "xhigh"]
+SUPPORTED_REASONING_EFFORTS: tuple[ReasoningEffort, ...] = ("none", "low", "medium", "high", "xhigh")
 OPENAI_MODELS_WITH_FLEX = {
 	"o3",
 	"o4-mini",
@@ -20,6 +22,21 @@ OPENAI_MODELS_WITH_FLEX = {
 	"gpt-5.4-pro",
 	"gpt-5.4",
 }
+
+
+def normalize_reasoning_effort(reasoning_effort: str | None) -> ReasoningEffort | None:
+	if reasoning_effort is None:
+		return None
+
+	normalized_reasoning_effort = reasoning_effort.strip().lower()
+	if not normalized_reasoning_effort:
+		return None
+
+	if normalized_reasoning_effort not in SUPPORTED_REASONING_EFFORTS:
+		supported_values = ", ".join(SUPPORTED_REASONING_EFFORTS)
+		raise ValueError(f"Invalid reasoning effort: {reasoning_effort}. Supported values: {supported_values}")
+
+	return cast(ReasoningEffort, normalized_reasoning_effort)
 
 
 def _get_model_info(model: str) -> tuple[str, str, bool]:
@@ -55,6 +72,7 @@ def get_chat_response(
 	content: str,
 	model: str,
 	api_key: str,
+	reasoning_effort: ReasoningEffort | None = None,
 ) -> str:
 	"""Get a chat response through any-llm.
 
@@ -63,6 +81,7 @@ def get_chat_response(
 		ValueError: If the provider API returns empty content
 	"""
 	provider, provider_model, is_provider_qualified = _get_model_info(model)
+	normalized_reasoning_effort = normalize_reasoning_effort(reasoning_effort)
 	completion_kwargs: dict[str, Any] = {
 		"messages": [
 			{
@@ -77,6 +96,9 @@ def get_chat_response(
 
 	if not is_provider_qualified:
 		completion_kwargs["provider"] = DEFAULT_PROVIDER
+
+	if normalized_reasoning_effort is not None:
+		completion_kwargs["reasoning_effort"] = normalized_reasoning_effort
 
 	chat_completion: Any = completion(**completion_kwargs)
 
