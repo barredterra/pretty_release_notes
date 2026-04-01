@@ -1,7 +1,7 @@
 import time
 from collections.abc import Callable
 from functools import partial
-from typing import Any
+from typing import Any, cast
 
 from requests import HTTPError
 
@@ -12,6 +12,52 @@ from .database import get_db
 from .github_client import GitHubClient
 from .models import ReleaseNotes, ReleaseNotesLine, Repository
 from .openai_client import format_model_name, get_chat_response
+
+
+def _unwrap_retry_error(error: Exception) -> Exception:
+	while True:
+		last_attempt = getattr(error, "last_attempt", None)
+		exception_getter = cast(Callable[[], object] | None, getattr(last_attempt, "exception", None))
+		if exception_getter is None:
+			return error
+		last_exception: object = exception_getter()
+		if not isinstance(last_exception, Exception) or last_exception is error:
+			return error
+		error = last_exception
+
+
+def _format_error(error: Exception) -> str:
+	unwrapped_error = _unwrap_retry_error(error)
+	error_message = str(unwrapped_error).strip()
+	if not error_message:
+		return unwrapped_error.__class__.__name__
+	return f"{unwrapped_error.__class__.__name__}: {error_message}"
+
+
+def _normalize_whitespace(value: str) -> str:
+	return " ".join(value.split())
+
+
+def _describe_change(change: object) -> str:
+	title = getattr(change, "title", None)
+	if isinstance(title, str) and title.strip():
+		pr_id = getattr(change, "id", None)
+		prefix = f"PR #{pr_id}" if pr_id is not None else "PR"
+		return f"{prefix}: {_normalize_whitespace(title)}"
+
+	message = getattr(change, "message", None)
+	if isinstance(message, str) and message.strip():
+		commit_id = getattr(change, "id", None)
+		short_commit_id = str(commit_id)[:7] if commit_id else None
+		prefix = f"Commit {short_commit_id}" if short_commit_id else "Commit"
+		first_line = _normalize_whitespace(message.splitlines()[0])
+		return f"{prefix}: {first_line}"
+
+	html_url = getattr(change, "html_url", None)
+	if isinstance(html_url, str) and html_url.strip():
+		return html_url
+
+	return type(change).__name__
 
 
 class ReleaseNotesGenerator:
@@ -239,7 +285,10 @@ class ReleaseNotesGenerator:
 				reasoning_effort=self.reasoning_effort,
 			)
 		except Exception as e:
-			error_msg = f"LLM API error ({format_model_name(self.llm_model)}) for {line.change}: {str(e)}"
+			error_msg = (
+				f"LLM API error ({format_model_name(self.llm_model)}) "
+				f"for {_describe_change(line.change)}: {_format_error(e)}"
+			)
 			self.progress.report(ProgressEvent(type="error", message=error_msg))
 			return
 

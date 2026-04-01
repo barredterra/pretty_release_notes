@@ -1,6 +1,9 @@
-from typing import Any, Literal, cast
+import asyncio
+from collections.abc import Callable, Coroutine
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Literal, TypeVar, cast
 
-from any_llm import AnyLLM, completion
+from any_llm import AnyLLM, acompletion
 from tenacity import (
 	retry,
 	stop_after_attempt,
@@ -11,6 +14,7 @@ DEFAULT_PROVIDER = "openai"
 DEFAULT_MODEL = "openai:o3"
 ReasoningEffort = Literal["none", "low", "medium", "high", "xhigh"]
 SUPPORTED_REASONING_EFFORTS: tuple[ReasoningEffort, ...] = ("none", "low", "medium", "high", "xhigh")
+T = TypeVar("T")
 OPENAI_MODELS_WITH_FLEX = {
 	"o3",
 	"o4-mini",
@@ -67,7 +71,59 @@ def format_model_name(model: str) -> str:
 	return f"{provider}:{provider_model}"
 
 
-@retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6))
+def _get_pending_tasks() -> list[asyncio.Task[Any]]:
+	current_task = asyncio.current_task()
+	return [task for task in asyncio.all_tasks() if task is not current_task and not task.done()]
+
+
+async def _run_with_cleanup(coro: Coroutine[Any, Any, T]) -> T:
+	try:
+		result = await coro
+		# Give libraries a tick to schedule async cleanup before we tear the loop down.
+		await asyncio.sleep(0)
+		pending_tasks = _get_pending_tasks()
+		if pending_tasks:
+			await asyncio.gather(*pending_tasks, return_exceptions=True)
+	except Exception:
+		pending_tasks = _get_pending_tasks()
+		for task in pending_tasks:
+			task.cancel()
+		if pending_tasks:
+			await asyncio.gather(*pending_tasks, return_exceptions=True)
+		raise
+	return result
+
+
+def _run_coro_in_new_loop(coro_factory: Callable[[], Coroutine[Any, Any, T]]) -> T:
+	loop = asyncio.new_event_loop()
+	try:
+		asyncio.set_event_loop(loop)
+		return loop.run_until_complete(_run_with_cleanup(coro_factory()))
+	finally:
+		try:
+			pending_tasks = [task for task in asyncio.all_tasks(loop) if not task.done()]
+			for task in pending_tasks:
+				task.cancel()
+			if pending_tasks:
+				loop.run_until_complete(asyncio.gather(*pending_tasks, return_exceptions=True))
+			loop.run_until_complete(loop.shutdown_asyncgens())
+			loop.run_until_complete(loop.shutdown_default_executor())
+		finally:
+			asyncio.set_event_loop(None)
+			loop.close()
+
+
+def _run_async_in_sync(coro_factory: Callable[[], Coroutine[Any, Any, T]]) -> T:
+	try:
+		asyncio.get_running_loop()
+	except RuntimeError:
+		return _run_coro_in_new_loop(coro_factory)
+
+	with ThreadPoolExecutor(max_workers=1) as executor:
+		return executor.submit(_run_coro_in_new_loop, coro_factory).result()
+
+
+@retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6), reraise=True)
 def get_chat_response(
 	content: str,
 	model: str,
@@ -100,7 +156,7 @@ def get_chat_response(
 	if normalized_reasoning_effort is not None:
 		completion_kwargs["reasoning_effort"] = normalized_reasoning_effort
 
-	chat_completion: Any = completion(**completion_kwargs)
+	chat_completion: Any = _run_async_in_sync(lambda: acompletion(**completion_kwargs))
 
 	response_content: str | None = chat_completion.choices[0].message.content
 	if response_content is None:
