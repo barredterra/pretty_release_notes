@@ -36,6 +36,7 @@ def generate(
 	prompt_path: Path | None = None,
 	force_use_commits: bool = False,
 	group_by_type: bool = True,
+	yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation and update release notes on GitHub"),
 	config_path: Path | None = None,
 	reasoning_effort: str | None = typer.Option(
 		None,
@@ -83,7 +84,7 @@ def generate(
 	end_time = time.time()
 	cli.show_success(f"Generated release notes in {end_time - start_time:.2f} seconds total.")
 
-	if cli.confirm_update():
+	if yes or cli.confirm_update():
 		generator.update_on_github(notes, tag)
 
 
