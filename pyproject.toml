@@ -57,7 +57,13 @@ Repository = "https://github.com/alyf-de/pretty_release_notes"
 Issues = "https://github.com/alyf-de/pretty_release_notes/issues"
 
 [tool.setuptools]
-packages = ["pretty_release_notes"]
+packages = [
+    "pretty_release_notes",
+    "pretty_release_notes.core",
+    "pretty_release_notes.models",
+    "pretty_release_notes.adapters",
+    "pretty_release_notes.web",
+]
 
 [tool.setuptools.package-data]
 pretty_release_notes = ["py.typed", "prompt.txt"]
