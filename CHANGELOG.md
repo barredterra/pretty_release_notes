@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.3.0 - 2026-04-17]
+
+### Added
+
+- **Automated polling**: New `pretty-release-notes poll` command that checks GitHub for new releases and generates notes automatically. Supports `--seed` to initialize state and `--install-cron` to set up a cron job.
+- **`--yes` / `-y` flag**: Skip the confirmation prompt and update release notes on GitHub directly.
+
+### Changed
+
+- **Grouping enabled by default**: `group_by_type` now defaults to `true` across CLI, library, config loaders, and interactive setup.
+
 ## [1.2.0 - 2026-03-10]
 
 ### Added
