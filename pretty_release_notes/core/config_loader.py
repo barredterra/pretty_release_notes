@@ -63,7 +63,7 @@ class DictConfigLoader(ConfigLoader):
 				exclude_authors=set(self.config_dict.get("exclude_authors", [])),
 			),
 			grouping=GroupingConfig(
-				group_by_type=self.config_dict.get("group_by_type", False),
+				group_by_type=self.config_dict.get("group_by_type", True),
 				**(
 					{}
 					if "type_headings" not in self.config_dict
@@ -120,7 +120,7 @@ class EnvConfigLoader(ConfigLoader):
 				exclude_authors=self._parse_set(config.get("EXCLUDE_AUTHORS") or ""),
 			),
 			grouping=GroupingConfig(
-				group_by_type=(config.get("GROUP_BY_TYPE") or "false").lower() == "true",
+				group_by_type=(config.get("GROUP_BY_TYPE") or "true").lower() == "true",
 			),
 			prompt_path=(
 				Path(config["PROMPT_PATH"])
@@ -204,7 +204,7 @@ class TomlConfigLoader(ConfigLoader):
 				exclude_authors=set(filters_config.get("exclude_authors", [])),
 			),
 			grouping=GroupingConfig(
-				group_by_type=grouping_config.get("group_by_type", False),
+				group_by_type=grouping_config.get("group_by_type", True),
 				**(
 					{}
 					if "type_headings" not in grouping_config

@@ -126,7 +126,7 @@ def setup_config(
 	console.print("\n[bold cyan]Output Grouping[/bold cyan]")
 	group_by_type = Confirm.ask(
 		"Group release notes by conventional commit type?",
-		default=existing_values.get("group_by_type", False),
+		default=existing_values.get("group_by_type", True),
 	)
 
 	# Build TOML content
@@ -202,7 +202,7 @@ def _flatten_toml(toml_config: dict) -> dict:
 	flat["exclude_authors"] = ",".join(filters.get("exclude_authors", []))
 
 	grouping = toml_config.get("grouping", {})
-	flat["group_by_type"] = grouping.get("group_by_type", False)
+	flat["group_by_type"] = grouping.get("group_by_type", True)
 
 	return flat
 

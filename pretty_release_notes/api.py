@@ -83,7 +83,7 @@ class ReleaseNotesBuilder:
 		self._exclude_types = set()
 		self._exclude_labels = set()
 		self._exclude_authors = set()
-		self._group_by_type = False
+		self._group_by_type = True
 		self._type_headings = {}
 		self._other_heading = "Other Changes"
 		self._prompt_path = Path("prompt.txt")
@@ -150,7 +150,7 @@ class ReleaseNotesBuilder:
 
 	def with_grouping(
 		self,
-		group_by_type: bool = False,
+		group_by_type: bool = True,
 		type_headings: dict[str, str] | None = None,
 		other_heading: str = "Other Changes",
 	) -> "ReleaseNotesBuilder":

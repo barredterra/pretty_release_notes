@@ -62,8 +62,8 @@ exclude_authors = [
 ]
 
 [grouping]
-# Enable grouping by conventional commit type (default: false)
-group_by_type = false
+# Enable grouping by conventional commit type (default: true)
+group_by_type = true
 
 # Customize section headings (optional)
 # type_headings = { feat = "Features", fix = "Bug Fixes", perf = "Performance" }

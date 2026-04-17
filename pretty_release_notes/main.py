@@ -35,7 +35,7 @@ def generate(
 	database: bool = True,
 	prompt_path: Path | None = None,
 	force_use_commits: bool = False,
-	group_by_type: bool = False,
+	group_by_type: bool = True,
 	config_path: Path | None = None,
 	reasoning_effort: str | None = typer.Option(
 		None,
@@ -63,8 +63,8 @@ def generate(
 	config.force_use_commits = force_use_commits
 	if reasoning_effort is not None:
 		config.llm.reasoning_effort = normalize_reasoning_effort(reasoning_effort)
-	if group_by_type:
-		config.grouping.group_by_type = True
+	if not group_by_type:
+		config.grouping.group_by_type = False
 
 	# Create UI and adapter
 	cli = CLI()

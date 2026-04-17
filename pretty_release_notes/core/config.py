@@ -61,7 +61,7 @@ class FilterConfig:
 class GroupingConfig:
 	"""Configuration for grouping release notes output."""
 
-	group_by_type: bool = False
+	group_by_type: bool = True
 	type_headings: dict[str, str] = field(
 		default_factory=lambda: {
 			"feat": "Features",

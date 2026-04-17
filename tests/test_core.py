@@ -172,7 +172,7 @@ class TestGroupingConfig:
 	def test_default_config(self):
 		"""Test default grouping configuration."""
 		config = GroupingConfig()
-		assert config.group_by_type is False
+		assert config.group_by_type is True
 		assert config.other_heading == "Other Changes"
 		assert config.get_heading("feat") == "Features"
 		assert config.get_heading("fix") == "Bug Fixes"
