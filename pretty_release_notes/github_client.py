@@ -1,3 +1,5 @@
+from typing import Any
+
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
@@ -162,6 +164,17 @@ class GitHubClient:
 		)
 		r.raise_for_status()
 		return {review["user"]["login"] for review in r.json()}
+
+	def list_releases(self, owner: str, repo: str, limit: int = 5) -> list[dict[str, Any]]:
+		"""List recent releases for a repository."""
+		r = self.session.get(
+			f"https://api.github.com/repos/{owner}/{repo}/releases",
+			params={"per_page": limit},
+			headers={"Accept": "application/vnd.github+json"},
+		)
+		r.raise_for_status()
+		result: list[dict[str, Any]] = r.json()
+		return result
 
 	def get_release(self, repository: Repository, tag: str):
 		"""Get release information from GitHub API."""

@@ -247,6 +247,33 @@ Response:
 }
 ```
 
+### Automated Polling
+
+Run release note generation automatically whenever a new release is published. Add the repos you want to watch to your config:
+
+```toml
+[poll]
+repos = ["frappe/erpnext", "frappe/frappe"]
+```
+
+Then set it up:
+
+```bash
+# Seed state with current releases (so existing ones aren't reprocessed)
+pretty-release-notes poll --seed
+
+# Install a cron job that polls every 15 minutes
+pretty-release-notes poll --install-cron
+```
+
+You can also run a single poll cycle manually:
+
+```bash
+pretty-release-notes poll
+```
+
+The poll command uses the same config, database, and filters as `generate`. Processed releases are tracked in `~/.pretty-release-notes/processed_releases.json`.
+
 ## Authors and Reviewers
 
 The authors and reviewers of the PRs are added to the release notes.

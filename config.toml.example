@@ -61,6 +61,10 @@ exclude_authors = [
     "cursor[bot]"
 ]
 
+[poll]
+# Repositories to poll for new releases (used by `pretty-release-notes poll`)
+# repos = ["frappe/erpnext", "frappe/frappe"]
+
 [grouping]
 # Enable grouping by conventional commit type (default: true)
 group_by_type = true
