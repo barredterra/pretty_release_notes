@@ -199,8 +199,8 @@ class PullRequest(Change):
 			body=data["body"],
 			html_url=data["html_url"],
 			commits_url=data["commits_url"],
-			author=data["user"]["login"],
-			merged_by=data["merged_by"]["login"],
+			author=data["user"]["login"] if data.get("user") else "",
+			merged_by=data["merged_by"]["login"] if data.get("merged_by") else None,
 			labels={label["name"] for label in data["labels"]},
 		)
 
