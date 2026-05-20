@@ -30,13 +30,14 @@ class CSVDatabase(Database):
 		if not self.path.exists():
 			return None
 
+		sentence = None
 		with open(self.path) as f:
 			reader = DictReader(f, fieldnames=self.columns)
 			for row in reader:
 				if row["owner"] == repository.owner and row["repo"] == repository.name and row["pr_no"] == pr_no:
-					return row["sentence"]
+					sentence = row["sentence"]
 
-		return None
+		return sentence
 
 	def store_sentence(self, repository: "Repository", pr_no: str, sentence: str) -> None:
 		write_header = not self.path.exists()
@@ -107,7 +108,7 @@ class SQLiteDatabase(Database):
 	def get_sentence(self, repository: "Repository", pr_no: str) -> str | None:
 		# Read operations don't need locking, just use thread-local connection
 		self.cursor.execute(
-			"SELECT sentence FROM sentences WHERE owner = ? AND repo = ? AND pr_no = ?",
+			"SELECT sentence FROM sentences WHERE owner = ? AND repo = ? AND pr_no = ? ORDER BY rowid DESC LIMIT 1",
 			(repository.owner, repository.name, pr_no),
 		)
 		result = self.cursor.fetchone()

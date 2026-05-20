@@ -283,8 +283,8 @@ Despite the legacy module name, this file is now a generic LLM adapter.
 ### Data Persistence: `pretty_release_notes/database.py`
 
 - `Database`: Base interface for cached sentence storage
-- `CSVDatabase`: CSV-backed cache
-- `SQLiteDatabase`: Thread-safe SQLite cache
+- `CSVDatabase`: CSV-backed cache; `get_sentence` returns the latest row for a key
+- `SQLiteDatabase`: Thread-safe SQLite cache; `get_sentence` returns the latest row by `rowid`
   - Uses thread-local connections/cursors
   - Protects write transactions with a lock
   - Creates the table and index lazily
