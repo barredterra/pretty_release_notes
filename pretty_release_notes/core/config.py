@@ -38,16 +38,42 @@ class DatabaseConfig:
 		type: Database backend type ("csv" or "sqlite")
 		name: Database filename (without extension). If relative, stores in ~/.pretty-release-notes/
 			If absolute path, stores at that exact location.
-		enabled: Whether to use database caching
+		read_enabled: Whether to read cached summaries (CLI override; not in config files)
+		write_enabled: Whether to persist new summaries (CLI override; not in config files)
 	"""
 
 	type: str = "sqlite"
 	name: str = "stored_lines"
-	enabled: bool = True
+	read_enabled: bool = True
+	write_enabled: bool = True
 
-	def __post_init__(self):
+	def __init__(
+		self,
+		type: str = "sqlite",
+		name: str = "stored_lines",
+		read_enabled: bool = True,
+		write_enabled: bool = True,
+		enabled: bool | None = None,
+	):
+		self.type = type
+		self.name = name
+		if enabled is not None:
+			self.read_enabled = enabled
+			self.write_enabled = enabled
+		else:
+			self.read_enabled = read_enabled
+			self.write_enabled = write_enabled
 		if self.type not in ("csv", "sqlite"):
 			raise ValueError(f"Invalid database type: {self.type}")
+
+	@property
+	def enabled(self) -> bool:
+		return self.read_enabled and self.write_enabled
+
+	@enabled.setter
+	def enabled(self, value: bool) -> None:
+		self.read_enabled = value
+		self.write_enabled = value
 
 
 @dataclass

@@ -138,7 +138,7 @@ client = (
         model="openai:gpt-4.1",  # or model="anthropic:claude-sonnet-4-5"
         reasoning_effort="medium",
     )
-    .with_database("sqlite", enabled=True)
+    .with_database("sqlite")
     .with_filters(
         exclude_types={"chore", "ci", "refactor"},
         exclude_labels={"skip-release-notes"},
@@ -208,11 +208,13 @@ curl -X POST http://localhost:8000/generate \
     "reasoning_effort": "medium",
     "exclude_types": ["chore", "ci", "refactor"],
     "exclude_labels": ["skip-release-notes"],
-    "exclude_authors": ["dependabot[bot]"]
+    "exclude_authors": ["dependabot[bot]"],
+    "no_read": false,
+    "no_write": false
   }'
 ```
 
-Legacy `openai_key`, `openai_model`, and `openai_reasoning_effort` request fields are still accepted for backward compatibility.
+Legacy `openai_key`, `openai_model`, and `openai_reasoning_effort` request fields are still accepted for backward compatibility. Use `no_database` to skip both cache reads and writes.
 
 Response:
 ```json

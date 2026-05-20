@@ -85,7 +85,8 @@ class ReleaseNotesGenerator:
 		self.prompt_path = config.prompt_path
 		self.db_type = config.database.type
 		self.db_name = config.database.name
-		self.use_db = config.database.enabled
+		self.db_read_enabled = config.database.read_enabled
+		self.db_write_enabled = config.database.write_enabled
 		self.force_use_commits = config.force_use_commits
 
 	def initialize_repository(self, owner: str, name: str):
@@ -252,7 +253,8 @@ class ReleaseNotesGenerator:
 
 	def _process_line(self, line: "ReleaseNotesLine", prompt_template: str):
 		assert self.repository is not None, "Repository must be initialized"
-		db = get_db(self.db_type, self.db_name) if self.use_db else None
+		needs_db = self.db_read_enabled or self.db_write_enabled
+		db = get_db(self.db_type, self.db_name) if needs_db else None
 
 		if not line.change or line.is_new_contributor:
 			self.progress.report(ProgressEvent(type="markdown", message=str(line)))
@@ -264,8 +266,8 @@ class ReleaseNotesGenerator:
 		if line.change.labels and line.change.labels & self.exclude_change_labels:
 			return
 
-		if db:
-			change_id = line.change.get_summary_key()
+		change_id = line.change.get_summary_key()
+		if db and self.db_read_enabled:
 			stored_sentence = db.get_sentence(self.repository, change_id)
 			if stored_sentence:
 				line.sentence = stored_sentence
@@ -296,7 +298,7 @@ class ReleaseNotesGenerator:
 			return
 
 		change_summary = change_summary.lstrip(" -")
-		if db:
+		if db and self.db_write_enabled:
 			db.store_sentence(self.repository, change_id, change_summary)
 		line.sentence = change_summary
 		self.progress.report(ProgressEvent(type="markdown", message=str(line)))

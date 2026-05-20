@@ -1,5 +1,5 @@
 from typing import Any, cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from tenacity import Future, RetryError
 
@@ -110,3 +110,75 @@ def test_generator_surfaces_underlying_error_without_pr_body(tmp_path):
 	assert "PR #123: fix: improve auth errors" in error_message
 	assert "PR Body" not in error_message
 	assert "sensitive PR body" not in error_message
+
+
+def _generator_with_repo(tmp_path, database: DatabaseConfig) -> ReleaseNotesGenerator:
+	prompt_path = tmp_path / "prompt.txt"
+	prompt_path.write_text("prompt template")
+	config = ReleaseNotesConfig(
+		github=GitHubConfig(token="gh-token"),
+		llm=LLMConfig(api_key="llm-key"),
+		database=database,
+		prompt_path=prompt_path,
+	)
+	generator = ReleaseNotesGenerator(config)
+	generator.repository = Repository(
+		owner="test",
+		name="repo",
+		url="https://api.github.com/repos/test/repo",
+		html_url="https://github.com/test/repo",
+	)
+	return generator
+
+
+def test_generator_skips_cache_read_when_read_disabled(tmp_path):
+	generator = _generator_with_repo(tmp_path, DatabaseConfig(read_enabled=False, write_enabled=True))
+	line = ReleaseNotesLine(original_line="", change=cast(Any, FakeChange()))
+	mock_db = MagicMock()
+	mock_db.get_sentence.return_value = "cached summary"
+
+	with (
+		patch("pretty_release_notes.generator.get_db", return_value=mock_db),
+		patch("pretty_release_notes.generator.get_chat_response", return_value="new summary") as mock_llm,
+	):
+		generator._process_line(line, "prompt template")
+
+	mock_db.get_sentence.assert_not_called()
+	mock_db.store_sentence.assert_called_once()
+	mock_llm.assert_called_once()
+	assert line.sentence == "new summary"
+
+
+def test_generator_skips_cache_write_when_write_disabled(tmp_path):
+	generator = _generator_with_repo(tmp_path, DatabaseConfig(read_enabled=True, write_enabled=False))
+	line = ReleaseNotesLine(original_line="", change=cast(Any, FakeChange()))
+	mock_db = MagicMock()
+	mock_db.get_sentence.return_value = None
+
+	with (
+		patch("pretty_release_notes.generator.get_db", return_value=mock_db),
+		patch("pretty_release_notes.generator.get_chat_response", return_value="new summary") as mock_llm,
+	):
+		generator._process_line(line, "prompt template")
+
+	mock_db.get_sentence.assert_called_once()
+	mock_db.store_sentence.assert_not_called()
+	mock_llm.assert_called_once()
+	assert line.sentence == "new summary"
+
+
+def test_generator_uses_cache_hit_without_llm_when_read_enabled(tmp_path):
+	generator = _generator_with_repo(tmp_path, DatabaseConfig(read_enabled=True, write_enabled=True))
+	line = ReleaseNotesLine(original_line="", change=cast(Any, FakeChange()))
+	mock_db = MagicMock()
+	mock_db.get_sentence.return_value = "cached summary"
+
+	with (
+		patch("pretty_release_notes.generator.get_db", return_value=mock_db),
+		patch("pretty_release_notes.generator.get_chat_response") as mock_llm,
+	):
+		generator._process_line(line, "prompt template")
+
+	mock_llm.assert_not_called()
+	mock_db.store_sentence.assert_not_called()
+	assert line.sentence == "cached summary"

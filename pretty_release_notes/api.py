@@ -79,7 +79,8 @@ class ReleaseNotesBuilder:
 		self._reasoning_effort = None
 		self._db_type = "sqlite"
 		self._db_name = "stored_lines"
-		self._db_enabled = True
+		self._db_read_enabled = True
+		self._db_write_enabled = True
 		self._exclude_types = set()
 		self._exclude_labels = set()
 		self._exclude_authors = set()
@@ -125,12 +126,17 @@ class ReleaseNotesBuilder:
 		)
 
 	def with_database(
-		self, db_type: str = "sqlite", db_name: str = "stored_lines", enabled: bool = True
+		self,
+		db_type: str = "sqlite",
+		db_name: str = "stored_lines",
+		no_read: bool = False,
+		no_write: bool = False,
 	) -> "ReleaseNotesBuilder":
 		"""Configure database for caching generated summaries."""
 		self._db_type = db_type
 		self._db_name = db_name
-		self._db_enabled = enabled
+		self._db_read_enabled = not no_read
+		self._db_write_enabled = not no_write
 		return self
 
 	def with_filters(
@@ -217,7 +223,8 @@ class ReleaseNotesBuilder:
 			database=DatabaseConfig(
 				type=self._db_type,
 				name=self._db_name,
-				enabled=self._db_enabled,
+				read_enabled=self._db_read_enabled,
+				write_enabled=self._db_write_enabled,
 			),
 			filters=FilterConfig(
 				exclude_change_types=self._exclude_types,

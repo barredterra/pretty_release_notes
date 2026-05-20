@@ -165,7 +165,7 @@ pyproject.toml                        # Packaging, dependencies, tool config
 - `GitHubConfig`: GitHub token and optional default owner
 - `LLMConfig`: Provider API key, model name, and max patch size
 - `OpenAIConfig`: Backward-compatible alias for `LLMConfig`
-- `DatabaseConfig`: Cache backend type, name, and enabled state
+- `DatabaseConfig`: Cache backend type, name, and `enabled` (sets read/write together); CLI can override read/write separately per run
 - `FilterConfig`: Excluded change types, labels, and authors
 - `GroupingConfig`: Grouping toggle, default type headings, `other_heading`, and `breaking_changes_heading`
 - `ReleaseNotesConfig`: Main config object; accepts `llm=` or legacy `openai=` inputs and validates required config on creation
@@ -200,7 +200,7 @@ pyproject.toml                        # Packaging, dependencies, tool config
 - `with_github_token()`: Set GitHub authentication
 - `with_llm()`: Primary LLM configuration method
 - `with_openai()`: Backward-compatible alias for `with_llm()`
-- `with_database()`: Configure CSV/SQLite caching
+- `with_database()`: Configure CSV/SQLite caching, with optional `no_read` / `no_write` controls
 - `with_filters()`: Configure excluded types, labels, and authors
 - `with_grouping()`: Enable and customize grouped output headings
 - `with_prompt_file()`: Override the prompt template file
@@ -215,7 +215,7 @@ pyproject.toml                        # Packaging, dependencies, tool config
 - `GET /jobs/{job_id}`: Poll job status, progress, result, or error
 - `GET /health`: Health check endpoint
 - `GenerateRequest` uses `llm_key` / `llm_model` as primary fields and still accepts `openai_key` / `openai_model`
-- Request payload also supports `exclude_types`, `exclude_labels`, and `exclude_authors`
+- Request payload also supports `exclude_types`, `exclude_labels`, `exclude_authors`, `no_database`, `no_read`, and `no_write`
 - `WebProgressReporter` stores structured progress events in memory
 - Job storage is in-process and in-memory; a persistent store such as Redis would be needed for production
 
@@ -232,7 +232,7 @@ pyproject.toml                        # Packaging, dependencies, tool config
 **`pretty_release_notes/main.py`** - CLI:
 - Typer app with `generate` and `setup` commands
 - Loads TOML config from `~/.pretty-release-notes/config.toml` by default
-- Allows CLI overrides for owner, prompt path, database toggle, commit fallback, grouping, and config path
+- Allows CLI overrides for owner, prompt path, database read/write toggles, commit fallback, grouping, and config path
 - Uses `CLIProgressReporter` to display progress and results
 - Prompts the user before writing updated release notes back to GitHub
 
@@ -466,6 +466,7 @@ pretty-release-notes generate --owner alyf-de banking v0.0.1
 pretty-release-notes generate erpnext v15.38.4 --previous-tag v15.38.0
 pretty-release-notes generate --config-path /path/to/config.toml erpnext v15.38.4
 pretty-release-notes generate --group-by-type erpnext v15.38.4
+pretty-release-notes generate --no-db-read erpnext v15.38.4
 pretty-release-notes generate --no-database erpnext v15.38.4
 ```
 
@@ -474,7 +475,9 @@ CLI parameters:
 - `tag`: Git tag for the release
 - `--owner`: Override the configured repository owner
 - `--previous-tag`: Specify the previous tag manually
-- `--database/--no-database`: Enable or disable caching for this run
+- `--no-db-read`: Skip reading cached summaries
+- `--no-db-write`: Skip writing new summaries to the cache
+- `--no-database`: Skip cache read and write (shorthand for both `--no-db-read` and `--no-db-write`)
 - `--prompt-path`: Use a custom prompt file
 - `--force-use-commits`: Force commit-based generation
 - `--group-by-type`: Enable grouped output
@@ -491,7 +494,7 @@ client = (
     ReleaseNotesBuilder()
     .with_github_token("ghp_xxxxx")
     .with_llm("sk-xxxxx", model="openai:o3")
-    .with_database("sqlite", enabled=True)
+    .with_database("sqlite")
     .with_filters(
         exclude_types={"chore", "ci", "refactor"},
         exclude_labels={"skip-release-notes"},
@@ -572,12 +575,15 @@ curl -X POST http://localhost:8000/generate \
     "llm_model": "openai:o3",
     "exclude_types": ["chore", "ci", "refactor"],
     "exclude_labels": ["skip-release-notes"],
-    "exclude_authors": ["dependabot[bot]"]
+    "exclude_authors": ["dependabot[bot]"],
+    "no_read": false,
+    "no_write": false
   }'
 ```
 
 Notes:
 - `openai_key` and `openai_model` are still accepted as request aliases
+- `no_database` skips both cache reads and writes
 - The API serves interactive docs at `http://localhost:8000/docs`
 
 Check job status:

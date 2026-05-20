@@ -43,7 +43,7 @@ def advanced_usage():
 			max_patch_size=15000,
 			reasoning_effort="medium",
 		)
-		.with_database("sqlite", enabled=True)
+		.with_database("sqlite")
 		.with_filters(
 			exclude_types={"chore", "refactor", "ci", "style", "test"},
 			exclude_labels={"skip-release-notes"},
@@ -86,7 +86,7 @@ def direct_config_usage():
 			model="openai:gpt-4.1",
 			reasoning_effort="medium",
 		),  # Replace with your key
-		database=DatabaseConfig(type="sqlite", enabled=True),
+		database=DatabaseConfig(type="sqlite"),
 		filters=FilterConfig(
 			exclude_change_types={"chore", "refactor"},
 			exclude_change_labels={"skip-release-notes"},

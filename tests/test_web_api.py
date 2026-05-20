@@ -28,6 +28,7 @@ def mock_generator():
 		mock_builder = MagicMock()
 		mock_builder.with_github_token.return_value = mock_builder
 		mock_builder.with_llm.return_value = mock_builder
+		mock_builder.with_database.return_value = mock_builder
 		mock_builder.with_filters.return_value = mock_builder
 		mock_builder.with_progress_reporter.return_value = mock_builder
 		mock_builder.build.return_value = mock_client
@@ -174,6 +175,8 @@ class TestGenerateEndpoint:
 				"exclude_types": ["chore", "ci"],
 				"exclude_labels": ["skip-release-notes"],
 				"exclude_authors": ["bot[bot]"],
+				"no_read": True,
+				"no_write": True,
 			},
 		)
 
@@ -184,6 +187,30 @@ class TestGenerateEndpoint:
 			"test-key",
 			"gpt-4",
 			reasoning_effort="high",
+		)
+		mock_generator.return_value.with_database.assert_called_with(
+			no_read=True,
+			no_write=True,
+		)
+
+	def test_generate_no_database_disables_cache_reads_and_writes(self, client, mock_generator):
+		"""Generate endpoint should accept no_database as a cache shorthand."""
+		response = client.post(
+			"/generate",
+			json={
+				"owner": "test-owner",
+				"repo": "test-repo",
+				"tag": "v1.0.0",
+				"github_token": "test-token",
+				"llm_key": "test-key",
+				"no_database": True,
+			},
+		)
+
+		assert response.status_code == 200
+		mock_generator.return_value.with_database.assert_called_with(
+			no_read=True,
+			no_write=True,
 		)
 
 

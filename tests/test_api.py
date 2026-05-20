@@ -152,7 +152,7 @@ class TestConfigurationValidation:
 			ReleaseNotesBuilder()
 			.with_github_token("test_token")
 			.with_llm("test_key", model="gpt-4", max_patch_size=15000, reasoning_effort="medium")
-			.with_database("sqlite", db_name="test_db", enabled=True)
+			.with_database("sqlite", db_name="test_db")
 			.with_filters(
 				exclude_types={"chore", "ci"},
 				exclude_labels={"skip"},
@@ -224,6 +224,41 @@ class TestConfigurationValidation:
 		assert client.config.database.type == "sqlite"
 		assert client.config.database.name == "stored_lines"
 		assert client.config.database.enabled is True
+
+	def test_builder_can_disable_database_reads_only(self):
+		client = (
+			ReleaseNotesBuilder()
+			.with_github_token("test_token")
+			.with_llm("test_key")
+			.with_database(no_read=True)
+			.build()
+		)
+
+		assert client.config.database.read_enabled is False
+		assert client.config.database.write_enabled is True
+
+	def test_builder_can_disable_database_writes_only(self):
+		client = (
+			ReleaseNotesBuilder()
+			.with_github_token("test_token")
+			.with_llm("test_key")
+			.with_database(no_write=True)
+			.build()
+		)
+
+		assert client.config.database.read_enabled is True
+		assert client.config.database.write_enabled is False
+
+	def test_builder_can_disable_database_reads_and_writes(self):
+		client = (
+			ReleaseNotesBuilder()
+			.with_github_token("test_token")
+			.with_llm("test_key")
+			.with_database(no_read=True, no_write=True)
+			.build()
+		)
+
+		assert client.config.database.enabled is False
 
 	def test_llm_defaults(self):
 		"""Test that LLM config has sensible defaults."""

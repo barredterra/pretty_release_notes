@@ -5,6 +5,7 @@ import json
 import time
 import tomllib
 from pathlib import Path
+from typing import Annotated
 
 import typer
 
@@ -35,7 +36,9 @@ def generate(
 	tag: str,
 	owner: str | None = None,
 	previous_tag: str | None = None,
-	database: bool = True,
+	no_database: Annotated[bool, typer.Option("--no-database", help="Skip cache reads and writes")] = False,
+	no_db_read: Annotated[bool, typer.Option("--no-db-read", help="Skip reading cached summaries")] = False,
+	no_db_write: Annotated[bool, typer.Option("--no-db-write", help="Skip writing new summaries to the cache")] = False,
 	prompt_path: Path | None = None,
 	force_use_commits: bool = False,
 	group_by_type: bool = True,
@@ -63,7 +66,12 @@ def generate(
 		config.github.owner = owner
 	if prompt_path:
 		config.prompt_path = prompt_path
-	config.database.enabled = database
+	if no_database:
+		config.database.enabled = False
+	if no_db_read:
+		config.database.read_enabled = False
+	if no_db_write:
+		config.database.write_enabled = False
 	config.force_use_commits = force_use_commits
 	if reasoning_effort is not None:
 		config.llm.reasoning_effort = normalize_reasoning_effort(reasoning_effort)

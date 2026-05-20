@@ -38,6 +38,9 @@ class GenerateRequest(BaseModel):
 	exclude_types: list[str] = []
 	exclude_labels: list[str] = []
 	exclude_authors: list[str] = []
+	no_database: bool = False
+	no_read: bool = False
+	no_write: bool = False
 	previous_tag_name: str | None = None
 
 
@@ -125,6 +128,10 @@ async def process_generation(job_id: str, request: GenerateRequest) -> None:
 				request.llm_key,
 				request.llm_model,
 				reasoning_effort=request.llm_reasoning_effort,
+			)
+			.with_database(
+				no_read=request.no_database or request.no_read,
+				no_write=request.no_database or request.no_write,
 			)
 			.with_filters(
 				exclude_types=set(request.exclude_types),
