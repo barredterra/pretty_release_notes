@@ -90,6 +90,9 @@ ignore = [
     "W191", # Indentation contains tabs
 ]
 
+[tool.uv]
+exclude-newer = "1 week"
+
 [tool.mypy]
 python_version = "3.11"
 warn_return_any = true
