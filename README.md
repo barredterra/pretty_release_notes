@@ -2,11 +2,11 @@ Turn GitHub's auto-generated release notes into human-readable sentences.
 
 Go from this:
 
-![Original](img/original.png)
+![Original](https://raw.githubusercontent.com/barredterra/pretty_release_notes/main/img/original.png)
 
 To this:
 
-![Modified](img/modified.png)
+![Modified](https://raw.githubusercontent.com/barredterra/pretty_release_notes/main/img/modified.png)
 
 ## Features
 
@@ -62,7 +62,7 @@ nano ~/.pretty-release-notes/config.toml
 
 ### Configuration Format
 
-The configuration file uses TOML format with sections for GitHub credentials, LLM settings, database caching, and filters. The canonical section name is `[llm]`, while the legacy `[openai]` section is still accepted for backward compatibility. Prefer fully qualified `provider:model` values such as `openai:gpt-4.1`; unqualified model names are still accepted and default to OpenAI for backward compatibility. You can also set `reasoning_effort` to `none`, `low`, `medium`, `high`, or `xhigh` for supported models/providers. See [`config.toml.example`](config.toml.example) for the complete structure and all available options.
+The configuration file uses TOML format with sections for GitHub credentials, LLM settings, database caching, and filters. The canonical section name is `[llm]`, while the legacy `[openai]` section is still accepted for backward compatibility. Prefer fully qualified `provider:model` values such as `openai:gpt-4.1`; unqualified model names are still accepted and default to OpenAI for backward compatibility. You can also set `reasoning_effort` to `none`, `low`, `medium`, `high`, or `xhigh` for supported models/providers. See [`config.toml.example`](https://github.com/barredterra/pretty_release_notes/blob/main/config.toml.example) for the complete structure and all available options.
 
 You can override the config location using the `--config-path` flag.
 
@@ -159,7 +159,7 @@ print(notes)
 client.update_github_release("frappe", "erpnext", "v15.38.4", notes)
 ```
 
-For more examples, see [`examples/library_usage.py`](examples/library_usage.py).
+For more examples, see [`examples/library_usage.py`](https://github.com/barredterra/pretty_release_notes/blob/main/examples/library_usage.py).
 
 ### Web API
 
@@ -292,4 +292,4 @@ This means that backports of backports are currently not supported / will get a 
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing, code quality tools, and commit conventions.
+See [CONTRIBUTING.md](https://github.com/barredterra/pretty_release_notes/blob/main/CONTRIBUTING.md) for development setup, testing, code quality tools, and commit conventions.
