@@ -1,0 +1,23 @@
+name: Publish
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  pypi:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # trusted publishing, no API token needed
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0  # setuptools-scm reads the version from the tag
+
+      - uses: astral-sh/setup-uv@v5
+
+      - run: uv build
+
+      - uses: pypa/gh-action-pypi-publish@release/v1

@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68.0", "wheel"]
+requires = ["setuptools>=68.0", "setuptools-scm>=8"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -56,8 +56,7 @@ Documentation = "https://github.com/barredterra/pretty_release_notes#readme"
 Repository = "https://github.com/barredterra/pretty_release_notes"
 Issues = "https://github.com/barredterra/pretty_release_notes/issues"
 
-[tool.setuptools.dynamic]
-version = {attr = "pretty_release_notes.__version__"}
+[tool.setuptools_scm]
 
 [tool.setuptools]
 packages = [

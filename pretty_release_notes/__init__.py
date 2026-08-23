@@ -1,5 +1,7 @@
 """Pretty Release Notes - Transform GitHub release notes with AI."""
 
+from importlib.metadata import version
+
 # Public API exports for library usage
 from .api import ReleaseNotesBuilder, ReleaseNotesClient
 from .core.config import (
@@ -17,7 +19,7 @@ from .core.interfaces import (
 	ProgressReporter,
 )
 
-__version__ = "1.4.1"
+__version__ = version("pretty-release-notes")
 
 __all__ = [
 	# Client classes
