@@ -6,7 +6,7 @@ Thank you for your interest in contributing to Pretty Release Notes!
 
 ```bash
 # Clone the repository
-git clone https://github.com/alyf-de/pretty_release_notes
+git clone https://github.com/barredterra/pretty_release_notes
 cd pretty_release_notes
 
 # Create a virtual environment

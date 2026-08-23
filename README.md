@@ -24,6 +24,14 @@ To this:
 > [!NOTE]
 > The default prompt is geared towards [ERPNext](https://github.com/frappe/erpnext) and the [Frappe Framework](https://github.com/frappe/frappe). If you want to use this for different projects, set your own `prompt_path` in `config.toml`.
 
+## Installation
+
+```bash
+uv tool install pretty-release-notes
+```
+
+This puts the `pretty-release-notes` command on your PATH. To run it once without installing, use `uvx pretty-release-notes`. Without [uv](https://docs.astral.sh/uv/), `pip install pretty-release-notes` works as well.
+
 ## Configuration
 
 ### Interactive Setup (Recommended)
@@ -53,8 +61,8 @@ Alternatively, copy `config.toml.example` to `~/.pretty-release-notes/config.tom
 # Create config directory
 mkdir -p ~/.pretty-release-notes
 
-# Copy example config
-cp config.toml.example ~/.pretty-release-notes/config.toml
+# Download the example config
+curl -o ~/.pretty-release-notes/config.toml https://raw.githubusercontent.com/barredterra/pretty_release_notes/main/config.toml.example
 
 # Edit with your credentials
 nano ~/.pretty-release-notes/config.toml
@@ -65,19 +73,6 @@ nano ~/.pretty-release-notes/config.toml
 The configuration file uses TOML format with sections for GitHub credentials, LLM settings, database caching, and filters. The canonical section name is `[llm]`, while the legacy `[openai]` section is still accepted for backward compatibility. Prefer fully qualified `provider:model` values such as `openai:gpt-4.1`; unqualified model names are still accepted and default to OpenAI for backward compatibility. You can also set `reasoning_effort` to `none`, `low`, `medium`, `high`, or `xhigh` for supported models/providers. See [`config.toml.example`](https://github.com/barredterra/pretty_release_notes/blob/main/config.toml.example) for the complete structure and all available options.
 
 You can override the config location using the `--config-path` flag.
-
-## Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/barredterra/pretty_release_notes
-cd pretty_release_notes
-
-# Create virtual environment and install
-python -m venv env
-source env/bin/activate
-pip install -e .
-```
 
 ## Usage
 
@@ -167,11 +162,10 @@ The tool can also be run as a REST API server for integration with web frontends
 
 #### Starting the Server
 
-First, install the web dependencies:
+First, install the package with the web dependencies:
 
 ```bash
-source env/bin/activate
-pip install -e .[web]
+uv pip install "pretty-release-notes[web]"
 ```
 
 Then start the server:
@@ -290,6 +284,15 @@ We try to use the same message for backports as for the original PR. For this, w
 
 This means that backports of backports are currently not supported / will get a new message. To get the same message, PRs must be a direct backport of the original PR.
 
-## Contributing
+## Development
+
+```bash
+git clone https://github.com/barredterra/pretty_release_notes
+cd pretty_release_notes
+
+python -m venv env
+source env/bin/activate
+pip install -e .[dev,web]
+```
 
 See [CONTRIBUTING.md](https://github.com/barredterra/pretty_release_notes/blob/main/CONTRIBUTING.md) for development setup, testing, code quality tools, and commit conventions.
