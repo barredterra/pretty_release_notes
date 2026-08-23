@@ -56,6 +56,9 @@ Documentation = "https://github.com/alyf-de/pretty_release_notes#readme"
 Repository = "https://github.com/alyf-de/pretty_release_notes"
 Issues = "https://github.com/alyf-de/pretty_release_notes/issues"
 
+[tool.setuptools.dynamic]
+version = {attr = "pretty_release_notes.__version__"}
+
 [tool.setuptools]
 packages = [
     "pretty_release_notes",
