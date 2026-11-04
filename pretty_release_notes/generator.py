@@ -204,13 +204,17 @@ class ReleaseNotesGenerator:
 		if tasks:
 			self.execution.execute_parallel(tasks)
 
-	def update_on_github(self, new_body: str, tag: str):
-		"""Update release notes on GitHub."""
+	def update_on_github(self, new_body: str, tag: str) -> bool:
+		"""Update release notes on GitHub. Return False if GitHub rejected the update with 403.
+
+		GitHub also uses 403 for secondary rate limits, so the caller may retry later.
+		"""
 		assert self.repository is not None, "Repository must be initialized before updating release notes"
 		release = self._get_release(tag)
 		try:
 			self.github.update_release(self.repository, release["id"], new_body)
 			self.progress.report(ProgressEvent(type="success", message="Release notes updated successfully."))
+			return True
 		except HTTPError as e:
 			if e.response.status_code != 403:
 				raise e
@@ -218,9 +222,10 @@ class ReleaseNotesGenerator:
 			self.progress.report(
 				ProgressEvent(
 					type="error",
-					message="No permission to update release notes, skipping.",
+					message=f"GitHub rejected the release notes update (403), skipping: {e.response.text}",
 				)
 			)
+			return False
 
 	def _get_commit_lines(self, tag: str, previous_tag_name: str | None = None):
 		assert self.repository is not None, "Repository must be initialized"

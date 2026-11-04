@@ -230,7 +230,12 @@ def poll(
 				generator = ReleaseNotesGenerator(config, progress_reporter)
 				generator.initialize_repository(owner, repo_name)
 				notes = generator.generate(tag)
-				generator.update_on_github(notes, tag)
+				updated = generator.update_on_github(notes, tag)
+				if not updated:
+					# Leave the tag unprocessed so the next poll cycle retries it.
+					# Summaries are cached, so the retry is cheap.
+					typer.echo(f"FAILED {repo_spec} {tag}: GitHub rejected the update, will retry", err=True)
+					continue
 
 				processed.insert(0, tag)
 				state[repo_spec] = processed[:50]

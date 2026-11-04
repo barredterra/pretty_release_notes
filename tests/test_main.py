@@ -1,3 +1,4 @@
+import json
 from unittest.mock import patch
 
 from typer.testing import CliRunner
@@ -107,3 +108,45 @@ class TestMainCLI:
 		assert result.exit_code == 1
 		assert isinstance(result.exception, ValueError)
 		assert "Invalid reasoning effort" in str(result.exception)
+
+
+class TestPollCLI:
+	def _run_poll(self, tmp_path, update_succeeds: bool):
+		config = ReleaseNotesConfig(
+			github=GitHubConfig(token="gh-token"),
+			llm=LLMConfig(api_key="llm-key"),
+		)
+		state_file = tmp_path / "processed_releases.json"
+
+		with (
+			patch("pretty_release_notes.main.STATE_DIR", tmp_path),
+			patch("pretty_release_notes.main.STATE_FILE", state_file),
+			patch("pretty_release_notes.main.TomlConfigLoader") as mock_loader_class,
+			patch("pretty_release_notes.main._load_poll_repos", return_value=["owner/repo"]),
+			patch("pretty_release_notes.main.GitHubClient") as mock_github_class,
+			patch("pretty_release_notes.main.ReleaseNotesGenerator") as mock_generator_class,
+			patch("pretty_release_notes.main.CLI"),
+		):
+			mock_loader_class.return_value.load.return_value = config
+			mock_github_class.return_value.list_releases.return_value = [{"tag_name": "v1.0.0"}]
+			mock_generator = mock_generator_class.return_value
+			mock_generator.generate.return_value = "# Notes"
+			mock_generator.update_on_github.return_value = update_succeeds
+
+			result = runner.invoke(app, ["poll"])
+
+		state = json.loads(state_file.read_text()) if state_file.exists() else {}
+		return result, state
+
+	def test_poll_marks_release_processed_after_update(self, tmp_path):
+		result, state = self._run_poll(tmp_path, update_succeeds=True)
+
+		assert result.exit_code == 0, result.output
+		assert state == {"owner/repo": ["v1.0.0"]}
+
+	def test_poll_retries_release_when_github_rejects_update(self, tmp_path):
+		result, state = self._run_poll(tmp_path, update_succeeds=False)
+
+		assert result.exit_code == 0, result.output
+		assert "v1.0.0" not in state.get("owner/repo", [])
+		assert "FAILED owner/repo v1.0.0" in result.output
