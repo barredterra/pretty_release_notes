@@ -51,7 +51,7 @@ def _get_model_info(model: str) -> tuple[str, str, bool]:
 		if ":" in model or "/" in model:
 			raise
 		return DEFAULT_PROVIDER, model, False
-	return provider.value, provider_model, True
+	return str(provider), provider_model, True
 
 
 def _get_provider_kwargs(provider: str, model: str) -> dict[str, object]:
