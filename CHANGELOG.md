@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Release label and comment**: `poll` can add a label and a release comment to each PR of a new release, like `semantic-release` does. Set `[poll] release_label` to enable it. Labeling has its own state, so a labeling failure does not repeat the release notes step. The new `pretty-release-notes label REPO TAG` command labels one release manually.
+
+### Changed
+
+- **Poll state format**: `processed_releases.json` now stores processed and labeled releases separately. The old format is read automatically.
+
 ## [v1.4.1 - 2026-08-23]
 
 ### Fixed

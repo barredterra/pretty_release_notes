@@ -86,6 +86,7 @@ pretty_release_notes/                 # Main package
 ├── api.py                            # Library client and builder
 ├── generator.py                      # Core release note generation workflow
 ├── github_client.py                  # GitHub API wrapper
+├── labeler.py                        # Release label and comment on PRs (poll / label)
 ├── openai_client.py                  # LLM adapter (legacy module name)
 ├── database.py                       # CSV / SQLite cache backends
 ├── ui.py                             # Rich-based CLI UI

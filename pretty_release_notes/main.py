@@ -10,9 +10,11 @@ from typing import Annotated
 import typer
 
 from .adapters.cli_progress import CLIProgressReporter
+from .core.config import ReleaseNotesConfig
 from .core.config_loader import TomlConfigLoader
 from .generator import ReleaseNotesGenerator
 from .github_client import GitHubClient
+from .labeler import label_release
 from .openai_client import SUPPORTED_REASONING_EFFORTS, normalize_reasoning_effort
 from .setup_command import setup_config
 from .ui import CLI
@@ -125,22 +127,39 @@ STATE_DIR = Path.home() / ".pretty-release-notes"
 STATE_FILE = STATE_DIR / "processed_releases.json"
 
 
-def _load_state() -> dict[str, list[str]]:
-	if STATE_FILE.exists():
-		result: dict[str, list[str]] = json.loads(STATE_FILE.read_text())
-		return result
-	return {}
+def _load_state() -> dict[str, dict[str, list[str]]]:
+	"""Return {"processed": {repo: [tags]}, "labeled": {repo: [tags]}}."""
+	if not STATE_FILE.exists():
+		return {"processed": {}, "labeled": {}}
+
+	raw = json.loads(STATE_FILE.read_text())
+	if "processed" not in raw:
+		# Old format: {repo: [tags]} with processed tags only. These releases are older than
+		# the labeling feature, so mark them as labeled too. Else the next cycle comments on old PRs.
+		raw = {"processed": raw, "labeled": {repo: list(tags) for repo, tags in raw.items()}}
+	state: dict[str, dict[str, list[str]]] = {"processed": raw["processed"], "labeled": raw.get("labeled", {})}
+	return state
 
 
-def _save_state(state: dict[str, list[str]]) -> None:
+def _save_state(state: dict[str, dict[str, list[str]]]) -> None:
 	STATE_DIR.mkdir(parents=True, exist_ok=True)
 	STATE_FILE.write_text(json.dumps(state, indent=2) + "\n")
 
 
-def _load_poll_repos(config_path: Path) -> list[str]:
+def _mark_done(tags_by_repo: dict[str, list[str]], repo_spec: str, tag: str) -> None:
+	tags = tags_by_repo.get(repo_spec, [])
+	tags_by_repo[repo_spec] = [tag, *tags][:50]
+
+
+def _load_poll_config(config_path: Path) -> dict:
 	with open(config_path, "rb") as f:
 		raw = tomllib.load(f)
-	repos: list[str] = raw.get("poll", {}).get("repos", [])
+	poll_config: dict = raw.get("poll", {})
+	return poll_config
+
+
+def _load_poll_repos(config_path: Path) -> list[str]:
+	repos: list[str] = _load_poll_config(config_path).get("repos", [])
 	if not repos:
 		raise typer.BadParameter("No repos configured. Add [poll] repos = [...] to your config file.")
 	return repos
@@ -148,18 +167,22 @@ def _load_poll_repos(config_path: Path) -> list[str]:
 
 @app.command()
 def poll(
-	seed: bool = typer.Option(False, "--seed", help="Seed state with current releases without processing them"),
+	seed: bool = typer.Option(
+		False, "--seed", help="Mark current releases as processed and labeled without changing them"
+	),
 	install_cron: bool = typer.Option(False, "--install-cron", help="Install a crontab entry to poll every 15 minutes"),
 	config_path: Path | None = typer.Option(None, "--config-path", help="Path to config file"),
 ):
 	"""Poll GitHub for new releases and generate notes automatically.
 
 	Reads the list of repositories from [poll] repos in the config file.
+	If [poll] release_label is set, also adds that label and a release comment to the PRs of each release.
 	Run with --seed first to skip existing releases, then --install-cron to automate.
 	"""
 	loader = TomlConfigLoader(config_path)
 	config = loader.load()
 	repos = _load_poll_repos(loader.config_path)
+	release_label: str | None = _load_poll_config(loader.config_path).get("release_label")
 	github = GitHubClient(config.github.token)
 
 	state = _load_state()
@@ -169,7 +192,8 @@ def poll(
 			owner, repo_name = repo_spec.split("/", 1)
 			releases = github.list_releases(owner, repo_name)
 			tags = [str(r["tag_name"]) for r in releases if not r.get("draft")]
-			state[repo_spec] = tags
+			state["processed"][repo_spec] = tags
+			state["labeled"][repo_spec] = tags
 			typer.echo(f"Seeded {repo_spec}: {', '.join(tags)}")
 		_save_state(state)
 
@@ -204,6 +228,7 @@ def poll(
 	# One poll cycle
 	cli = CLI()
 	progress_reporter = CLIProgressReporter(cli)
+	labeling_stopped = False
 
 	for repo_spec in repos:
 		owner, repo_name = repo_spec.split("/", 1)
@@ -214,36 +239,102 @@ def poll(
 			typer.echo(f"ERROR listing {repo_spec}: {e}", err=True)
 			continue
 
-		processed = state.get(repo_spec, [])
-
 		for release in releases:
 			if release.get("draft"):
 				continue
 
 			tag = str(release["tag_name"])
-			if tag in processed:
-				continue
 
-			typer.echo(f"Processing {repo_spec} {tag}")
+			# The two steps are independent: a failure in one does not repeat or block the other.
+			if tag not in state["processed"].get(repo_spec, []):
+				_update_release_notes(config, progress_reporter, state, owner, repo_name, tag)
 
-			try:
-				generator = ReleaseNotesGenerator(config, progress_reporter)
-				generator.initialize_repository(owner, repo_name)
-				notes = generator.generate(tag)
-				updated = generator.update_on_github(notes, tag)
-				if not updated:
-					# Leave the tag unprocessed so the next poll cycle retries it.
-					# Summaries are cached, so the retry is cheap.
-					typer.echo(f"FAILED {repo_spec} {tag}: GitHub rejected the update, will retry", err=True)
-					continue
+			if release_label and not labeling_stopped and tag not in state["labeled"].get(repo_spec, []):
+				# After a failure (for example a rate limit), stop labeling until the next cycle.
+				labeling_stopped = not _label_release(github, state, owner, repo_name, tag, release_label)
 
-				processed.insert(0, tag)
-				state[repo_spec] = processed[:50]
-				_save_state(state)
 
-				typer.echo(f"Done {repo_spec} {tag}")
-			except Exception as e:
-				typer.echo(f"FAILED {repo_spec} {tag}: {e}", err=True)
+def _update_release_notes(
+	config: ReleaseNotesConfig,
+	progress_reporter: CLIProgressReporter,
+	state: dict[str, dict[str, list[str]]],
+	owner: str,
+	repo_name: str,
+	tag: str,
+) -> None:
+	repo_spec = f"{owner}/{repo_name}"
+	typer.echo(f"Processing {repo_spec} {tag}")
+	try:
+		generator = ReleaseNotesGenerator(config, progress_reporter)
+		generator.initialize_repository(owner, repo_name)
+		notes = generator.generate(tag)
+		updated = generator.update_on_github(notes, tag)
+	except Exception as e:
+		typer.echo(f"FAILED {repo_spec} {tag}: {e}", err=True)
+		return
+
+	if not updated:
+		# Leave the tag unprocessed so the next poll cycle retries it.
+		# Summaries are cached, so the retry is cheap.
+		typer.echo(f"FAILED {repo_spec} {tag}: GitHub rejected the update, will retry", err=True)
+		return
+
+	_mark_done(state["processed"], repo_spec, tag)
+	_save_state(state)
+	typer.echo(f"Done {repo_spec} {tag}")
+
+
+def _label_release(
+	github: GitHubClient,
+	state: dict[str, dict[str, list[str]]],
+	owner: str,
+	repo_name: str,
+	tag: str,
+	label: str,
+) -> bool:
+	"""Return False if labeling failed."""
+	repo_spec = f"{owner}/{repo_name}"
+	typer.echo(f"Labeling PRs of {repo_spec} {tag}")
+	try:
+		repository = github.get_repository(owner, repo_name)
+		label_release(github, repository, tag, label)
+	except Exception as e:
+		# Leave the tag unlabeled. The next poll cycle skips the PRs that have the label already.
+		typer.echo(f"FAILED labeling {repo_spec} {tag}: {e}", err=True)
+		return False
+
+	_mark_done(state["labeled"], repo_spec, tag)
+	_save_state(state)
+	typer.echo(f"Labeled PRs of {repo_spec} {tag}")
+	return True
+
+
+@app.command()
+def label(
+	repo: str,
+	tag: str,
+	owner: str | None = None,
+	label: str | None = typer.Option(None, "--label", help="Label to add (default: [poll] release_label)"),
+	config_path: Path | None = typer.Option(None, "--config-path", help="Path to config file"),
+):
+	"""Add the release label and a release comment to each PR of a release.
+
+	PRs that have the label already are skipped.
+	"""
+	loader = TomlConfigLoader(config_path)
+	config = loader.load()
+	label = label or _load_poll_config(loader.config_path).get("release_label")
+	if not label:
+		raise typer.BadParameter("No label given. Use --label or add [poll] release_label to your config file.")
+
+	repo_owner = owner or config.github.owner
+	if not repo_owner:
+		raise typer.BadParameter("Owner must be specified either via --owner or [github] owner in the config file.")
+
+	github = GitHubClient(config.github.token)
+	repository = github.get_repository(repo_owner, repo)
+	label_release(github, repository, tag, label)
+	typer.echo(f"Labeled PRs of {repo_owner}/{repo} {tag}")
 
 
 if __name__ == "__main__":

@@ -65,6 +65,10 @@ exclude_authors = [
 # Repositories to poll for new releases (used by `pretty-release-notes poll`)
 # repos = ["frappe/erpnext", "frappe/frappe"]
 
+# Add this label and a release comment to each PR of a new release (optional).
+# If not set, `poll` does not change PRs.
+# release_label = "released"
+
 [grouping]
 # Enable grouping by conventional commit type (default: true)
 group_by_type = true

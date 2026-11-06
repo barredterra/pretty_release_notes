@@ -270,6 +270,40 @@ pretty-release-notes poll
 
 The poll command uses the same config, database, and filters as `generate`. Processed releases are tracked in `~/.pretty-release-notes/processed_releases.json`.
 
+#### Release Label and Comment
+
+`poll` can also add a label and a comment to each PR of a release, like `semantic-release` does. Use this when `semantic-release` fails to do it for large releases. Set the label in your config:
+
+```toml
+[poll]
+repos = ["frappe/erpnext"]
+release_label = "released"
+```
+
+If `release_label` is not set, `poll` does not change PRs.
+
+In each cycle, `poll` adds the label and this comment to each PR of a new release:
+
+```markdown
+:tada: This PR is included in version 16.54.0 :tada:
+
+The release is available on [GitHub release](https://github.com/frappe/erpnext/releases/tag/v16.54.0)
+```
+
+- The PRs come from the release notes that GitHub generates. This includes PRs that the filters remove from the release notes. The original PRs of backports do not change.
+- PRs that have the label already do not change.
+- `poll` sends one write per second. If GitHub returns an error or a rate limit, `poll` stops labeling for this cycle and continues with the remaining PRs in the next cycle. The release notes step continues.
+- Labeled releases are tracked separately from processed releases. A failure in one step does not repeat the other step.
+- `poll --seed` also marks the current releases as labeled. If you set `release_label` after you seeded, run `poll --seed` again. Otherwise the next cycle adds comments to the PRs of recent releases.
+- A state file from an older version marks its processed releases as labeled too. Thus, only new releases get labels and comments.
+- The token needs "Issues: Read and write" and "Pull requests: Read and write" permissions. The comments show the token's user as the author.
+
+To label the PRs of one release manually:
+
+```bash
+pretty-release-notes label erpnext v16.54.0 --owner frappe --label released
+```
+
 ## Authors and Reviewers
 
 The authors and reviewers of the PRs are added to the release notes.

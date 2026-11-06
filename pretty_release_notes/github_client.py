@@ -26,6 +26,11 @@ class GitHubClient:
 		)
 		self.session.mount("https://", HTTPAdapter(max_retries=retries))
 
+		# Comments and labels must not be retried: after a 502 or 504, GitHub may
+		# already have applied the write, so a retry can add a duplicate comment.
+		self.write_session = requests.Session()
+		self.write_session.headers.update(self.session.headers)
+
 	def get_repository(self, owner: str, name: str) -> Repository:
 		"""Return a repository object."""
 		r = self.session.get(
@@ -219,6 +224,46 @@ class GitHubClient:
 		)
 		response.raise_for_status()
 		return response.json()
+
+	def get_pr_labels(self, repository: Repository, pr_numbers: list[int]) -> dict[int, set[str]]:
+		"""Return the label names of each PR, using one aliased GraphQL query."""
+		aliases = "\n".join(
+			f"pr{pr_no}: pullRequest(number: {pr_no}) {{ labels(first: 50) {{ nodes {{ name }} }} }}"
+			for pr_no in pr_numbers
+		)
+		query = f"query($owner: String!, $name: String!) {{ repository(owner: $owner, name: $name) {{ {aliases} }} }}"
+		response = self.session.post(
+			"https://api.github.com/graphql",
+			json={
+				"query": query,
+				"variables": {"owner": repository.owner, "name": repository.name},
+			},
+		)
+		response.raise_for_status()
+		result = response.json()
+		if "errors" in result:
+			raise RuntimeError(f"GraphQL error: {result['errors']}")
+
+		prs = result["data"]["repository"]
+		return {pr_no: {node["name"] for node in prs[f"pr{pr_no}"]["labels"]["nodes"]} for pr_no in pr_numbers}
+
+	def add_comment(self, repository: Repository, issue_no: int, body: str) -> None:
+		"""Add a comment to an issue or PR. Not retried, to avoid duplicate comments."""
+		response = self.write_session.post(
+			f"{repository.url}/issues/{issue_no}/comments",
+			headers={"Accept": "application/vnd.github+json"},
+			json={"body": body},
+		)
+		response.raise_for_status()
+
+	def add_labels(self, repository: Repository, issue_no: int, labels: list[str]) -> None:
+		"""Add labels to an issue or PR. Not retried, like add_comment."""
+		response = self.write_session.post(
+			f"{repository.url}/issues/{issue_no}/labels",
+			headers={"Accept": "application/vnd.github+json"},
+			json={"labels": labels},
+		)
+		response.raise_for_status()
 
 	def get_commit_messages(self, url: str) -> list[str]:
 		"""Get commit messages from GitHub API."""
