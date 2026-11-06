@@ -42,8 +42,8 @@ web = [
 dev = [
     "pytest~=9.0",
     "pytest-cov~=7.1",
-    "mypy~=1.20",
-    "ruff~=0.15.0",
+    "mypy~=2.4",
+    "ruff~=0.17.3",
     "types-requests~=2.33.0.20260408",
 ]
 
@@ -78,6 +78,8 @@ target-version = "py311"
 # Use ruff for formatting (replaces black)
 quote-style = "double"
 indent-style = "tab"
+# Keep code examples in docs indented with spaces, as readers copy them
+exclude = ["*.md"]
 
 [tool.ruff.lint]
 select = [
