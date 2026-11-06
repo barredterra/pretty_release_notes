@@ -5,7 +5,7 @@ from typing import Any
 
 from dotenv import dotenv_values
 
-from ..openai_client import DEFAULT_MODEL
+from ..openai_client import DEFAULT_MODEL, normalize_reasoning_effort
 from .config import (
 	DatabaseConfig,
 	FilterConfig,
@@ -107,7 +107,9 @@ class EnvConfigLoader(ConfigLoader):
 				api_key=llm_key,
 				model=config.get("LLM_MODEL") or config.get("OPENAI_MODEL") or DEFAULT_MODEL,
 				max_patch_size=int(config.get("MAX_PATCH_SIZE") or "10000"),
-				reasoning_effort=config.get("LLM_REASONING_EFFORT") or config.get("OPENAI_REASONING_EFFORT"),
+				reasoning_effort=normalize_reasoning_effort(
+					config.get("LLM_REASONING_EFFORT") or config.get("OPENAI_REASONING_EFFORT")
+				),
 			),
 			database=DatabaseConfig(
 				type=config.get("DB_TYPE") or "sqlite",
