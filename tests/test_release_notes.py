@@ -1,4 +1,5 @@
 from pretty_release_notes.core.config import GroupingConfig
+from pretty_release_notes.generator import get_previous_tag_name
 from pretty_release_notes.github_client import GitHubClient
 from pretty_release_notes.models.pull_request import PullRequest
 from pretty_release_notes.models.release_notes import ReleaseNotes, ReleaseNotesLine
@@ -635,3 +636,35 @@ def test_breaking_changes_with_filtering():
 	# Breaking feature should be included
 	assert "## Breaking Changes" in output
 	assert "Breaking feature" in output
+
+
+def test_group_by_type_keeps_full_changelog_line():
+	"""The grouped output keeps the compare URL, so the previous tag can be read from the rewritten body."""
+	github = GitHubClient("test_token")
+	repo = Repository(
+		owner="test_org",
+		name="test_repo",
+		url="https://api.github.com/repos/test_org/test_repo",
+		html_url="https://github.com/test_org/test_repo",
+	)
+	fix_pr = PullRequest(
+		github=github,
+		repository=repo,
+		id=1,
+		title="fix: fix bug",
+		body="",
+		html_url="https://github.com/test_org/test_repo/pull/1",
+	)
+	full_changelog = "**Full Changelog**: https://github.com/test_org/test_repo/compare/v1.0.0...v1.1.0"
+	lines = [
+		ReleaseNotesLine(original_line="## What's Changed"),
+		ReleaseNotesLine(original_line="", change=fix_pr, sentence="Fixed bug"),
+		ReleaseNotesLine(original_line=""),
+		ReleaseNotesLine(original_line=full_changelog),
+	]
+
+	output = ReleaseNotes(lines=lines).serialize(grouping=GroupingConfig(group_by_type=True))
+
+	assert full_changelog in output
+	assert "## What's Changed" not in output
+	assert get_previous_tag_name(output, repo) == "v1.0.0"

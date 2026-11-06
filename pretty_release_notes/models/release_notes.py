@@ -115,6 +115,8 @@ class ReleaseNotes:
 			breaking_lines: list[ReleaseNotesLine] = []
 			other_lines: list[ReleaseNotesLine] = []
 			new_contributor_lines: list[ReleaseNotesLine] = []
+			# "**Full Changelog**: .../compare/A...B". Keep it: the previous tag is read from it later.
+			compare_lines: list[ReleaseNotesLine] = []
 
 			for line in self.lines:
 				# Preserve new contributor lines
@@ -141,7 +143,9 @@ class ReleaseNotes:
 					grouped_lines[type_key].append(line)
 				elif line.change:  # Has change but no type
 					other_lines.append(line)
-				# Skip lines without changes (headers, empty lines)
+				elif "/compare/" in line.original_line:
+					compare_lines.append(line)
+				# Skip other lines without changes (headers, empty lines)
 
 			# Build grouped output
 			sections = []
@@ -186,6 +190,10 @@ class ReleaseNotes:
 				sections.append("## New Contributors")
 				for line in new_contributor_lines:
 					sections.append(str(line))
+				sections.append("")
+
+			for line in compare_lines:
+				sections.append(str(line))
 				sections.append("")
 
 			# Join sections, removing trailing empty line
