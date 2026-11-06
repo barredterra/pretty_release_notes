@@ -25,26 +25,26 @@ classifiers = [
 ]
 
 dependencies = [
-    "typer~=0.24.0",
+    "typer~=0.27.0",
     "rich~=15.0",
-    "requests~=2.33",
+    "requests~=2.34",
     "python-dotenv~=1.2",
     "tenacity~=9.1",
-    "any-llm-sdk[all]~=1.13",
+    "any-llm-sdk[all]~=1.40",
 ]
 
 [project.optional-dependencies]
 web = [
-    "fastapi~=0.136.0",
-    "uvicorn~=0.44.0",
-    "pydantic~=2.13",
+    "fastapi~=0.162.0",
+    "uvicorn~=0.54.0",
+    "pydantic~=2.14",
 ]
 dev = [
-    "pytest~=9.0",
+    "pytest~=9.2",
     "pytest-cov~=7.1",
     "mypy~=2.4",
     "ruff~=0.17.3",
-    "types-requests~=2.33.0.20260408",
+    "types-requests~=2.33.0.20261030",
 ]
 
 [project.scripts]
