@@ -20,7 +20,7 @@ It is tuned for ERPNext and the Frappe Framework by default, but can be adapted 
 - Falls back to commit-based generation when PR metadata is unavailable or `force_use_commits` is enabled
 - Loads reviewer information and credits authors/reviewers while excluding configured bots
 - Supports optional grouping by conventional commit type, with breaking changes rendered first when present
-- Supports optional grouping by area (scope first, then a single matching label, else "General"), with bug fixes collapsed per area
+- Supports optional grouping by area (scope first, then a single matching label, else "General"), with changes labeled by type and large or mixed areas collapsed
 - Stores generated summaries in CSV or SQLite caches
 - Supports interactive TOML-based setup and one-time migration from legacy `.env` files
 - Can infer the previous tag from the GitHub compare URL in existing release notes when one is not supplied manually
@@ -484,7 +484,7 @@ CLI parameters:
 - `--prompt-path`: Use a custom prompt file
 - `--force-use-commits`: Force commit-based generation
 - `--group-by-type`: Enable grouped output
-- `--group-by-area`: Group by area and collapse bug fixes (takes precedence over grouping by type)
+- `--group-by-area`: Group by area and collapse large areas (takes precedence over grouping by type)
 - `--config-path`: Use a non-default TOML config file
 
 ### Library Usage

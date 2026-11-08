@@ -671,7 +671,7 @@ def test_group_by_type_keeps_full_changelog_line():
 
 
 def test_group_by_area():
-	"""Each change goes to one area, fixes are collapsed, and footer lines are kept."""
+	"""Each change goes to one area, grouped and labeled by type. Large or mixed areas are collapsed."""
 	github = GitHubClient("test_token")
 	repo = Repository(
 		owner="test_org",
@@ -705,7 +705,10 @@ def test_group_by_area():
 		make_line(6, "fix(balance sheet report): unknown scope, falls back to label", {"accounts"}),
 		make_line(7, "feat(stock)!: breaking change", {"stock"}),
 		make_line(8, "chore(stock): excluded type", {"stock"}),
-		make_line(9, "perf(stock): visible performance change", {"stock"}),
+		make_line(9, "perf(stock): performance change", {"stock"}),
+		make_line(10, "fix(accounts): fourth accounts fix"),
+		make_line(11, "fix(accounts): fifth accounts fix"),
+		make_line(12, "fix(selling): only selling fix"),
 		ReleaseNotesLine(original_line=new_contributor, is_new_contributor=True),
 		ReleaseNotesLine(original_line=full_changelog),
 	]
@@ -721,32 +724,49 @@ def test_group_by_area():
 
 ## General
 
-<details>
-<summary>Bug Fixes (2)</summary>
+Bug Fixes
 
 * Change 4 (https://github.com/test_org/test_repo/pull/4)
 * Change 5 (https://github.com/test_org/test_repo/pull/5)
 
-</details>
-
 ## Accounts
 
 <details>
-<summary>Bug Fixes (2)</summary>
+<summary>Bug Fixes (4)</summary>
 
 * Change 3 (https://github.com/test_org/test_repo/pull/3)
 * Change 6 (https://github.com/test_org/test_repo/pull/6)
+* Change 10 (https://github.com/test_org/test_repo/pull/10)
+* Change 11 (https://github.com/test_org/test_repo/pull/11)
 
 </details>
 
+## Selling
+
+Bug Fixes
+
+* Change 12 (https://github.com/test_org/test_repo/pull/12)
+
 ## Stock
+
+<details>
+<summary>Features (1)</summary>
+
 * Change 2 (https://github.com/test_org/test_repo/pull/2)
-* Change 9 (https://github.com/test_org/test_repo/pull/9)
+
+</details>
 
 <details>
 <summary>Bug Fixes (1)</summary>
 
 * Change 1 (https://github.com/test_org/test_repo/pull/1)
+
+</details>
+
+<details>
+<summary>Performance Improvements (1)</summary>
+
+* Change 9 (https://github.com/test_org/test_repo/pull/9)
 
 </details>
 

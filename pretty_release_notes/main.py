@@ -45,7 +45,7 @@ def generate(
 	force_use_commits: bool = False,
 	group_by_type: bool = True,
 	group_by_area: Annotated[
-		bool, typer.Option("--group-by-area", help="Group by area, such as Accounts or Stock, and collapse bug fixes")
+		bool, typer.Option("--group-by-area", help="Group by area, such as Accounts or Stock, and collapse large areas")
 	] = False,
 	yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation and update release notes on GitHub"),
 	config_path: Path | None = None,

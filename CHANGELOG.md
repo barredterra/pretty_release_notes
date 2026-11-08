@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Grouping by area**: `--group-by-area` (or `group_by_area = true`) groups changes by area, such as Accounts or Stock, instead of by type. The conventional scope picks the area. Without a scope, a single matching PR label picks it. Other changes go to a "General" section. Bug fixes are collapsed in each area. Configure areas with `area_headings`.
+- **Grouping by area**: `--group-by-area` (or `group_by_area = true`) groups changes by area, such as Accounts or Stock, instead of by type. The conventional scope picks the area. Without a scope, a single matching PR label picks it. Other changes go to a "General" section. In each area, changes are grouped and labeled by type. Areas with more than 3 changes or with more than one type are collapsed. Configure areas with `area_headings`.
 - **Release label and comment**: `poll` can add a label and a release comment to each PR of a new release, like `semantic-release` does. Set `[poll] release_label` to enable it. Labeling has its own state, so a labeling failure does not repeat the release notes step. The new `pretty-release-notes label REPO TAG` command labels one release manually.
 
 ### Changed

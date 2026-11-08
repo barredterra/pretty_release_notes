@@ -129,7 +129,7 @@ def setup_config(
 		default=existing_values.get("group_by_type", True),
 	)
 	group_by_area = Confirm.ask(
-		"Group release notes by area (for example Accounts or Stock) and collapse bug fixes?",
+		"Group release notes by area (for example Accounts or Stock)?",
 		default=existing_values.get("group_by_area", False),
 	)
 
@@ -297,7 +297,7 @@ exclude_authors = {to_toml_array(exclude_authors)}
 
 [grouping]
 group_by_type = {str(group_by_type).lower()}
-# Group by area instead of type. Bug fixes are collapsed in each area.
+# Group by area instead of type. Areas with more than 3 changes or more than one type are collapsed.
 group_by_area = {str(group_by_area).lower()}
 # Customize headings by editing the config file directly
 # type_headings = {{ feat = "Features", fix = "Bug Fixes" }}

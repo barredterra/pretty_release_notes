@@ -6,12 +6,16 @@ from .release_notes_line import ReleaseNotesLine
 if TYPE_CHECKING:
 	from ..core.config import GroupingConfig
 
+# An area with more entries than this, or with more than one type, is collapsed
+MAX_EXPANDED_LINES = 3
+
 
 class AreaSections:
 	"""Changes grouped by area, so readers can go to the part of the product they use.
 
 	Breaking changes come first, then the general section, then the areas in configured order.
-	Inside an area, bug fixes are collapsed. Everything else stays visible.
+	Inside an area, changes are grouped by type, and each group is labeled with its type.
+	Large or mixed areas show each group collapsed, so the reader sees an overview first.
 	"""
 
 	def __init__(self, change_lines: list[ReleaseNotesLine], grouping: "GroupingConfig"):
@@ -45,21 +49,29 @@ class AreaSections:
 		return [self.grouping.general_heading, *configured_areas]
 
 	def _get_area_section(self, area: str, lines: list[ReleaseNotesLine]) -> list[str]:
-		fix_lines = [line for line in lines if line.conventional_type == "fix"]
-		visible_lines = sorted(
-			(line for line in lines if line.conventional_type != "fix"),
-			key=lambda line: _get_type_rank(line.conventional_type),
-		)
+		lines_by_type = self._group_by_type(lines)
+		collapse = len(lines) > MAX_EXPANDED_LINES or len(lines_by_type) > 1
 
-		section = [f"## {area}", *map(str, visible_lines)]
-		if fix_lines:
-			fixes_summary = f"{self.grouping.get_heading('fix')} ({len(fix_lines)})"
-			# GitHub only renders markdown inside <details> with blank lines around it
-			section += ["", "<details>", f"<summary>{fixes_summary}</summary>", ""]
-			section += [*map(str, fix_lines), "", "</details>"]
+		section = [f"## {area}"]
+		for type_heading, type_lines in lines_by_type.items():
+			if collapse:
+				# GitHub only renders markdown inside <details> with blank lines around it
+				section += ["", "<details>", f"<summary>{type_heading} ({len(type_lines)})</summary>", ""]
+				section += [*map(str, type_lines), "", "</details>"]
+			else:
+				section += ["", type_heading, "", *map(str, type_lines)]
 
 		section.append("")
 		return section
+
+	def _group_by_type(self, lines: list[ReleaseNotesLine]) -> dict[str, list[ReleaseNotesLine]]:
+		"""Group lines by type heading, in the usual type order. Unknown types share the "other" heading."""
+		lines_by_type: dict[str, list[ReleaseNotesLine]] = {}
+		for line in sorted(lines, key=lambda line: _get_type_rank(line.conventional_type)):
+			type_heading = self.grouping.get_heading(line.conventional_type)
+			lines_by_type.setdefault(type_heading, []).append(line)
+
+		return lines_by_type
 
 
 def _get_type_rank(conventional_type: str | None) -> int:
