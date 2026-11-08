@@ -297,7 +297,7 @@ exclude_authors = {to_toml_array(exclude_authors)}
 
 [grouping]
 group_by_type = {str(group_by_type).lower()}
-# Group by area instead of type. Areas with more than 3 changes or more than one type are collapsed.
+# Group by area instead of type. Areas with more than 3 changes are collapsed.
 group_by_area = {str(group_by_area).lower()}
 # Customize headings by editing the config file directly
 # type_headings = {{ feat = "Features", fix = "Bug Fixes" }}

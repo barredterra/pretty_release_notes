@@ -324,8 +324,8 @@ Each change goes to exactly one area:
 
 Breaking changes come first, then "General", then the areas in the configured order. In each area, changes are grouped by type, and each group has a label, for example "Bug Fixes":
 
-- If an area has more than 3 changes, or changes of more than one type, each group is collapsed in a `<details>` block. The block summary shows the type and the count, for example "Features (2)".
-- Else, the type label is a paragraph above the bullet list.
+- If an area has more than 3 changes, each group is collapsed in a `<details>` block. The block summary shows the type and the count, for example "Features (2)".
+- Else, each type label is a paragraph above its bullet list.
 
 The default areas are tuned for ERPNext. To use your own areas, set `area_headings` in `[grouping]`. Keys are scopes or labels, values are headings. Several keys can share one heading:
 

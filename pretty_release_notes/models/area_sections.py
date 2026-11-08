@@ -6,7 +6,7 @@ from .release_notes_line import ReleaseNotesLine
 if TYPE_CHECKING:
 	from ..core.config import GroupingConfig
 
-# An area with more entries than this, or with more than one type, is collapsed
+# An area with more entries than this is collapsed
 MAX_EXPANDED_LINES = 3
 
 
@@ -15,7 +15,7 @@ class AreaSections:
 
 	Breaking changes come first, then the general section, then the areas in configured order.
 	Inside an area, changes are grouped by type, and each group is labeled with its type.
-	Large or mixed areas show each group collapsed, so the reader sees an overview first.
+	Large areas show each group collapsed, so the reader sees an overview first.
 	"""
 
 	def __init__(self, change_lines: list[ReleaseNotesLine], grouping: "GroupingConfig"):
@@ -50,7 +50,7 @@ class AreaSections:
 
 	def _get_area_section(self, area: str, lines: list[ReleaseNotesLine]) -> list[str]:
 		lines_by_type = self._group_by_type(lines)
-		collapse = len(lines) > MAX_EXPANDED_LINES or len(lines_by_type) > 1
+		collapse = len(lines) > MAX_EXPANDED_LINES
 
 		section = [f"## {area}"]
 		for type_heading, type_lines in lines_by_type.items():

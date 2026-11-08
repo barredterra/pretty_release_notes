@@ -79,8 +79,7 @@ group_by_type = true
 # Heading for uncategorized changes (optional)
 # other_heading = "Other Changes"
 
-# Group by area instead of type (default: false). Areas with more than 3 changes,
-# or with more than one type, are collapsed.
+# Group by area instead of type (default: false). Areas with more than 3 changes are collapsed.
 # Takes precedence over group_by_type.
 # group_by_area = false
 

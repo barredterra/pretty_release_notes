@@ -671,7 +671,7 @@ def test_group_by_type_keeps_full_changelog_line():
 
 
 def test_group_by_area():
-	"""Each change goes to one area, grouped and labeled by type. Large or mixed areas are collapsed."""
+	"""Each change goes to one area, grouped and labeled by type. Areas with more than 3 changes are collapsed."""
 	github = GitHubClient("test_token")
 	repo = Repository(
 		owner="test_org",
@@ -749,26 +749,17 @@ Bug Fixes
 
 ## Stock
 
-<details>
-<summary>Features (1)</summary>
+Features
 
 * Change 2 (https://github.com/test_org/test_repo/pull/2)
 
-</details>
-
-<details>
-<summary>Bug Fixes (1)</summary>
+Bug Fixes
 
 * Change 1 (https://github.com/test_org/test_repo/pull/1)
 
-</details>
-
-<details>
-<summary>Performance Improvements (1)</summary>
+Performance Improvements
 
 * Change 9 (https://github.com/test_org/test_repo/pull/9)
-
-</details>
 
 ## New Contributors
 """
