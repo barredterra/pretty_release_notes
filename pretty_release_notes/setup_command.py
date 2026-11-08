@@ -128,6 +128,10 @@ def setup_config(
 		"Group release notes by conventional commit type?",
 		default=existing_values.get("group_by_type", True),
 	)
+	group_by_area = Confirm.ask(
+		"Group release notes by area (for example Accounts or Stock) and collapse bug fixes?",
+		default=existing_values.get("group_by_area", False),
+	)
 
 	# Build TOML content
 	toml_content = _build_toml_content(
@@ -144,6 +148,7 @@ def setup_config(
 		exclude_labels=exclude_labels,
 		exclude_authors=exclude_authors,
 		group_by_type=group_by_type,
+		group_by_area=group_by_area,
 	)
 
 	# Confirm before writing
@@ -203,6 +208,7 @@ def _flatten_toml(toml_config: dict) -> dict:
 
 	grouping = toml_config.get("grouping", {})
 	flat["group_by_type"] = grouping.get("group_by_type", True)
+	flat["group_by_area"] = grouping.get("group_by_area", False)
 
 	return flat
 
@@ -239,6 +245,7 @@ def _build_toml_content(
 	exclude_labels: str,
 	exclude_authors: str,
 	group_by_type: bool,
+	group_by_area: bool = False,
 ) -> str:
 	"""Build TOML file content from values."""
 
@@ -290,9 +297,14 @@ exclude_authors = {to_toml_array(exclude_authors)}
 
 [grouping]
 group_by_type = {str(group_by_type).lower()}
-# Customize type headings by editing the config file directly
+# Group by area instead of type. Bug fixes are collapsed in each area.
+group_by_area = {str(group_by_area).lower()}
+# Customize headings by editing the config file directly
 # type_headings = {{ feat = "Features", fix = "Bug Fixes" }}
 # other_heading = "Other Changes"
+# Map conventional scopes and PR labels to areas (replaces the default map)
+# area_headings = {{ accounts = "Accounts", stock = "Stock", pos = "Point of Sale" }}
+# general_heading = "General"
 """
 
 

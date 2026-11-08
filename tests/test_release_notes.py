@@ -668,3 +668,109 @@ def test_group_by_type_keeps_full_changelog_line():
 	assert full_changelog in output
 	assert "## What's Changed" not in output
 	assert get_previous_tag_name(output, repo) == "v1.0.0"
+
+
+def test_group_by_area():
+	"""Each change goes to one area, fixes are collapsed, and footer lines are kept."""
+	github = GitHubClient("test_token")
+	repo = Repository(
+		owner="test_org",
+		name="test_repo",
+		url="https://api.github.com/repos/test_org/test_repo",
+		html_url="https://github.com/test_org/test_repo",
+	)
+
+	def make_line(pr_id: int, title: str, labels: set[str] | None = None) -> ReleaseNotesLine:
+		pr = PullRequest(
+			github=github,
+			repository=repo,
+			id=pr_id,
+			title=title,
+			body="",
+			html_url=f"https://github.com/test_org/test_repo/pull/{pr_id}",
+			author="dev",
+			labels=labels,
+		)
+		return ReleaseNotesLine(original_line="", change=pr, sentence=f"Change {pr_id}")
+
+	full_changelog = "**Full Changelog**: https://github.com/test_org/test_repo/compare/v1.0.0...v1.1.0"
+	new_contributor = "* @someone made their first contribution in https://github.com/test_org/test_repo/pull/99"
+	lines = [
+		ReleaseNotesLine(original_line="## What's Changed"),
+		make_line(1, "fix(stock): scope wins over labels", {"accounts", "stock"}),
+		make_line(2, "feat(stock): visible feature", {"stock"}),
+		make_line(3, "fix: single label", {"accounts", "released"}),
+		make_line(4, "fix: several labels", {"accounts", "selling"}),
+		make_line(5, "fix: no area"),
+		make_line(6, "fix(balance sheet report): unknown scope, falls back to label", {"accounts"}),
+		make_line(7, "feat(stock)!: breaking change", {"stock"}),
+		make_line(8, "chore(stock): excluded type", {"stock"}),
+		make_line(9, "perf(stock): visible performance change", {"stock"}),
+		ReleaseNotesLine(original_line=new_contributor, is_new_contributor=True),
+		ReleaseNotesLine(original_line=full_changelog),
+	]
+
+	output = ReleaseNotes(lines=lines).serialize(
+		exclude_change_types={"chore"},
+		grouping=GroupingConfig(group_by_area=True),
+	)
+
+	expected = (
+		"""## Breaking Changes
+* Change 7 (https://github.com/test_org/test_repo/pull/7)
+
+## General
+
+<details>
+<summary>Bug Fixes (2)</summary>
+
+* Change 4 (https://github.com/test_org/test_repo/pull/4)
+* Change 5 (https://github.com/test_org/test_repo/pull/5)
+
+</details>
+
+## Accounts
+
+<details>
+<summary>Bug Fixes (2)</summary>
+
+* Change 3 (https://github.com/test_org/test_repo/pull/3)
+* Change 6 (https://github.com/test_org/test_repo/pull/6)
+
+</details>
+
+## Stock
+* Change 2 (https://github.com/test_org/test_repo/pull/2)
+* Change 9 (https://github.com/test_org/test_repo/pull/9)
+
+<details>
+<summary>Bug Fixes (1)</summary>
+
+* Change 1 (https://github.com/test_org/test_repo/pull/1)
+
+</details>
+
+## New Contributors
+"""
+		+ new_contributor
+		+ "\n\n"
+		+ full_changelog
+		+ "\n\n**Authors**: @dev"
+	)
+
+	assert output == expected
+	assert get_previous_tag_name(output, repo) == "v1.0.0"
+
+
+def test_group_by_area_takes_precedence_over_group_by_type():
+	github = GitHubClient("test_token")
+	repo = Repository(owner="o", name="r", url="", html_url="https://github.com/o/r")
+	pr = PullRequest(
+		github=github, repository=repo, id=1, title="feat(stock): new report", body="", html_url="https://x/1"
+	)
+	lines = [ReleaseNotesLine(original_line="", change=pr, sentence="Adds a report")]
+
+	output = ReleaseNotes(lines=lines).serialize(grouping=GroupingConfig(group_by_type=True, group_by_area=True))
+
+	assert "## Stock" in output
+	assert "## Features" not in output

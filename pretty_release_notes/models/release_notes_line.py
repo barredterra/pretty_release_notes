@@ -15,6 +15,10 @@ class ReleaseNotesLine:
 	is_new_contributor: bool = False
 	sentence: str | None = None
 
+	@property
+	def conventional_type(self) -> str | None:
+		return self.change.conventional_type if self.change else None
+
 	def __str__(self):
 		if self.sentence and self.change:
 			return f"""* {self.sentence} ({self.change.html_url})"""

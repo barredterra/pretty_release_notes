@@ -152,6 +152,7 @@ class TestHelperFunctions:
 			exclude_labels="skip",
 			exclude_authors="bot1,bot2",
 			group_by_type=False,
+			group_by_area=True,
 		)
 
 		# Check key sections are present
@@ -173,6 +174,7 @@ class TestHelperFunctions:
 		assert '["bot1", "bot2"]' in content
 		assert "[grouping]" in content
 		assert "group_by_type = false" in content
+		assert "group_by_area = true" in content
 
 	def test_build_toml_content_with_empty_arrays(self):
 		"""Test building TOML with empty filter arrays."""
@@ -224,6 +226,7 @@ class TestSetupCommand:
 				"skip",  # exclude labels
 				"bot",  # exclude authors
 				"n",  # group_by_type
+				"n",  # group_by_area
 				"y",  # confirm write
 			]
 		)
@@ -287,6 +290,7 @@ DEFAULT_OWNER=test_owner
 				"skip",  # exclude labels
 				"bot",  # exclude authors
 				"n",  # group_by_type
+				"n",  # group_by_area
 				"y",  # confirm write
 				"n",  # don't delete .env
 			]

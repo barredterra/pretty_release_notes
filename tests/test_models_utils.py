@@ -1,6 +1,6 @@
 """Tests for models utility functions."""
 
-from pretty_release_notes.models._utils import get_conventional_type, is_breaking_change
+from pretty_release_notes.models._utils import get_conventional_scope, get_conventional_type, is_breaking_change
 
 
 class TestGetConventionalType:
@@ -117,3 +117,11 @@ class TestIsBreakingChange:
 		assert is_breaking_change("feat: no exclamation") is False
 		assert is_breaking_change("feat :! wrong format") is False
 		assert is_breaking_change("feat (scope)!: space before scope") is False
+
+
+def test_get_conventional_scope():
+	assert get_conventional_scope("feat(stock): add report") == "stock"
+	assert get_conventional_scope(" fix(Asset Repair)!: block repairs") == "asset repair"
+	assert get_conventional_scope("fix: no scope") is None
+	assert get_conventional_scope('Revert "fix(stock): something"') is None
+	assert get_conventional_scope("") is None

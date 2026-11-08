@@ -83,11 +83,43 @@ class FilterConfig:
 	exclude_authors: set[str] = field(default_factory=set)
 
 
+# Keys are matched against the conventional scope and the PR labels, case-insensitive.
+# Several keys can share a heading. Areas appear in the order of their first heading.
+DEFAULT_AREA_HEADINGS = {
+	"accounts": "Accounts",
+	"accounting": "Accounts",
+	"selling": "Selling",
+	"sales": "Selling",
+	"pos": "Point of Sale",
+	"buying": "Buying",
+	"purchase": "Buying",
+	"stock": "Stock",
+	"manufacturing": "Manufacturing",
+	"subcontracting": "Subcontracting",
+	"subcontracting inward": "Subcontracting",
+	"assets": "Assets",
+	"asset": "Assets",
+	"projects": "Projects",
+	"project": "Projects",
+	"project-management": "Projects",
+	"crm": "CRM",
+	"quality": "Quality",
+	"regional": "Regional",
+	"setup": "Setup",
+}
+
+
 @dataclass
 class GroupingConfig:
-	"""Configuration for grouping release notes output."""
+	"""Configuration for grouping release notes output.
+
+	`group_by_area` takes precedence over `group_by_type`.
+	"""
 
 	group_by_type: bool = True
+	group_by_area: bool = False
+	area_headings: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_AREA_HEADINGS))
+	general_heading: str = "General"
 	type_headings: dict[str, str] = field(
 		default_factory=lambda: {
 			"feat": "Features",
@@ -111,6 +143,22 @@ class GroupingConfig:
 		if not type_name:
 			return self.other_heading
 		return self.type_headings.get(type_name, self.other_heading)
+
+	def get_area_heading(self, scope: str | None, labels: set[str] | None) -> str:
+		"""Pick one area per change.
+
+		The scope wins, because the author chose it. Labels are often set by changed files,
+		so they only count when they point to exactly one area. Everything else is general.
+		"""
+		headings = {key.lower(): heading for key, heading in self.area_headings.items()}
+		if scope in headings:
+			return headings[scope]
+
+		label_areas = {headings[label.lower()] for label in labels or () if label.lower() in headings}
+		if len(label_areas) == 1:
+			return label_areas.pop()
+
+		return self.general_heading
 
 
 def _get_default_prompt_path() -> Path:

@@ -84,9 +84,7 @@ class ReleaseNotesBuilder:
 		self._exclude_types = set()
 		self._exclude_labels = set()
 		self._exclude_authors = set()
-		self._group_by_type = True
-		self._type_headings = {}
-		self._other_heading = "Other Changes"
+		self._grouping = GroupingConfig()
 		self._prompt_path = Path("prompt.txt")
 		self._force_use_commits = False
 		self._progress_reporter = None
@@ -159,18 +157,30 @@ class ReleaseNotesBuilder:
 		group_by_type: bool = True,
 		type_headings: dict[str, str] | None = None,
 		other_heading: str = "Other Changes",
+		group_by_area: bool = False,
+		area_headings: dict[str, str] | None = None,
+		general_heading: str = "General",
 	) -> "ReleaseNotesBuilder":
-		"""Configure output grouping by conventional commit type.
+		"""Configure output grouping by conventional commit type or by area.
 
 		Args:
 			group_by_type: Enable grouping by type
 			type_headings: Custom mapping of types to section headings
 			other_heading: Heading for uncategorized changes
+			group_by_area: Enable grouping by area (takes precedence over group_by_type)
+			area_headings: Custom mapping of scopes and labels to area headings
+			general_heading: Heading for changes that match no area or several areas
 		"""
-		self._group_by_type = group_by_type
+		self._grouping = GroupingConfig(
+			group_by_type=group_by_type,
+			other_heading=other_heading,
+			group_by_area=group_by_area,
+			general_heading=general_heading,
+		)
 		if type_headings:
-			self._type_headings = type_headings
-		self._other_heading = other_heading
+			self._grouping.type_headings = type_headings
+		if area_headings:
+			self._grouping.area_headings = area_headings
 		return self
 
 	def with_prompt_file(self, path: Path) -> "ReleaseNotesBuilder":
@@ -187,19 +197,6 @@ class ReleaseNotesBuilder:
 		"""Set custom progress reporter."""
 		self._progress_reporter = reporter
 		return self
-
-	def _build_grouping_config(self) -> GroupingConfig:
-		"""Build grouping config, preserving defaults when no custom headings are set."""
-		if self._type_headings:
-			return GroupingConfig(
-				group_by_type=self._group_by_type,
-				type_headings=self._type_headings,
-				other_heading=self._other_heading,
-			)
-		return GroupingConfig(
-			group_by_type=self._group_by_type,
-			other_heading=self._other_heading,
-		)
 
 	def build(self) -> ReleaseNotesClient:
 		"""Build the client with configured options.
@@ -231,7 +228,7 @@ class ReleaseNotesBuilder:
 				exclude_change_labels=self._exclude_labels,
 				exclude_authors=self._exclude_authors,
 			),
-			grouping=self._build_grouping_config(),
+			grouping=self._grouping,
 			prompt_path=self._prompt_path,
 			force_use_commits=self._force_use_commits,
 		)

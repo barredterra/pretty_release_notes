@@ -17,6 +17,11 @@ class Change(Protocol):
 		"""Extract the conventional type from the change."""
 		...
 
+	@property
+	def conventional_scope(self) -> str | None:
+		"""Extract the conventional scope from the change."""
+		...
+
 	def get_prompt(self, prompt_template: str, max_patch_size: int) -> str:
 		"""Return the prompt used for summarising this change."""
 		...

@@ -20,6 +20,7 @@ It is tuned for ERPNext and the Frappe Framework by default, but can be adapted 
 - Falls back to commit-based generation when PR metadata is unavailable or `force_use_commits` is enabled
 - Loads reviewer information and credits authors/reviewers while excluding configured bots
 - Supports optional grouping by conventional commit type, with breaking changes rendered first when present
+- Supports optional grouping by area (scope first, then a single matching label, else "General"), with bug fixes collapsed per area
 - Stores generated summaries in CSV or SQLite caches
 - Supports interactive TOML-based setup and one-time migration from legacy `.env` files
 - Can infer the previous tag from the GitHub compare URL in existing release notes when one is not supplied manually
@@ -114,6 +115,7 @@ pretty_release_notes/                 # Main package
     ├── pull_request.py               # Pull request model
     ├── release_notes.py              # Release notes container / serializer
     ├── release_notes_line.py         # Parsed line model
+    ├── area_sections.py              # Area-grouped serialization
     └── repository.py                 # Repository model
 
 tests/                                # Pytest suite
@@ -168,7 +170,7 @@ pyproject.toml                        # Packaging, dependencies, tool config
 - `OpenAIConfig`: Backward-compatible alias for `LLMConfig`
 - `DatabaseConfig`: Cache backend type, name, and `enabled` (sets read/write together); CLI can override read/write separately per run
 - `FilterConfig`: Excluded change types, labels, and authors
-- `GroupingConfig`: Grouping toggle, default type headings, `other_heading`, and `breaking_changes_heading`
+- `GroupingConfig`: Grouping toggles, default type headings, `other_heading`, `breaking_changes_heading`, and area settings (`group_by_area`, `area_headings`, `general_heading`, `get_area_heading()`)
 - `ReleaseNotesConfig`: Main config object; accepts `llm=` or legacy `openai=` inputs and validates required config on creation
 
 **`pretty_release_notes/core/config_loader.py`** - Configuration loaders:
@@ -482,6 +484,7 @@ CLI parameters:
 - `--prompt-path`: Use a custom prompt file
 - `--force-use-commits`: Force commit-based generation
 - `--group-by-type`: Enable grouped output
+- `--group-by-area`: Group by area and collapse bug fixes (takes precedence over grouping by type)
 - `--config-path`: Use a non-default TOML config file
 
 ### Library Usage

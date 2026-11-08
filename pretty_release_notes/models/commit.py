@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ._utils import get_conventional_type, is_breaking_change
+from ._utils import get_conventional_scope, get_conventional_type, is_breaking_change
 from .change import Change
 
 if TYPE_CHECKING:
@@ -23,6 +23,10 @@ class Commit(Change):
 	@property
 	def conventional_type(self) -> str | None:
 		return get_conventional_type(self.message)
+
+	@property
+	def conventional_scope(self) -> str | None:
+		return get_conventional_scope(self.message)
 
 	@property
 	def is_breaking(self) -> bool:

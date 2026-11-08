@@ -3,7 +3,7 @@ import threading
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ._utils import get_conventional_type, is_breaking_change
+from ._utils import get_conventional_scope, get_conventional_type, is_breaking_change
 from .change import Change
 
 if TYPE_CHECKING:
@@ -79,6 +79,11 @@ class PullRequest(Change):
 		'fix!: breaking change' -> 'fix'
 		"""
 		return get_conventional_type(self.title)
+
+	@property
+	def conventional_scope(self) -> str | None:
+		"""Extract the conventional scope from the title, e.g. 'feat(stock): ...' -> 'stock'."""
+		return get_conventional_scope(self.title)
 
 	@property
 	def is_breaking(self) -> bool:

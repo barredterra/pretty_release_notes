@@ -25,6 +25,24 @@ def get_conventional_type(msg: str) -> str | None:
 	return match.group(1).lower() if match else None
 
 
+def get_conventional_scope(msg: str) -> str | None:
+	"""Extract the conventional scope from a message.
+
+	Examples:
+	'feat(regional): Address Template for Germany & Switzerland' -> 'regional'
+	'fix(Asset Repair)!: breaking fix' -> 'asset repair'
+	'fix: no scope' -> None
+	"""
+	if not msg:
+		return None
+
+	match = CONVENTIONAL_TYPE_AND_SCOPE.match(msg.strip())
+	if not match or not match.group(2):
+		return None
+
+	return match.group(2).strip().lower()
+
+
 def is_breaking_change(msg: str) -> bool:
 	"""Check if a message indicates a breaking change.
 
@@ -45,3 +63,7 @@ def is_breaking_change(msg: str) -> bool:
 	# Check for the ! indicator before the colon
 	# Pattern: type(scope)!: or type!:
 	return bool(BREAKING_CHANGE_PATTERN.match(msg))
+
+
+# Order of sections in grouped output
+CONVENTIONAL_TYPE_ORDER = ["feat", "fix", "perf", "docs", "refactor", "test", "build", "ci", "chore", "style", "revert"]

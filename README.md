@@ -16,7 +16,7 @@ To this:
 - **Backport Intelligence** - Reuses summaries from original PRs for backports, maintaining consistency
 - **Author & Reviewer Attribution** - Credits human contributors while excluding bots
 - **Intelligent Caching** - Stores generated summaries to avoid redundant API calls and reduce costs
-- **Grouped Release Notes** - Optional grouping by conventional commit type (Features, Bug Fixes, Performance, etc.)
+- **Grouped Release Notes** - Optional grouping by conventional commit type (Features, Bug Fixes, Performance, etc.) or by area (Accounts, Stock, etc.)
 - **Multi-Mode Architecture** - Use as CLI tool, Python library, or REST API backend
 - **Rich Context** - Incorporates PR descriptions, linked issues, and code diffs for accurate summaries
 - **Interactive Setup** - Guided configuration with validation and migration from legacy formats
@@ -311,6 +311,27 @@ The authors and reviewers of the PRs are added to the release notes.
 - An author who reviewed or merged their own PR or backport is not a reviewer.
 - A non-author who reviewed or merged someone else's PR is a reviewer.
 - The author of the original PR is also the author of the backport.
+
+## Grouping by Area
+
+Large releases are easier to read when each reader can go to the part of the product they use. Use `--group-by-area` or set `group_by_area = true` in `[grouping]`. This option takes precedence over `group_by_type`.
+
+Each change goes to exactly one area:
+
+1. If the conventional scope matches an area, use that area. For example, `fix(stock): ...` goes to "Stock".
+2. If there is no matching scope and the PR labels match exactly one area, use that area.
+3. Else, put the change in the "General" section. This includes changes that affect several areas.
+
+Breaking changes come first, then "General", then the areas in the configured order. In each area, bug fixes are collapsed in a `<details>` block. Features and other changes stay visible.
+
+The default areas are tuned for ERPNext. To use your own areas, set `area_headings` in `[grouping]`. Keys are scopes or labels, values are headings. Several keys can share one heading:
+
+```toml
+[grouping]
+group_by_area = true
+area_headings = { accounts = "Accounts", "balance-sheet" = "Accounts", stock = "Stock" }
+general_heading = "General"
+```
 
 ## Backports
 

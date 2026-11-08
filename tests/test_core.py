@@ -190,6 +190,16 @@ class TestGroupingConfig:
 		assert config.get_heading("fix") == "Fixes"
 		assert config.get_heading("unknown") == "Miscellaneous"
 
+	def test_get_area_heading(self):
+		config = GroupingConfig(area_headings={"accounts": "Accounts", "POS": "Point of Sale", "stock": "Stock"})
+
+		assert config.get_area_heading("stock", {"accounts"}) == "Stock"
+		assert config.get_area_heading("pos", None) == "Point of Sale"
+		assert config.get_area_heading(None, {"Accounts", "released"}) == "Accounts"
+		assert config.get_area_heading("unknown", {"accounts"}) == "Accounts"
+		assert config.get_area_heading(None, {"accounts", "stock"}) == "General"
+		assert config.get_area_heading(None, None) == "General"
+
 	def test_release_notes_config_with_grouping(self):
 		"""Test ReleaseNotesConfig includes GroupingConfig."""
 		config = ReleaseNotesConfig(
@@ -396,6 +406,31 @@ exclude_authors = ["bot"]
 		assert config.filters.exclude_authors == {"bot"}
 		assert config.prompt_path == Path("custom.txt")
 		assert config.force_use_commits is True
+
+	def test_load_area_grouping(self, tmp_path):
+		config_file = self._write_config(
+			tmp_path,
+			"""
+[github]
+token = "gh_token"
+
+[llm]
+api_key = "llm_key"
+
+[grouping]
+group_by_area = true
+area_headings = { stock = "Inventory", accounts = "Accounting" }
+general_heading = "Everything Else"
+""",
+		)
+
+		grouping = TomlConfigLoader(config_file).load().grouping
+
+		assert grouping.group_by_type is True
+		assert grouping.group_by_area is True
+		assert grouping.area_headings == {"stock": "Inventory", "accounts": "Accounting"}
+		assert grouping.general_heading == "Everything Else"
+		assert grouping.type_headings["fix"] == "Bug Fixes"
 
 	def test_missing_file_raises_error(self, tmp_path):
 		config_file = tmp_path / "nonexistent.toml"

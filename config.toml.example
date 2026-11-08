@@ -78,3 +78,13 @@ group_by_type = true
 
 # Heading for uncategorized changes (optional)
 # other_heading = "Other Changes"
+
+# Group by area instead of type, and collapse bug fixes in each area (default: false)
+# Takes precedence over group_by_type.
+# group_by_area = false
+
+# Map conventional scopes and PR labels to areas (optional, replaces the ERPNext defaults)
+# area_headings = { accounts = "Accounts", "balance-sheet" = "Accounts", stock = "Stock" }
+
+# Heading for changes that match no area or several areas (optional)
+# general_heading = "General"

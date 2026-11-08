@@ -1,5 +1,6 @@
 import tomllib
 from abc import ABC, abstractmethod
+from dataclasses import fields
 from pathlib import Path
 from typing import Any
 
@@ -62,19 +63,7 @@ class DictConfigLoader(ConfigLoader):
 				exclude_change_labels=set(self.config_dict.get("exclude_labels", [])),
 				exclude_authors=set(self.config_dict.get("exclude_authors", [])),
 			),
-			grouping=GroupingConfig(
-				group_by_type=self.config_dict.get("group_by_type", True),
-				**(
-					{}
-					if "type_headings" not in self.config_dict
-					else {"type_headings": self.config_dict["type_headings"]}
-				),
-				**(
-					{}
-					if "other_heading" not in self.config_dict
-					else {"other_heading": self.config_dict["other_heading"]}
-				),
-			),
+			grouping=_get_grouping_config(self.config_dict),
 			prompt_path=Path(self.config_dict["prompt_path"])
 			if "prompt_path" in self.config_dict
 			else _get_default_prompt_path(),
@@ -205,19 +194,13 @@ class TomlConfigLoader(ConfigLoader):
 				exclude_change_labels=set(filters_config.get("exclude_change_labels", [])),
 				exclude_authors=set(filters_config.get("exclude_authors", [])),
 			),
-			grouping=GroupingConfig(
-				group_by_type=grouping_config.get("group_by_type", True),
-				**(
-					{}
-					if "type_headings" not in grouping_config
-					else {"type_headings": grouping_config["type_headings"]}
-				),
-				**(
-					{}
-					if "other_heading" not in grouping_config
-					else {"other_heading": grouping_config["other_heading"]}
-				),
-			),
+			grouping=_get_grouping_config(grouping_config),
 			prompt_path=Path(config["prompt_path"]) if "prompt_path" in config else _get_default_prompt_path(),
 			force_use_commits=config.get("force_use_commits", False),
 		)
+
+
+def _get_grouping_config(values: dict[str, Any]) -> GroupingConfig:
+	"""Build a GroupingConfig from the grouping keys that are set. Unset keys keep their defaults."""
+	grouping_keys = {field.name for field in fields(GroupingConfig)}
+	return GroupingConfig(**{key: value for key, value in values.items() if key in grouping_keys})

@@ -44,6 +44,9 @@ def generate(
 	prompt_path: Path | None = None,
 	force_use_commits: bool = False,
 	group_by_type: bool = True,
+	group_by_area: Annotated[
+		bool, typer.Option("--group-by-area", help="Group by area, such as Accounts or Stock, and collapse bug fixes")
+	] = False,
 	yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation and update release notes on GitHub"),
 	config_path: Path | None = None,
 	reasoning_effort: str | None = typer.Option(
@@ -79,6 +82,8 @@ def generate(
 		config.llm.reasoning_effort = normalize_reasoning_effort(reasoning_effort)
 	if not group_by_type:
 		config.grouping.group_by_type = False
+	if group_by_area:
+		config.grouping.group_by_area = True
 
 	# Create UI and adapter
 	cli = CLI()

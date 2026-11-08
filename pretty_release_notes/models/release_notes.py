@@ -2,6 +2,8 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from ._utils import CONVENTIONAL_TYPE_ORDER
+from .area_sections import AreaSections
 from .pull_request import PullRequest
 from .release_notes_line import ReleaseNotesLine
 
@@ -71,6 +73,22 @@ class ReleaseNotes:
 
 		return reverted_numbers
 
+	def _get_footer_sections(self) -> list[str]:
+		"""New contributors and the "**Full Changelog**: .../compare/A...B" line for grouped output.
+
+		Keep the compare line: the previous tag is read from it later.
+		"""
+		sections = []
+		new_contributor_lines = [line for line in self.lines if line.is_new_contributor]
+		if new_contributor_lines:
+			sections += ["## New Contributors", *map(str, new_contributor_lines), ""]
+
+		for line in self.lines:
+			if not line.change and not line.is_new_contributor and "/compare/" in line.original_line:
+				sections += [str(line), ""]
+
+		return sections
+
 	def serialize(
 		self,
 		exclude_change_types: set[str] | None = None,
@@ -108,28 +126,28 @@ class ReleaseNotes:
 		if exclude_authors is None:
 			exclude_authors = set()
 
-		# Build output - either grouped or flat
-		if grouping and grouping.group_by_type:
+		def is_filtered(change):
+			return is_exluded_type(change) or has_excluded_label(change) or is_reverted_or_revert(change)
+
+		# Build output - grouped by area, grouped by type, or flat
+		if grouping and grouping.group_by_area:
+			change_lines = [line for line in self.lines if line.change and not is_filtered(line.change)]
+			sections = AreaSections(change_lines, grouping).to_markdown()
+			sections += self._get_footer_sections()
+			lines = "\n".join(sections)
+		elif grouping and grouping.group_by_type:
 			# Group lines by type
 			grouped_lines: dict[str, list[ReleaseNotesLine]] = {}
 			breaking_lines: list[ReleaseNotesLine] = []
 			other_lines: list[ReleaseNotesLine] = []
-			new_contributor_lines: list[ReleaseNotesLine] = []
-			# "**Full Changelog**: .../compare/A...B". Keep it: the previous tag is read from it later.
-			compare_lines: list[ReleaseNotesLine] = []
 
 			for line in self.lines:
-				# Preserve new contributor lines
+				# New contributor and compare lines are added by _get_footer_sections
 				if line.is_new_contributor:
-					new_contributor_lines.append(line)
 					continue
 
 				# Skip filtered lines
-				if line.change and (
-					is_exluded_type(line.change)
-					or has_excluded_label(line.change)
-					or is_reverted_or_revert(line.change)
-				):
+				if line.change and is_filtered(line.change):
 					continue
 
 				# Check for breaking changes first
@@ -143,8 +161,6 @@ class ReleaseNotes:
 					grouped_lines[type_key].append(line)
 				elif line.change:  # Has change but no type
 					other_lines.append(line)
-				elif "/compare/" in line.original_line:
-					compare_lines.append(line)
 				# Skip other lines without changes (headers, empty lines)
 
 			# Build grouped output
@@ -157,11 +173,8 @@ class ReleaseNotes:
 					sections.append(str(line))
 				sections.append("")  # Empty line after section
 
-			# Add sections in a consistent order
-			type_order = ["feat", "fix", "perf", "docs", "refactor", "test", "build", "ci", "chore", "style", "revert"]
-
-			# Add typed sections
-			for type_key in type_order:
+			# Add typed sections in a consistent order
+			for type_key in CONVENTIONAL_TYPE_ORDER:
 				if type_key in grouped_lines and grouped_lines[type_key]:
 					heading = grouping.get_heading(type_key)
 					sections.append(f"## {heading}")
@@ -171,7 +184,7 @@ class ReleaseNotes:
 
 			# Add any types not in the standard order
 			for type_key, lines_list in grouped_lines.items():
-				if type_key not in type_order and lines_list:
+				if type_key not in CONVENTIONAL_TYPE_ORDER and lines_list:
 					heading = grouping.get_heading(type_key)
 					sections.append(f"## {heading}")
 					for line in lines_list:
@@ -185,31 +198,13 @@ class ReleaseNotes:
 					sections.append(str(line))
 				sections.append("")
 
-			# Add new contributors section if needed
-			if new_contributor_lines:
-				sections.append("## New Contributors")
-				for line in new_contributor_lines:
-					sections.append(str(line))
-				sections.append("")
-
-			for line in compare_lines:
-				sections.append(str(line))
-				sections.append("")
+			sections += self._get_footer_sections()
 
 			# Join sections, removing trailing empty line
 			lines = "\n".join(sections)
 		else:
 			# Original flat list logic
-			lines = "\n".join(
-				str(line)
-				for line in self.lines
-				if not line.change
-				or (
-					not is_exluded_type(line.change)
-					and not has_excluded_label(line.change)
-					and not is_reverted_or_revert(line.change)
-				)
-			)
+			lines = "\n".join(str(line) for line in self.lines if not line.change or not is_filtered(line.change))
 
 		authors_string = ", ".join(f"@{author}" for author in self.authors if author not in exclude_authors)
 
