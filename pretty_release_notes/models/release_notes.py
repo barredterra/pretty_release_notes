@@ -96,7 +96,10 @@ class ReleaseNotes:
 		exclude_authors: set[str] | None = None,
 		grouping: "GroupingConfig | None" = None,
 		model_name: str | None = None,
+		repo: str = "",
 	) -> str:
+		"""Render the release notes as markdown. `repo` ("owner/repo") selects the areas for grouping by area."""
+
 		def is_exluded_type(change):
 			return (
 				change.conventional_type and exclude_change_types and change.conventional_type in exclude_change_types
@@ -132,7 +135,7 @@ class ReleaseNotes:
 		# Build output - grouped by area, grouped by type, or flat
 		if grouping and grouping.group_by_area:
 			change_lines = [line for line in self.lines if line.change and not is_filtered(line.change)]
-			sections = AreaSections(change_lines, grouping).to_markdown()
+			sections = AreaSections(change_lines, grouping, repo).to_markdown()
 			sections += self._get_footer_sections()
 			lines = "\n".join(sections)
 		elif grouping and grouping.group_by_type:

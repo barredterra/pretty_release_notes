@@ -302,9 +302,13 @@ group_by_area = {str(group_by_area).lower()}
 # Customize headings by editing the config file directly
 # type_headings = {{ feat = "Features", fix = "Bug Fixes" }}
 # other_heading = "Other Changes"
-# Map conventional scopes and PR labels to areas (replaces the default map)
-# area_headings = {{ accounts = "Accounts", stock = "Stock", pos = "Point of Sale" }}
 # general_heading = "General"
+
+# Map conventional scopes and PR labels to areas, per repository.
+# Only frappe/erpnext has default areas. A table for a repository replaces its defaults.
+# [grouping.repo_area_headings."frappe/hrms"]
+# payroll = "Payroll"
+# attendance = "Attendance"
 """
 
 

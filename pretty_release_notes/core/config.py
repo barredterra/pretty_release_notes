@@ -85,7 +85,7 @@ class FilterConfig:
 
 # Keys are matched against the conventional scope and the PR labels, case-insensitive.
 # Several keys can share a heading. Areas appear in the order of their first heading.
-DEFAULT_AREA_HEADINGS = {
+ERPNEXT_AREA_HEADINGS = {
 	"accounts": "Accounts",
 	"accounting": "Accounts",
 	"selling": "Selling",
@@ -108,6 +108,9 @@ DEFAULT_AREA_HEADINGS = {
 	"setup": "Setup",
 }
 
+# Scopes and labels mean different things in different repos, so each repo has its own areas.
+DEFAULT_REPO_AREA_HEADINGS = {"frappe/erpnext": ERPNEXT_AREA_HEADINGS}
+
 
 @dataclass
 class GroupingConfig:
@@ -118,7 +121,8 @@ class GroupingConfig:
 
 	group_by_type: bool = True
 	group_by_area: bool = False
-	area_headings: dict[str, str] = field(default_factory=lambda: dict(DEFAULT_AREA_HEADINGS))
+	# "owner/repo" -> {scope or label: area heading}. Replaces the defaults per repo.
+	repo_area_headings: dict[str, dict[str, str]] = field(default_factory=dict)
 	general_heading: str = "General"
 	type_headings: dict[str, str] = field(
 		default_factory=lambda: {
@@ -144,13 +148,20 @@ class GroupingConfig:
 			return self.other_heading
 		return self.type_headings.get(type_name, self.other_heading)
 
-	def get_area_heading(self, scope: str | None, labels: set[str] | None) -> str:
+	def get_area_headings(self, repo: str) -> dict[str, str]:
+		"""Return the areas of a repo ("owner/repo"). A repo without areas gets none."""
+		all_repo_headings = {**DEFAULT_REPO_AREA_HEADINGS, **self.repo_area_headings}
+		# GitHub repo names are case-insensitive
+		repo_headings = {name.lower(): headings for name, headings in all_repo_headings.items()}
+		return repo_headings.get(repo.lower(), {})
+
+	def get_area_heading(self, repo: str, scope: str | None, labels: set[str] | None) -> str:
 		"""Pick one area per change.
 
 		The scope wins, because the author chose it. Labels are often set by changed files,
 		so they only count when they point to exactly one area. Everything else is general.
 		"""
-		headings = {key.lower(): heading for key, heading in self.area_headings.items()}
+		headings = {key.lower(): heading for key, heading in self.get_area_headings(repo).items()}
 		if scope in headings:
 			return headings[scope]
 

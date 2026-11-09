@@ -191,14 +191,30 @@ class TestGroupingConfig:
 		assert config.get_heading("unknown") == "Miscellaneous"
 
 	def test_get_area_heading(self):
-		config = GroupingConfig(area_headings={"accounts": "Accounts", "POS": "Point of Sale", "stock": "Stock"})
+		config = GroupingConfig(
+			repo_area_headings={"o/r": {"accounts": "Accounts", "POS": "Point of Sale", "stock": "Stock"}}
+		)
 
-		assert config.get_area_heading("stock", {"accounts"}) == "Stock"
-		assert config.get_area_heading("pos", None) == "Point of Sale"
-		assert config.get_area_heading(None, {"Accounts", "released"}) == "Accounts"
-		assert config.get_area_heading("unknown", {"accounts"}) == "Accounts"
-		assert config.get_area_heading(None, {"accounts", "stock"}) == "General"
-		assert config.get_area_heading(None, None) == "General"
+		assert config.get_area_heading("o/r", "stock", {"accounts"}) == "Stock"
+		assert config.get_area_heading("o/r", "pos", None) == "Point of Sale"
+		assert config.get_area_heading("o/r", None, {"Accounts", "released"}) == "Accounts"
+		assert config.get_area_heading("o/r", "unknown", {"accounts"}) == "Accounts"
+		assert config.get_area_heading("o/r", None, {"accounts", "stock"}) == "General"
+		assert config.get_area_heading("o/r", None, None) == "General"
+
+	def test_area_headings_are_per_repo(self):
+		config = GroupingConfig(repo_area_headings={"Frappe/HRMS": {"payroll": "Payroll"}})
+
+		assert config.get_area_headings("frappe/hrms") == {"payroll": "Payroll"}
+		assert config.get_area_headings("frappe/erpnext")["stock"] == "Stock"
+		assert config.get_area_headings("other/repo") == {}
+		assert config.get_area_heading("frappe/erpnext", "payroll", None) == "General"
+		assert config.get_area_heading("other/repo", "stock", None) == "General"
+
+	def test_repo_area_headings_replace_erpnext_defaults(self):
+		config = GroupingConfig(repo_area_headings={"frappe/erpnext": {"stock": "Inventory"}})
+
+		assert config.get_area_headings("frappe/erpnext") == {"stock": "Inventory"}
 
 	def test_release_notes_config_with_grouping(self):
 		"""Test ReleaseNotesConfig includes GroupingConfig."""
@@ -419,8 +435,11 @@ api_key = "llm_key"
 
 [grouping]
 group_by_area = true
-area_headings = { stock = "Inventory", accounts = "Accounting" }
 general_heading = "Everything Else"
+
+[grouping.repo_area_headings."frappe/hrms"]
+payroll = "Payroll"
+attendance = "Attendance"
 """,
 		)
 
@@ -428,9 +447,28 @@ general_heading = "Everything Else"
 
 		assert grouping.group_by_type is True
 		assert grouping.group_by_area is True
-		assert grouping.area_headings == {"stock": "Inventory", "accounts": "Accounting"}
+		assert grouping.get_area_headings("frappe/hrms") == {"payroll": "Payroll", "attendance": "Attendance"}
+		assert grouping.get_area_headings("frappe/erpnext")["stock"] == "Stock"
 		assert grouping.general_heading == "Everything Else"
 		assert grouping.type_headings["fix"] == "Bug Fixes"
+
+	def test_global_area_headings_raise_error(self, tmp_path):
+		config_file = self._write_config(
+			tmp_path,
+			"""
+[github]
+token = "gh_token"
+
+[llm]
+api_key = "llm_key"
+
+[grouping]
+area_headings = { stock = "Inventory" }
+""",
+		)
+
+		with pytest.raises(ValueError, match="repo_area_headings"):
+			TomlConfigLoader(config_file).load()
 
 	def test_missing_file_raises_error(self, tmp_path):
 		config_file = tmp_path / "nonexistent.toml"

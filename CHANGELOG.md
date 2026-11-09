@@ -9,11 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Grouping by area**: `--group-by-area` (or `group_by_area = true`) groups changes by area, such as Accounts or Stock, instead of by type. The conventional scope picks the area. Without a scope, a single matching PR label picks it. Other changes go to a "General" section. In each area, changes are grouped and labeled by type. Areas with more than 3 changes are collapsed. Configure areas with `area_headings`.
+- **Grouping by area**: `--group-by-area` (or `group_by_area = true`) groups changes by area, such as Accounts or Stock, instead of by type. The conventional scope picks the area. Without a scope, a single matching PR label picks it. Other changes go to a "General" section. In each area, changes are grouped and labeled by type. Areas with more than 3 changes are collapsed. Each repository has its own areas, set in `[grouping.repo_area_headings."owner/repo"]` tables. Only `frappe/erpnext` has default areas.
 - **Release label and comment**: `poll` can add a label and a release comment to each PR of a new release, like `semantic-release` does. Set `[poll] release_label` to enable it. Labeling has its own state, so a labeling failure does not repeat the release notes step. The new `pretty-release-notes label REPO TAG` command labels one release manually.
 
 ### Changed
 
+- **Areas per repository**: The global `area_headings` setting is replaced by per-repository `repo_area_headings` tables. The ERPNext default areas now apply only to `frappe/erpnext`. A config file that still contains `area_headings` causes an error. `ReleaseNotesBuilder.with_grouping()` takes `repo_area_headings` instead of `area_headings`.
 - **Poll state format**: `processed_releases.json` now stores processed and labeled releases separately. The old format is read automatically.
 
 ## [v1.4.1 - 2026-08-23]

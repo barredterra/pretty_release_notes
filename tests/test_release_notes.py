@@ -716,6 +716,7 @@ def test_group_by_area():
 	output = ReleaseNotes(lines=lines).serialize(
 		exclude_change_types={"chore"},
 		grouping=GroupingConfig(group_by_area=True),
+		repo="frappe/erpnext",
 	)
 
 	expected = (
@@ -781,7 +782,24 @@ def test_group_by_area_takes_precedence_over_group_by_type():
 	)
 	lines = [ReleaseNotesLine(original_line="", change=pr, sentence="Adds a report")]
 
-	output = ReleaseNotes(lines=lines).serialize(grouping=GroupingConfig(group_by_type=True, group_by_area=True))
+	output = ReleaseNotes(lines=lines).serialize(
+		grouping=GroupingConfig(group_by_type=True, group_by_area=True), repo="frappe/erpnext"
+	)
 
 	assert "## Stock" in output
 	assert "## Features" not in output
+
+
+def test_group_by_area_without_areas_for_repo():
+	"""The ERPNext areas only apply to ERPNext. Other repos without own areas put every change in "General"."""
+	github = GitHubClient("test_token")
+	repo = Repository(owner="o", name="r", url="", html_url="https://github.com/o/r")
+	pr = PullRequest(
+		github=github, repository=repo, id=1, title="feat(stock): new report", body="", html_url="https://x/1"
+	)
+	lines = [ReleaseNotesLine(original_line="", change=pr, sentence="Adds a report")]
+
+	output = ReleaseNotes(lines=lines).serialize(grouping=GroupingConfig(group_by_area=True), repo="o/r")
+
+	assert "## General" in output
+	assert "## Stock" not in output

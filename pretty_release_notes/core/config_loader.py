@@ -202,5 +202,10 @@ class TomlConfigLoader(ConfigLoader):
 
 def _get_grouping_config(values: dict[str, Any]) -> GroupingConfig:
 	"""Build a GroupingConfig from the grouping keys that are set. Unset keys keep their defaults."""
+	if "area_headings" in values:
+		raise ValueError(
+			'grouping.area_headings was replaced by per-repo tables, like [grouping.repo_area_headings."owner/repo"]'
+		)
+
 	grouping_keys = {field.name for field in fields(GroupingConfig)}
 	return GroupingConfig(**{key: value for key, value in values.items() if key in grouping_keys})

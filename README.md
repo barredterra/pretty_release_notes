@@ -327,13 +327,19 @@ Breaking changes come first, then "General", then the areas in the configured or
 - If an area has more than 3 changes, each group is collapsed in a `<details>` block. The block summary shows the type and the count, for example "Features (2)".
 - Else, each type label is a paragraph above its bullet list.
 
-The default areas are tuned for ERPNext. To use your own areas, set `area_headings` in `[grouping]`. Keys are scopes or labels, values are headings. Several keys can share one heading:
+Scopes and labels mean different things in different repositories, so each repository has its own areas. Only `frappe/erpnext` has default areas. A repository without areas puts all changes in "General".
+
+To set the areas of a repository, add a `[grouping.repo_area_headings."owner/repo"]` table. Keys are scopes or labels, values are headings. Several keys can share one heading. A table for `frappe/erpnext` replaces its default areas:
 
 ```toml
 [grouping]
 group_by_area = true
-area_headings = { accounts = "Accounts", "balance-sheet" = "Accounts", stock = "Stock" }
 general_heading = "General"
+
+[grouping.repo_area_headings."frappe/hrms"]
+payroll = "Payroll"
+"salary-slip" = "Payroll"
+attendance = "Attendance"
 ```
 
 ## Backports

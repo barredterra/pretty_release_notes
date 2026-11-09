@@ -158,7 +158,7 @@ class ReleaseNotesBuilder:
 		type_headings: dict[str, str] | None = None,
 		other_heading: str = "Other Changes",
 		group_by_area: bool = False,
-		area_headings: dict[str, str] | None = None,
+		repo_area_headings: dict[str, dict[str, str]] | None = None,
 		general_heading: str = "General",
 	) -> "ReleaseNotesBuilder":
 		"""Configure output grouping by conventional commit type or by area.
@@ -168,7 +168,7 @@ class ReleaseNotesBuilder:
 			type_headings: Custom mapping of types to section headings
 			other_heading: Heading for uncategorized changes
 			group_by_area: Enable grouping by area (takes precedence over group_by_type)
-			area_headings: Custom mapping of scopes and labels to area headings
+			repo_area_headings: Per repo ("owner/repo"), a mapping of scopes and labels to area headings
 			general_heading: Heading for changes that match no area or several areas
 		"""
 		self._grouping = GroupingConfig(
@@ -179,8 +179,8 @@ class ReleaseNotesBuilder:
 		)
 		if type_headings:
 			self._grouping.type_headings = type_headings
-		if area_headings:
-			self._grouping.area_headings = area_headings
+		if repo_area_headings:
+			self._grouping.repo_area_headings = repo_area_headings
 		return self
 
 	def with_prompt_file(self, path: Path) -> "ReleaseNotesBuilder":

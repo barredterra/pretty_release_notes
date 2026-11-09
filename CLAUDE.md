@@ -170,7 +170,7 @@ pyproject.toml                        # Packaging, dependencies, tool config
 - `OpenAIConfig`: Backward-compatible alias for `LLMConfig`
 - `DatabaseConfig`: Cache backend type, name, and `enabled` (sets read/write together); CLI can override read/write separately per run
 - `FilterConfig`: Excluded change types, labels, and authors
-- `GroupingConfig`: Grouping toggles, default type headings, `other_heading`, `breaking_changes_heading`, and area settings (`group_by_area`, `area_headings`, `general_heading`, `get_area_heading()`)
+- `GroupingConfig`: Grouping toggles, default type headings, `other_heading`, `breaking_changes_heading`, and area settings (`group_by_area`, per-repo `repo_area_headings` with ERPNext defaults only for `frappe/erpnext`, `general_heading`, `get_area_headings()`, `get_area_heading()`)
 - `ReleaseNotesConfig`: Main config object; accepts `llm=` or legacy `openai=` inputs and validates required config on creation
 
 **`pretty_release_notes/core/config_loader.py`** - Configuration loaders:

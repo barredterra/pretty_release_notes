@@ -180,6 +180,7 @@ class ReleaseNotesGenerator:
 			self.exclude_authors,
 			grouping=self.grouping,
 			model_name=format_model_name(self.llm_model),
+			repo=f"{self.repository.owner}/{self.repository.name}",
 		)
 
 	def _get_prs_for_lines(self, lines: list["ReleaseNotesLine"]) -> None:

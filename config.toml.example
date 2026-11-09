@@ -83,8 +83,12 @@ group_by_type = true
 # Takes precedence over group_by_type.
 # group_by_area = false
 
-# Map conventional scopes and PR labels to areas (optional, replaces the ERPNext defaults)
-# area_headings = { accounts = "Accounts", "balance-sheet" = "Accounts", stock = "Stock" }
-
 # Heading for changes that match no area or several areas (optional)
 # general_heading = "General"
+
+# Map conventional scopes and PR labels to areas, per repository (optional).
+# Only frappe/erpnext has default areas. A table for a repository replaces its defaults.
+# [grouping.repo_area_headings."frappe/hrms"]
+# payroll = "Payroll"
+# "salary-slip" = "Payroll"
+# attendance = "Attendance"

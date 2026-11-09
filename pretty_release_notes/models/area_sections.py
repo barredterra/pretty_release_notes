@@ -18,8 +18,9 @@ class AreaSections:
 	Large areas show each group collapsed, so the reader sees an overview first.
 	"""
 
-	def __init__(self, change_lines: list[ReleaseNotesLine], grouping: "GroupingConfig"):
+	def __init__(self, change_lines: list[ReleaseNotesLine], grouping: "GroupingConfig", repo: str):
 		self.grouping = grouping
+		self.repo = repo
 		self.breaking_lines: list[ReleaseNotesLine] = []
 		self.lines_by_area: dict[str, list[ReleaseNotesLine]] = {}
 
@@ -30,7 +31,7 @@ class AreaSections:
 				self.breaking_lines.append(line)
 				continue
 
-			area = grouping.get_area_heading(change.conventional_scope, change.labels)
+			area = grouping.get_area_heading(repo, change.conventional_scope, change.labels)
 			self.lines_by_area.setdefault(area, []).append(line)
 
 	def to_markdown(self) -> list[str]:
@@ -45,7 +46,7 @@ class AreaSections:
 		return sections
 
 	def _get_area_order(self) -> list[str]:
-		configured_areas = dict.fromkeys(self.grouping.area_headings.values())
+		configured_areas = dict.fromkeys(self.grouping.get_area_headings(self.repo).values())
 		return [self.grouping.general_heading, *configured_areas]
 
 	def _get_area_section(self, area: str, lines: list[ReleaseNotesLine]) -> list[str]:
