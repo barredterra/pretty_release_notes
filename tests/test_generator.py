@@ -182,3 +182,18 @@ def test_generator_uses_cache_hit_without_llm_when_read_enabled(tmp_path):
 	mock_llm.assert_not_called()
 	mock_db.store_sentence.assert_not_called()
 	assert line.sentence == "cached summary"
+
+
+def test_generator_handles_release_without_body(tmp_path):
+	# GitHub returns "body": null for a release that was created with empty notes.
+	generator = _generator_with_repo(tmp_path, DatabaseConfig(enabled=False))
+	progress = CollectingProgressReporter()
+	generator.progress = progress
+	generator.github = MagicMock()
+	generator.github.get_release.return_value = {"body": None}
+	generator.github.generate_release_notes.return_value = {"body": "## What's Changed\n"}
+
+	generator.generate("v1.0.0")
+
+	generator.github.generate_release_notes.assert_called_once_with(generator.repository, "v1.0.0", None)
+	assert progress.events[0].message == ""

@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Areas per repository**: The global `area_headings` setting is replaced by per-repository `repo_area_headings` tables. The ERPNext default areas now apply only to `frappe/erpnext`. A config file that still contains `area_headings` causes an error. `ReleaseNotesBuilder.with_grouping()` takes `repo_area_headings` instead of `area_headings`.
 - **Poll state format**: `processed_releases.json` now stores processed and labeled releases separately. The old format is read automatically.
 
+### Fixed
+
+- **Releases without notes**: Generation failed with "Input data should be a string" for a release that was created with empty notes, because GitHub returns no body for it.
+
 ## [v1.4.1 - 2026-08-23]
 
 ### Fixed

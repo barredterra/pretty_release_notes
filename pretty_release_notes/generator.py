@@ -101,7 +101,8 @@ class ReleaseNotesGenerator:
 		"""
 		assert self.repository is not None, "Repository must be initialized before generating release notes"
 		release = self._get_release(tag)
-		old_body = release["body"]
+		# GitHub returns null for a release that was created with empty notes
+		old_body = release["body"] or ""
 
 		self.progress.report(
 			ProgressEvent(
