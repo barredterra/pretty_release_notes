@@ -165,9 +165,10 @@ class FakeGitHub:
 class TestPollCLI:
 	"""Run the poll CLI with a real config file, a temp state file and a fake GitHub client."""
 
-	def _write_config(self, tmp_path, release_label: str | None = None):
+	def _write_config(self, tmp_path, release_label: str | None = None, exclude_tags: list[str] | None = None):
 		config_file = tmp_path / "config.toml"
 		label_line = f'release_label = "{release_label}"' if release_label else ""
+		exclude_line = f"exclude_tags = {json.dumps(exclude_tags)}" if exclude_tags else ""
 		config_file.write_text(
 			f"""
 [github]
@@ -179,6 +180,7 @@ api_key = "llm-key"
 [poll]
 repos = ["owner/repo"]
 {label_line}
+{exclude_line}
 """
 		)
 		return config_file
@@ -243,6 +245,20 @@ repos = ["owner/repo"]
 			"The release is available on [GitHub release](https://github.com/owner/repo/releases/tag/v1.1.0)"
 		)
 		assert github.labels == {1: {"released"}, 2: {"released"}, 3: {"bug", "released"}}
+		assert state == {"processed": {"owner/repo": ["v1.1.0"]}, "labeled": {"owner/repo": ["v1.1.0"]}}
+
+	def test_poll_skips_excluded_tags(self, tmp_path):
+		# Some repos publish build artifacts as rolling releases, such as "assets-develop".
+		# Their generated notes contain unrelated PRs, which must not get release comments.
+		self._write_config(tmp_path, release_label="released", exclude_tags=["assets-*"])
+		github = FakeGitHub({"assets-develop": [1, 2], "v1.1.0": [3]})
+
+		result, state, generator = self._run_poll(tmp_path, github)
+
+		assert result.exit_code == 0, result.output
+		generator.generate.assert_called_once_with("v1.1.0")
+		assert github.generated == [("v1.1.0", "v0.9.0")]
+		assert github.commented_prs() == [3]
 		assert state == {"processed": {"owner/repo": ["v1.1.0"]}, "labeled": {"owner/repo": ["v1.1.0"]}}
 
 	def test_poll_resumes_labeling_after_rate_limit(self, tmp_path):

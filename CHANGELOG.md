@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Grouping by area**: `--group-by-area` (or `group_by_area = true`) groups changes by area, such as Accounts or Stock, instead of by type. The conventional scope picks the area. Without a scope, a single matching PR label picks it. Other changes go to a "General" section. In each area, changes are grouped and labeled by type. Areas with more than 3 changes are collapsed. Each repository has its own areas, set in `[grouping.repo_area_headings."owner/repo"]` tables. Only `frappe/erpnext` has default areas.
 - **Release label and comment**: `poll` can add a label and a release comment to each PR of a new release, like `semantic-release` does. Set `[poll] release_label` to enable it. Labeling has its own state, so a labeling failure does not repeat the release notes step. The new `pretty-release-notes label REPO TAG` command labels one release manually.
+- **Excluded tags**: `poll` skips releases whose tag matches a glob pattern in `[poll] exclude_tags`, for example `["assets-*"]`. Use this for releases that are not versions, such as rolling releases for build artifacts. Without it, `poll` rewrites their notes and labels many unrelated PRs.
 
 ### Changed
 

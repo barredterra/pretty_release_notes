@@ -4,6 +4,7 @@
 import json
 import time
 import tomllib
+from fnmatch import fnmatch
 from pathlib import Path
 from typing import Annotated
 
@@ -187,7 +188,9 @@ def poll(
 	loader = TomlConfigLoader(config_path)
 	config = loader.load()
 	repos = _load_poll_repos(loader.config_path)
-	release_label: str | None = _load_poll_config(loader.config_path).get("release_label")
+	poll_config = _load_poll_config(loader.config_path)
+	release_label: str | None = poll_config.get("release_label")
+	exclude_tags: list[str] = poll_config.get("exclude_tags", [])
 	github = GitHubClient(config.github.token)
 
 	state = _load_state()
@@ -245,10 +248,10 @@ def poll(
 			continue
 
 		for release in releases:
-			if release.get("draft"):
-				continue
-
 			tag = str(release["tag_name"])
+			is_excluded = any(fnmatch(tag, pattern) for pattern in exclude_tags)
+			if release.get("draft") or is_excluded:
+				continue
 
 			# The two steps are independent: a failure in one does not repeat or block the other.
 			if tag not in state["processed"].get(repo_spec, []):

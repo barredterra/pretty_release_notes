@@ -270,6 +270,16 @@ pretty-release-notes poll
 
 The poll command uses the same config, database, and filters as `generate`. Processed releases are tracked in `~/.pretty-release-notes/processed_releases.json`.
 
+Some repositories publish releases that are not versions, for example rolling releases for build artifacts. GitHub generates notes for them from an unrelated previous tag, so they can contain many PRs that are not in a release. To skip them, set glob patterns for their tags:
+
+```toml
+[poll]
+repos = ["frappe/erpnext", "frappe/frappe"]
+exclude_tags = ["assets-*"]
+```
+
+`poll` does not change the release notes of excluded releases and does not label their PRs. The `label` command does not use `exclude_tags`.
+
 #### Release Label and Comment
 
 `poll` can also add a label and a comment to each PR of a release, like `semantic-release` does. Use this when `semantic-release` fails to do it for large releases. Set the label in your config:

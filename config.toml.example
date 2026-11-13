@@ -69,6 +69,10 @@ exclude_authors = [
 # If not set, `poll` does not change PRs.
 # release_label = "released"
 
+# Skip releases whose tag matches one of these glob patterns (optional).
+# Use this for releases that are not versions, such as rolling releases for build artifacts.
+# exclude_tags = ["assets-*"]
+
 [grouping]
 # Enable grouping by conventional commit type (default: true)
 group_by_type = true
